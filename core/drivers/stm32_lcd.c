@@ -46,15 +46,6 @@ static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, ui
 	/*Tell LVGL the display flush is done.*/
 	lv_display_flush_ready(display);
 
-	/*
-	uint32_t start_addr = (area->y1 * LTDC_SCREEN_SIZE_X_px * LTDC_BYTES_PER_PIXEL) + (area->x1 * LTDC_BYTES_PER_PIXEL);
-    start_addr += LTDC_DISP_BUFFER_ADDR;
-
-    uint32_t x_size = lv_area_get_width(area);
-    uint32_t y_size = lv_area_get_height(area);
-
-	dma2d_start_copy((void*)color_p, (void*)start_addr, x_size, y_size);
-	*/
 }
 
 static void disp_clean_dcache(lv_display_t* drv)
@@ -741,9 +732,11 @@ void lcd_init()
 	io_set_pin_mux(LTDC_GREEN_DATA_5_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_GREEN_DATA_6_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_GREEN_DATA_7_io, GPIO_AFR_AF14);
-
 	io_set_pin_mux(LTDC_BLUE_DATA_2_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_BLUE_DATA_3_io, GPIO_AFR_AF14);
+	//io_set_pin_mux(LTDC_BLUE_DATA_4_io, GPIO_AFR_AF14);
+	//io_set_pin_mux(LTDC_BLUE_DATA_5_io, GPIO_AFR_AF14);
+
 
 	//TODO: REVERT
 	io_set_pin_dir_out(LTDC_BLUE_DATA_4_io);
@@ -848,14 +841,9 @@ void lcd_lvgl_init()
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
 
-	/*Invalidate the dcache.*/
-	//TODO:
+	/*Set the DMA2D interrupt handler per instructions in lv_conf.h LV_USE_DRAW_DMA2D.*/
+	//dma2d_set_transfer_complete_handler(lv_draw_dma2d_transfer_complete_interrupt_handler);
 
-	/*Call the flush ready function on a DMA2D transfer complete interrupt to let LVGL know were done flushing.*/
-	/*dma2d_init(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
-	dma2d_set_transfer_complete_handler(lcd_lvgl_flush_complete);
-	dma2d_enable_interrupt(TRANSFER_COMPLETE);
-	dma2d_nvic_enable_interrupt();*/
 }
 
 void lcd_solid_color_test_red()
@@ -1024,6 +1012,48 @@ void lcd_solid_color_test_black()
 		io_pin_out_clr(LTDC_BLUE_DATA_5_io);
 		io_pin_out_clr(LTDC_BLUE_DATA_6_io);
 		io_pin_out_clr(LTDC_BLUE_DATA_7_io);
+}
+
+void lcd_solid_color_test_white()
+{
+		/*Enable pin alternate function for all the LTDC pins.*/
+		io_set_pin_dir_out(LTDC_RED_DATA_2_io);
+		io_set_pin_dir_out(LTDC_RED_DATA_3_io);
+		io_set_pin_dir_out(LTDC_RED_DATA_4_io);
+		io_set_pin_dir_out(LTDC_RED_DATA_5_io);
+		io_set_pin_dir_out(LTDC_RED_DATA_6_io);
+		io_set_pin_dir_out(LTDC_RED_DATA_7_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_2_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_3_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_4_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_5_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_6_io);
+		io_set_pin_dir_out(LTDC_GREEN_DATA_7_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_2_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_3_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_4_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_5_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_6_io);
+		io_set_pin_dir_out(LTDC_BLUE_DATA_7_io);
+
+		io_pin_out_set(LTDC_RED_DATA_2_io);
+		io_pin_out_set(LTDC_RED_DATA_3_io);
+		io_pin_out_set(LTDC_RED_DATA_4_io);
+		io_pin_out_set(LTDC_RED_DATA_5_io);
+		io_pin_out_set(LTDC_RED_DATA_6_io);
+		io_pin_out_set(LTDC_RED_DATA_7_io);
+		io_pin_out_set(LTDC_GREEN_DATA_2_io);
+		io_pin_out_set(LTDC_GREEN_DATA_3_io);
+		io_pin_out_set(LTDC_GREEN_DATA_4_io);
+		io_pin_out_set(LTDC_GREEN_DATA_5_io);
+		io_pin_out_set(LTDC_GREEN_DATA_6_io);
+		io_pin_out_set(LTDC_GREEN_DATA_7_io);
+		io_pin_out_set(LTDC_BLUE_DATA_2_io);
+		io_pin_out_set(LTDC_BLUE_DATA_3_io);
+		io_pin_out_set(LTDC_BLUE_DATA_4_io);
+		io_pin_out_set(LTDC_BLUE_DATA_5_io);
+		io_pin_out_set(LTDC_BLUE_DATA_6_io);
+		io_pin_out_set(LTDC_BLUE_DATA_7_io);
 }
 
 void lcd_solid_color_test_inputs()

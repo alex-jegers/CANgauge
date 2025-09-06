@@ -20,7 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #ifdef CORE_CM7
 
-#include <drivers/stm32_sys_timer.h>
+#include "include/FreeRTOS.h"
+#include "drivers/stm32_sys_timer.h"
 #include "stm32h7xx_it_cm7.h"
 #include "drivers/stm32_io.h"
 #include "lvgl/lvgl.h"
@@ -121,6 +122,7 @@ void SysTick_Handler(void)
 
 	timer_inc(1);
 	lv_tick_inc(1);
+	xPortSysTickHandler();
 	io_pin_out_tgl(GPIOK, GPIO_PIN2_Msk);
 }
 

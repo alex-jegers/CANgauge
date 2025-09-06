@@ -38,8 +38,12 @@ typedef enum
 /***********	STATIC VARIABLES	************/
 static uint32_t dma2d_disp_x_size = 0;
 static uint32_t dma2d_disp_y_size = 0;
-void (*dma2d_transfer_complete_handler)();
 void (*dma2d_transfer_error_handler)();
+void (*dma2d_transfer_complete_handler)();
+void (*dma2d_transfer_watermark_handler)();
+void (*dma2d_clut_access_error_handler)();
+void (*dma2d_clut_transfer_complete_handler)();
+void (*dma2d_configuration_error_handler)();
 
 /***********	STATIC FUNCTION DECLARATIONS	************/
 static void dma2d_set_transfer_mode(dma2d_cr_mode_t mode);
@@ -122,6 +126,16 @@ void DMA2D_IRQHandler()
 {
 	uint32_t isr = DMA2D->ISR;
 
+	/*Transfer error.*/
+	if (isr & DMA2D_ISR_TEIF)
+	{
+		if (dma2d_transfer_error_handler)
+		{
+			dma2d_transfer_error_handler();
+		}
+	}
+
+	/*Transfer complete.*/
 	if (isr & DMA2D_ISR_TCIF)
 	{
 		if (dma2d_transfer_complete_handler)
@@ -130,11 +144,39 @@ void DMA2D_IRQHandler()
 		}
 	}
 
-	if (isr & DMA2D_ISR_TEIF)
+	/*Transfer watermark.*/
+	if (isr & DMA2D_ISR_TWIF)
 	{
-		if (dma2d_transfer_error_handler)
+		if (dma2d_transfer_watermark_handler)
 		{
-			dma2d_transfer_error_handler();
+			dma2d_transfer_watermark_handler();
+		}
+	}
+
+	/*CLUT access error.*/
+	if (isr & DMA2D_ISR_CAEIF)
+	{
+		if (dma2d_clut_access_error_handler)
+		{
+			dma2d_clut_access_error_handler();
+		}
+	}
+
+	/*CLUT transfer complete.*/
+	if (isr & DMA2D_ISR_CTCIF)
+	{
+		if (dma2d_clut_transfer_complete_handler)
+		{
+			dma2d_clut_transfer_complete_handler();
+		}
+	}
+
+	/*Configuration error.*/
+	if (isr & DMA2D_ISR_CEIF)
+	{
+		if (dma2d_configuration_error_handler)
+		{
+			dma2d_configuration_error_handler();
 		}
 	}
 

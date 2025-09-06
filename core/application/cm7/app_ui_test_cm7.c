@@ -6,6 +6,8 @@
 
 #include <stdbool.h>
 
+#include "drivers/stm32_lcd.h"
+
 #include "lvgl/lvgl.h"
 
 /**********		DEFINES		**********/
@@ -28,6 +30,18 @@ void app_ui_test_run()
     lv_demo_benchmark();
     while (app_run == true)
     {
+    	/*
+    	lcd_solid_color_test_white();
+    	timer_delay_ms(3000);
+    	lcd_solid_color_test_black();
+    	timer_delay_ms(3000);
+    	lcd_solid_color_test_red();
+    	timer_delay_ms(3000);
+    	lcd_solid_color_test_blue();
+    	timer_delay_ms(3000);
+    	lcd_solid_color_test_green();
+    	timer_delay_ms(3000);
+        */
         time_till_next = lv_timer_handler();
         current_time = timer_get_time_ms();
 

@@ -29,8 +29,13 @@ void dma2d_start_copy(void* src_addr, void* dst_addr, uint32_t x_size, uint32_t 
 void dma2d_enable_interrupt(dma2d_cr_enable_interrupt_t interrupt);
 
 void dma2d_nvic_enable_interrupt();
-void dma2d_set_transfer_complete_handler(void (*func)());
+
 void dma2d_set_transfer_error_handler(void (*func)());
+void dma2d_set_transfer_complete_handler(void (*func)());
+void dma2d_set_transfer_watermark_handler(void (*func)());
+void dma2d_set_clut_access_error_handler(void (*func)());
+void dma2d_set_clut_transfer_complete_handler(void (*func)());
+void dma2d_set_configuration_error_handler(void (*func)());
 
 
 #endif /* DRIVERS_STM32_DMA2D_H_ */

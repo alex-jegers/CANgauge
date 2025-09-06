@@ -138,7 +138,7 @@
 #define LTDC_BLUE_DATA_2_io                 GPIOG, GPIO_PIN10_Msk
 #define LTDC_BLUE_DATA_3_io                 GPIOG, GPIO_PIN11_Msk
 #define LTDC_BLUE_DATA_4_io                 GPIOG, GPIO_PIN12_Msk
-#define LTDC_BLUE_DATA_5_io                 GPIOI, GPIO_PIN1_Msk
+#define LTDC_BLUE_DATA_5_io                 GPIOI, GPIO_PIN5_Msk
 #define LTDC_BLUE_DATA_6_io                 GPIOB, GPIO_PIN8_Msk
 #define LTDC_BLUE_DATA_7_io                 GPIOB, GPIO_PIN9_Msk
 #define LTDC_CLK_io                         GPIOG, GPIO_PIN7_Msk
@@ -196,6 +196,7 @@ void lcd_solid_color_test_red();
 void lcd_solid_color_test_green();
 void lcd_solid_color_test_blue();
 void lcd_solid_color_test_black();
+void lcd_solid_color_test_white();
 void lcd_solid_color_test_inputs();
 
 #endif /* INC_STM32_LCD_H_ */

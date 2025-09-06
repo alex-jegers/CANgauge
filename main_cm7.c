@@ -21,11 +21,13 @@
 #include "stm32h745xx.h"
 #include "system/cm7/system_cm7.h"
 
+#include "FreeRTOS.h"
+
 
 int main(void)
 {
    	system_init();
- 	system_run();
+   	vTaskStartScheduler();
 }
 
 #endif	//CORE_CM7
