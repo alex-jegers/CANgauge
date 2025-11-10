@@ -96,8 +96,6 @@ static void can_clear_int_status(FDCAN_GlobalTypeDef* canbus, uint32_t mask);			
 static can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus);
 
 /*TX related functions.*/
-static int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index);								//immediately transmits a message from the tx buffer of a given index.
-static can_tx_buffer_entry_t* can_get_buffer_entry(FDCAN_GlobalTypeDef* canbus, uint8_t index);
 
 /*RX related functions.*/
 static uint32_t can_get_fifo0_fill_level(FDCAN_GlobalTypeDef* canbus);							//returns the fill level of FIFO0.
@@ -114,27 +112,6 @@ static void canbus_kernel_clk_select(canbus_kernel_clk_t clk)
 {
 	RCC->D2CCIP1R &= ~(0x3 << RCC_D2CCIP1R_FDCANSEL_Pos);		//clear the bits.
 	RCC->D2CCIP1R |= clk;
-}
-
-static int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index)
-{
-	canbus->TXBAR = 1 << index;		//Request next transfer.
-}
-
-static can_tx_buffer_entry_t* can_get_buffer_entry(FDCAN_GlobalTypeDef* canbus, uint8_t index)
-{
-	can_tx_buffer_entry_t* dest_addr = NULL;
-	if (canbus == FDCAN1)
-	{
-		dest_addr = (can_tx_buffer_entry_t*)((uint8_t*)CAN1_TX_BUFFER_ADDR + (index * sizeof(can_tx_buffer_entry_t)));
-	}
-
-	if (canbus == FDCAN2)
-	{
-		dest_addr = (can_tx_buffer_entry_t*)((uint8_t*)CAN2_TX_BUFFER_ADDR + (index * sizeof(can_tx_buffer_entry_t)));
-	}
-
-	return dest_addr;
 }
 
 static void can_set_listen_only(FDCAN_GlobalTypeDef* canbus)
@@ -301,7 +278,7 @@ bool can_take(FDCAN_GlobalTypeDef* canbus)
 {
 	if (canbus == FDCAN1)
 	{
-		if(xSemaphoreTake(_can1_mutex, 5) == pdFAIL)
+		if(xSemaphoreTake(_can1_mutex, 0) == pdFAIL)
 		{
 			return false;
 		}
@@ -310,7 +287,7 @@ bool can_take(FDCAN_GlobalTypeDef* canbus)
 
 	if (canbus == FDCAN2)
 	{
-		if(xSemaphoreTake(_can2_mutex, 5) == pdFAIL)
+		if(xSemaphoreTake(_can2_mutex, 0) == pdFAIL)
 		{
 			return false;
 		}
@@ -530,91 +507,34 @@ void can_assign_rx_rf0f_cb(FDCAN_GlobalTypeDef* canbus, void (*func)())
 	}
 }
 
-int8_t can_add_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* new_message, uint32_t interval, bool overwrite)
+int8_t can_add_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* new_message, uint8_t index)
 {
-	/*Find a slot that isn't being used in the buffer.*/
-	int8_t unused_index = -1;
-	for (int8_t i = 0; i < CAN1_TX_BUFFER_ELEMENTS; i++)
-	{
-		if (1/*can1_tx_timer[i].index_used == false*/)
-		{
-			unused_index = i; 
-			break;
-		}
-	}
+	can_tx_buffer_entry_t* dest_addr = can_get_tx_buffer(canbus, index);
+	memcpy(dest_addr, new_message, sizeof(can_tx_buffer_entry_t));
 	
-	/*Couldn't find an open slot.*/
-	if (unused_index == -1)
-	{
-		/*If option to overwrite is true, overwrite index 0.*/
-		if (overwrite)
-		{
-			unused_index = 0;
-		}
-		/*If option to overwrite is false, do nothing and return -1.*/
-		else
-		{
-			return -1;
-		}
-	}
-	
-	can_tx_buffer_entry_t* dest_addr = can_get_buffer_entry(canbus, unused_index);
-	*dest_addr = *new_message;
-	//can1_tx_timer[unused_index].interval = interval;
-	//can1_tx_timer[unused_index].index_used = true;
-	//can1_tx_timer[unused_index].active = false;
-	
-	return unused_index;
+	return 0;
 }
 
-int8_t can_activate_tx(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message)
+can_tx_buffer_entry_t* can_get_tx_buffer(FDCAN_GlobalTypeDef* canbus, uint8_t index)
 {
-	for (uint8_t i = 0; i < CAN1_TX_BUFFER_ELEMENTS; i++)
+	can_tx_buffer_entry_t* dest_addr = NULL;
+	if (canbus == FDCAN1)
 	{
-		can_tx_buffer_entry_t* dest_addr = can_get_buffer_entry(canbus, i);
-		if (memcmp(dest_addr, message, sizeof(can_tx_buffer_entry_t)) == 0)
-		{
-			//can1_tx_timer[i].active = true;
-			return 1;
-		}
+		dest_addr = (can_tx_buffer_entry_t*)((uint8_t*)CAN1_TX_BUFFER_ADDR + (index * sizeof(can_tx_buffer_entry_t)));
 	}
-	return -1;
+
+	if (canbus == FDCAN2)
+	{
+		dest_addr = (can_tx_buffer_entry_t*)((uint8_t*)CAN2_TX_BUFFER_ADDR + (index * sizeof(can_tx_buffer_entry_t)));
+	}
+
+	return dest_addr;
 }
 
-int8_t can_deactivate_tx(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message)
-{
-	for (uint8_t i = 0; i < CAN1_TX_BUFFER_ELEMENTS; i++)
-	{
-		can_tx_buffer_entry_t* dest_addr = can_get_buffer_entry(canbus, i);
-		if (memcmp(dest_addr, message, sizeof(can_tx_buffer_entry_t)) == 0)
-		{
-			//can1_tx_timer[i].active = false;
-			return 1;
-		}
-	}
-	return -1;
-}
 
-void can_deactivate_all_tx(FDCAN_GlobalTypeDef* canbus)
+int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index)
 {
-	for(uint8_t i = 0; i < CAN1_TX_BUFFER_ELEMENTS; i++)
-	{
-		//can1_tx_timer[i].active = false;
-	}
-}
-
-int8_t can_remove_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message)
-{
-	for (uint8_t i = 0; i < CAN1_TX_BUFFER_ELEMENTS; i++)
-	{
-		can_tx_buffer_entry_t* dest_addr = can_get_buffer_entry(canbus, i);
-		if (memcmp(dest_addr, message, sizeof(can_tx_buffer_entry_t)) == 0)
-		{
-			//can1_tx_timer[i].index_used = false;
-			return 1;
-		}
-	}
-	return -1;	
+	canbus->TXBAR = 1 << index;		//Request next transfer.
 }
 
 int8_t can_add_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id, bool overwrite)

@@ -46,7 +46,7 @@ typedef enum
 #define CAN1_RX_FIFO0_ELEMENTS			64
 #define CAN1_RX_FIFO1_ELEMENTS			64
 #define CAN1_TX_EVENT_FIFO_ELEMENTS		0				/*TODO: Need tx_event_fifo_t.*/
-#define CAN1_TX_BUFFER_ELEMENTS			4
+#define CAN1_TX_BUFFER_ELEMENTS			32
 #define CAN1_STD_ID_FILTER_ELEMENTS		4
 #define CAN1_EXT_ID_FILTER_ELEMENTS		4
 #define CAN1_TRIGGER_MEMORY_ELEMENTS	0				/*TODO: Need can_trigger_memory_t.*/
@@ -219,11 +219,9 @@ void can_filter_init(FDCAN_GlobalTypeDef* canbus);
 
 
 /*TX control.*/
-int8_t can_add_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* new_message, uint32_t interval, bool overwrite);
-int8_t can_activate_tx(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message);
-int8_t can_deactivate_tx(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message);
-void  can_deactivate_all_tx(FDCAN_GlobalTypeDef* canbus);
-int8_t can_remove_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* message);
+int8_t can_add_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* new_message, uint8_t index);
+can_tx_buffer_entry_t* can_get_tx_buffer(FDCAN_GlobalTypeDef* canbus, uint8_t index);
+int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index);								//immediately transmits a message from the tx buffer of a given index.
 
 /*RX control.*/
 void can_assign_rx_rf0n_cb(FDCAN_GlobalTypeDef* canbus, void (*func)());		//New RX in FIFO0 interrupt.

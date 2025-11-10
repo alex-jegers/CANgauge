@@ -26,7 +26,6 @@ extern SemaphoreHandle_t sys_mutex_lvgl;
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void system_task_init();
-void system_task_lvgl_tick_inc();		//Task to increment the LVGL timer.
 void system_task_lvgl_timer_update();	//Task to run LVGL renderer.
 void system_task_blink();				//Task to blink the test LED at 2 HZ.
 

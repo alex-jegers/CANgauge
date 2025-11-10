@@ -32,12 +32,12 @@ bool hsem_signal(uint32_t hsem, uint8_t proc_id)
 
 void hsem_wait_void(uint32_t hsem, uint8_t proc_id)
 {
-	while (((1 << hsem) & hsem_get_status()) == 0){}
+	while (((1 << hsem) & hsem_get_ir()) == 0){}
 }
 
 bool hsem_wait_bool(uint32_t hsem, uint8_t proc_id)
 {
-	uint32_t ir = hsem_get_status();
+	uint32_t ir = hsem_get_ir();
 	if ((ir & (1 << hsem)) == 0)
 	{
 		return false;
@@ -76,7 +76,7 @@ bool hsem_unlock(uint32_t hsem, uint8_t proc_id)
 	return readback & HSEM_R_LOCK;
 }
 
-uint32_t hsem_get_status()
+uint32_t hsem_get_ir()
 {
 #ifdef CORE_CM7
 	return HSEM->C1ISR;
@@ -86,6 +86,16 @@ uint32_t hsem_get_status()
 	return HSEM->C2ISR;
 #endif //CORE_CM4
 
+}
+
+bool hsem_get_status(uint32_t hsem)
+{
+	uint32_t ir = hsem_get_ir();
+	if ((ir & (1 << hsem)) != 0)
+	{
+		return true;
+	}
+	return false;
 }
 
 void hsem_clear_all(uint32_t key)

@@ -18,6 +18,7 @@
 #include "drivers/stm32_hsem.h"
 
 #include "application/app_ui_test_cm7.h"
+#include "application/app_can_sniffer_cm7.h"
 
 #include "touch_screen/iic_touch.h"
 #include "touch_screen/cst830_touch_cm7.h"
@@ -44,11 +45,36 @@ volatile UBaseType_t system_stack_watermark;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void _init_fpu();
+static void _can_sniffer_btn_hanlder(lv_event_t* e);
+static void _task_test();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 static void _init_fpu()
 {
 	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
+}
+
+static void _can_sniffer_btn_hanlder(lv_event_t* e)
+{
+	assert(xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL));
+}
+
+static void _task_test()
+{
+	while (1)
+	{
+		if (LTDC_Layer1->CFBAR == 0xd0000000)
+		{
+			LTDC_Layer1->CFBAR = 0xd00A8C00;
+			LTDC->SRCR = LTDC_SRCR_VBR;
+		}
+		else if (LTDC_Layer1->CFBAR == 0xd00A8C00)
+		{
+			LTDC_Layer1->CFBAR = 0xd0000000;
+			LTDC->SRCR = LTDC_SRCR_VBR;
+		}
+		vTaskDelay(pdMS_TO_TICKS(33));
+	}
 }
 
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
@@ -62,7 +88,7 @@ void system_task_init()
 	io_init_test_led(TEST_LED_PORT, TEST_LED_PIN);
 	io_test_led_on();
 	_init_fpu();
-	fmc_init_sdram();
+
 	system_init_shared_mem();
 
 	/*Time dependent initializations.*/
@@ -93,27 +119,12 @@ void system_task_init()
 	else
 	{
 		ui_car_load_menu_screen();
+		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 1, NULL);
-		xTaskCreate(system_task_lvgl_tick_inc, "LVGL_TICK_INC", 60, NULL, 0, NULL);
+		//xTaskCreate(_task_test, "TASK_TEST", 1500, NULL, 1, NULL);
 	}
 
 	vTaskDelete(NULL);
-}
-
-void system_task_lvgl_tick_inc()
-{
-	TickType_t last_run_time;
-	last_run_time = xTaskGetTickCount();
-
-	while (1)
-	{
-		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
-		{
-			lv_tick_inc(5);
-			xSemaphoreGive(sys_mutex_lvgl);
-		}
-		vTaskDelayUntil(&last_run_time, 5);
-	}
 }
 
 void system_task_lvgl_timer_update()
@@ -138,6 +149,11 @@ void system_task_blink()
 		io_test_led_tgl();
 		vTaskDelayUntil(&last_run_time, 250);
 	}
+}
+
+void vApplicationTickHook()
+{
+	lv_tick_inc(pdTICKS_TO_MS(1));
 }
 
 #endif	//CORE_CM7

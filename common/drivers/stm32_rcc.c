@@ -141,7 +141,7 @@ static void rcc_init_pll3()
 
 	/*Set up the dividers.*/
 	RCC->PLL3DIVR = (26 << RCC_PLL3DIVR_N3_Pos)		//Mult 27...
-				| (35 << RCC_PLL3DIVR_R3_Pos)		//Div 18,	R = 12MHz	//TODO: CHANGE BACK TO 17
+				| (10 << RCC_PLL3DIVR_R3_Pos)		//Div 18,	R = 12MHz	//TODO: CHANGE BACK TO 17
 				| (17 << RCC_PLL3DIVR_Q3_Pos)		//Div 18,	Q = 12MHz
 				| (0 << RCC_PLL3DIVR_P3_Pos);		//No div, 	P = 216MHz
 

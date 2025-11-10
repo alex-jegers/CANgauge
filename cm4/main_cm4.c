@@ -16,7 +16,9 @@
  ******************************************************************************
  */
 
+
 #include <stdint.h>
+#include <stdbool.h>
 #include "stm32h745xx.h"
 
 #include "system/system_cm4.h"
@@ -39,7 +41,7 @@ int main(void)
 	 * Updates the touch screen data. Needs to be high priority, runs quick and the latency of
 	 * the touch screen relies on it.
 	 * */
-	xTaskCreate(cst830_update, "CST830_UPDATE", 1024, NULL, 3, NULL);
+	xTaskCreate(cst830_update, "CST830_UPDATE", 1024, NULL, 4, NULL);
 
 	/*Gets CAN baud rates, triggered by HSEM 0.*/
 	xTaskCreate(app_can_baud_rate_run, "APP_GET_BAUD_RATE", 1000, NULL, 2, &sys_task_handle_app_get_baud_rate);
@@ -47,9 +49,6 @@ int main(void)
 
 	/*Monitors the HSEMs for a signal from CM7 to run something.*/
 	xTaskCreate(system_task_monitor, "SYS_MONITOR", 500, NULL, 3, NULL);
-
-	/*Handles incoming CAN data. Can be blocking and must be low priority.*/
-	xTaskCreate(app_can_sniffer_run, "CAN_SNIFFER", 1500, NULL, 1, app_can_sniffer_task_handle);
 
 	vTaskStartScheduler();
 

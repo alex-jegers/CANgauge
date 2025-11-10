@@ -31,6 +31,7 @@
 int main(void)
 {
 	rcc_main_clock_config();
+	fmc_init_sdram();
    	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 0, NULL);
    	vTaskStartScheduler();
    	while(1);

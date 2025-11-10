@@ -64,6 +64,7 @@ Reset_Handler:
   ldr	r1, =0xE000ED08
   str	r0, [r1]
 
+
 /* Copy the data segment initializers from flash to SRAM */
   ldr r0, =_sdata
   ldr r1, =_edata
@@ -123,7 +124,7 @@ Infinite_Loop:
 *
 * The STM32H745XIHx vector table.  Note that the proper constructs
 * must be placed on this to ensure that it ends up at physical address
-* 0x0000.0000.
+* 0x0000.0000. <-- This is wrong needs to be at 0x08100000
 *
 ******************************************************************************/
   .section .isr_vector,"a",%progbits

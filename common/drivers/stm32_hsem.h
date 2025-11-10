@@ -25,6 +25,9 @@
 #define HSEM_ID_CAN_BAUD_RATE_DONE	0
 #define HSEM_ID_CAN_BAUD_RATE_STOP	0
 
+#define HSEM_APP_CAN_SNIFFER		2
+#define HSEM_ID_APP_CAN_SNIFFER		0
+
 
 
 #define CM4_CORE_ID			1
@@ -49,7 +52,8 @@ bool hsem_wait_bool(uint32_t hsem, uint8_t proc_id);	//returns false while waiti
 bool hsem_fast_lock(uint32_t id);						//performs the 1 step lock procedure.
 bool hsem_lock(uint32_t hsem, uint8_t proc_id);			//performs the 2 step lock procedure.
 bool hsem_unlock(uint32_t hsem, uint8_t proc_id);		//unlocks the semaphore.
-uint32_t hsem_get_status();								//returns the interrupt status register.
+uint32_t hsem_get_ir();									//returns the interrupt status register.
+bool hsem_get_status(uint32_t hsem);					//Check interrupt status for 1 hsem.
 void hsem_clear_all(uint32_t key);
 void hsem_clear_int(uint32_t hsem);						//clear an interrupt.
 void hsem_clear_all_int();								//clear all the interrupts.

@@ -34,11 +34,12 @@ static void ui_car_init_menu_screen()
 	lv_obj_set_style_bg_color(ui_car_menu_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	ui_car_menu_screen_is_init = true;
 	
+	/*
 	LV_IMAGE_DECLARE(cangauge_logo);
 	lv_obj_t* cg_logo_image = lv_image_create(ui_car_menu_scr);
 	lv_image_set_src(cg_logo_image, &cangauge_logo);
 	lv_obj_align(cg_logo_image, LV_ALIGN_CENTER, 0, -100);
-
+*/
 	/*Add a button to launch the code reader.*/
 	ui_car_gauges_btn = ui_helpers_create_btn_with_text(ui_car_menu_scr, "Gauges", &lv_font_montserrat_16);
 	lv_obj_align(ui_car_gauges_btn, LV_ALIGN_CENTER, 0, 40);
@@ -49,9 +50,6 @@ static void ui_car_init_menu_screen()
 	lv_obj_align(ui_car_can_sniffer_load_btn, LV_ALIGN_CENTER, 0, 100);
 	lv_obj_add_event_cb(ui_car_can_sniffer_load_btn, ui_car_can_sniffer_btn_clicked, LV_EVENT_PRESSED, NULL);
 
-	//lv_obj_t* cw = lv_color(ui_car_menu_scr);
-	//lv_obj_set_size(cw, 200, 200);
-	//lv_obj_center(cw);
 }
 
 static void ui_car_gauges_btn_clicked()
@@ -68,12 +66,9 @@ static void ui_car_gauges_btn_clicked()
 
 static void ui_car_can_sniffer_btn_clicked()
 {
-	if (ui_helpers_is_demo_mode() == false)
+	if (ui_car_can_sniffer_btn_clicked_cb)
 	{
-		if (ui_car_can_sniffer_btn_clicked_cb)
-		{
-			ui_car_can_sniffer_btn_clicked_cb();
-		}
+		ui_car_can_sniffer_btn_clicked_cb();
 	}
 	ui_can_sniffer_load();
 }
@@ -94,7 +89,7 @@ void ui_car_set_dtc_reader_load_btn_clicked_cb(void* (func)())
 	ui_car_gauges_btn_clicked_cb = func;
 }
 
-void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)())
+void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)(lv_event_t* e))
 {
 	ui_car_can_sniffer_btn_clicked_cb = func;
 }

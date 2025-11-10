@@ -157,6 +157,8 @@
 
 #endif //TARGET_HARDWARE_CANGAUGE
 
+extern const uint8_t color_cal_map[];
+
 void fmc_init_sdram();
 void fmc_init_gpio_sdram();
 void fmc_init_io_test();

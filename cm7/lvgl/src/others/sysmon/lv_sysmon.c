@@ -113,7 +113,7 @@ void lv_sysmon_show_performance(lv_display_t * disp)
         }
 
         lv_subject_init_pointer(&disp->perf_sysmon_backend.subject, &disp->perf_sysmon_info);
-        lv_obj_align(disp->perf_label, LV_USE_PERF_MONITOR_POS, 0, 0);
+        lv_obj_align(disp->perf_label, LV_USE_PERF_MONITOR_POS, 0, 10);
         lv_subject_add_observer_obj(&disp->perf_sysmon_backend.subject, perf_observer_cb, disp->perf_label, NULL);
         disp->perf_sysmon_backend.timer = lv_timer_create(perf_update_timer_cb, LV_SYSMON_REFR_PERIOD_DEF, disp);
         lv_display_add_event_cb(disp, perf_monitor_disp_event_cb, LV_EVENT_ALL, NULL);

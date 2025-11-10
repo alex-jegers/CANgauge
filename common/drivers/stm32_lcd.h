@@ -11,7 +11,7 @@
 #define INC_STM32_LCD_H_
 
 #include "stm32h745xx.h"
-#include "../lvgl/lvgl.h"
+#include "lvgl/lvgl.h"
 
 #ifdef TARGET_HARDWARE_STM32H745DISCO
 
@@ -89,21 +89,30 @@
 #define LTDC_SCREEN_SIZE_X_px				480
 #define LTDC_SCREEN_SIZE_Y_px				480
 #define LTDC_SCREEN_AREA_px					(LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px)
-#define LTDC_BYTES_PER_PIXEL				4
+#define LTDC_BYTES_PER_PIXEL				2
 #define LTDC_BUFFER_SIZE                    (LTDC_SCREEN_AREA_px * LTDC_BYTES_PER_PIXEL)
 
-#define LTDC_DISP_BUFFER_ADDR             	0xD0000000
-#define LTDC_LVGL_BUFFER1_ADDR              (LTDC_DISP_BUFFER_ADDR + (LTDC_BUFFER_SIZE))
-#define LTDC_LVGL_BUFFER2_ADDR              (LTDC_LVGL_BUFFER1_ADDR + (LTDC_BUFFER_SIZE))
+#define LTDC_DISP_BUFFER_ADDR             	&ltdc_lvgl_buffer1
+#define LTDC_LVGL_BUFFER1_ADDR              &ltdc_lvgl_buffer2//LTDC_DISP_BUFFER_ADDR + LTDC_BUFFER_SIZE
+//#define LTDC_LVGL_BUFFER2_ADDR              &ltdc_lvgl_buffer2//LTDC_LVGL_BUFFER1_ADDR + LTDC_BUFFER_SIZE
 
-#define LTDC_SSCR_VSYNC_HEIGHT_px			5
-#define LTDC_SSCR_HSYNC_WIDTH_px			22
-#define LTDC_BPCR_VERT_BK_PORCH_px			(LTDC_SSCR_VSYNC_HEIGHT_px + 5)
-#define LTDC_BPCR_HORZ_BK_PORCH_px			(LTDC_SSCR_HSYNC_WIDTH_px + 22)
+#define LTDC_SSCR_VSYNC_HEIGHT_px			35
+#define LTDC_SSCR_HSYNC_WIDTH_px			35
+#define LTDC_BPCR_VERT_BK_PORCH_px			(LTDC_SSCR_VSYNC_HEIGHT_px + 35)
+#define LTDC_BPCR_HORZ_BK_PORCH_px			(LTDC_SSCR_HSYNC_WIDTH_px + 35)
 #define LTDC_AWCR_ACT_HEIGHT_px				(LTDC_BPCR_VERT_BK_PORCH_px + LTDC_SCREEN_SIZE_Y_px)
 #define LTDC_AWCR_ACT_WIDTH_px				(LTDC_BPCR_HORZ_BK_PORCH_px + LTDC_SCREEN_SIZE_X_px)
-#define LTDC_TWCR_TOT_HEIGHT_px				(LTDC_AWCR_ACT_HEIGHT_px + 5)			//This adds on the front porch.
-#define LTDC_TWCR_TOT_WIDTH_px				(LTDC_AWCR_ACT_WIDTH_px + 22)			//This adds on the front porch.
+#define LTDC_TWCR_TOT_HEIGHT_px				(LTDC_AWCR_ACT_HEIGHT_px + 35)			//This adds on the front porch.
+#define LTDC_TWCR_TOT_WIDTH_px				(LTDC_AWCR_ACT_WIDTH_px + 35)			//This adds on the front porch.
+
+#if LTDC_TWCR_TOT_HEIGHT_px > 864
+#error "LTDC Total Height too Large."
+#endif
+
+#if LTDC_TWCR_TOT_WIDTH_px > 1022
+#error "LTDC Total Height too Large."
+#endif
+
 #define LTDC_VERT_FRNT_PORCH_px				(LTDC_TWCR_TOT_HEIGHT_px - LTDC_AWCR_ACT_HEIGHT_px)
 #define LTDC_VERT_BK_PORCH_px				(LTDC_BPCR_VERT_BK_PORCH_px - LTDC_SSCR_VSYNC_HEIGHT_px)
 #define LTDC_HORZ_FRNT_PORCH_px				(LTDC_TWCR_TOT_WIDTH_px - LTDC_AWCR_ACT_WIDTH_px)
@@ -121,7 +130,9 @@
 #define LTDC_LxCFBLR_BUFFER_PITCH_Val		LTDC_SCREEN_SIZE_X_px * LTDC_BYTES_PER_PIXEL
 #define LTDC_LxCFBLR_LINE_LENGTH_Val		(LTDC_SCREEN_SIZE_X_px * LTDC_BYTES_PER_PIXEL)+7
 #define LTDC_LxCFBLNR_NUM_LINES_Val			LTDC_SCREEN_SIZE_Y_px
-
+#define LTDC_LxPFCR_PF_ARGB888				0x0
+#define LTDC_LxPFCR_PF_RGB888				0x1
+#define LTDC_LxPFCR_PF_RGB565				0x2
 
 #define LTDC_RED_DATA_2_io                  GPIOA, GPIO_PIN1_Msk
 #define LTDC_RED_DATA_3_io                  GPIOB, GPIO_PIN0_Msk
@@ -192,6 +203,9 @@
 void lcd_init();														//Configures the LTDC Peripheral.
 void lcd_enable();														//Enables the LTDC.
 void lcd_lvgl_init();													//Initializes LVGL and configures LVGL to run with the LTDC.
+
+
+
 void lcd_solid_color_test_red();
 void lcd_solid_color_test_green();
 void lcd_solid_color_test_blue();

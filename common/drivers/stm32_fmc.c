@@ -134,15 +134,34 @@ void fmc_init_sdram()
 
 
 	//TODO: Read back the memory and add error handling for if it reads back incorrectly.
-	for (uint32_t addr = 0xd0000000; addr < 0xD017E800; addr += 4)
+	/*Put the color calibration in normally*/
+	/*
+	for (uint32_t addr = 0xd0000000; addr < 0xd0054600; addr += 1)
 	{
-		*(uint32_t*)addr = 0xffeb2fa6;
+		*(uint8_t*)addr = color_cal_map[addr - 0xd0000000];
 	}
 
-	for (uint32_t addr = 0xd0000000; addr < 0xD017E800; addr += 4)
+	for (uint32_t addr = 0xd0054600; addr < 0xd00A8C00; addr += 1)
 	{
-		uint32_t data = *(uint32_t*)addr;
-		if (data != 0xffeb2fa6)
+		*(uint8_t*)addr = color_cal_map[addr - 0xd0054600];
+	}
+
+	//Put the color cal image in in reverse.
+	for (uint32_t addr = 0xd00A8C00; addr < 0xd00FD200; addr += 1)
+	{
+		*(uint8_t*)addr = color_cal_map[345599 - (addr - 0xd00A8C00)];
+	}
+
+	for (uint32_t addr = 0xd00FD200; addr < 0xD0151800; addr += 1)
+	{
+		*(uint8_t*)addr = color_cal_map[345599 - (addr - 0xd00FD200)];
+	}
+
+
+	for (uint32_t addr = 0xd0000000; addr < 0xd0054600; addr += 1)
+	{
+		uint8_t data = *(uint8_t*)addr;
+		if (data != color_cal_map[addr - 0xd0000000])
 		{
 			while (1)
 			{
@@ -151,7 +170,7 @@ void fmc_init_sdram()
 
 		}
 	}
-
+*/
 }
 
 

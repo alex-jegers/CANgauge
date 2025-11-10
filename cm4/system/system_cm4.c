@@ -9,6 +9,7 @@
 #include "system/system_cm4.h"
 
 #include "application/app_can_get_baud_rate_cm4.h"
+#include "application/app_can_sniffer_cm4.h"
 
 #include "drivers/stm32_hsem.h"
 #include "drivers/stm32_hsem.h"
@@ -35,6 +36,7 @@
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 TaskHandle_t sys_task_handle_app_get_baud_rate = NULL;
+TaskHandle_t sys_task_hdl_app_can_sniffer = NULL;
 
 /**********     STATIC VARIABLES     **********/
 
@@ -51,6 +53,8 @@ void system_task_init()
     /*Enable FPU (I do this in CM7, not sure if it's needed here as well.*/
 	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
 
+
+
 	/*Wait for a signal from CM7.*/
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM7);
 	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM4);
@@ -64,17 +68,32 @@ void system_task_init()
 
 	/*Signal that initialization is done.*/
 	hsem_signal(HSEM_INIT, HSEM_ID_INIT_CM4);
+
+	while (!ENABLE_CM4){}
 }
 
 void system_task_monitor()
 {
 	while(1)
 	{
-		uint32_t ir = hsem_get_status();
+		uint32_t ir = hsem_get_ir();
 		if ((ir & (1 << HSEM_CAN_BAUD_RATE)) != 0)
 		{
 			hsem_clear_int(HSEM_CAN_BAUD_RATE);
 			vTaskResume(sys_task_handle_app_get_baud_rate);
+		}
+		if(hsem_get_status(HSEM_APP_CAN_SNIFFER))
+		{
+			hsem_clear_int(HSEM_APP_CAN_SNIFFER);
+			if (app_can_sniffer_running())
+			{
+				app_can_sniffer_stop();
+			}
+			else
+			{
+				app_can_sniffer_run();
+			}
+
 		}
 
 		vTaskDelay(100);

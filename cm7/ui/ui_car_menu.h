@@ -17,7 +17,7 @@ extern "C" {
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void ui_car_load_menu_screen();
 void ui_car_set_dtc_reader_load_btn_clicked_cb(void* (func)());
-void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)());
+void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)(lv_event_t* e));
 
 
 

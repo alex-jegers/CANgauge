@@ -23,6 +23,7 @@ static bool ui_can_sniffer_is_init = false;
 
 static lv_obj_t* ui_can_sniffer_scr;
 static lv_obj_t* _connect_to_can1_btn;
+static lv_obj_t* _disconnect_from_can1_btn;
 static lv_obj_t* _connect_to_can2_btn;
 static lv_obj_t* _can1_baud_dropdown;
 static lv_obj_t* _can2_baud_dropdown;
@@ -50,6 +51,7 @@ static lv_btnmatrix_ctrl_t _tx_keypad_ctrl_map[] = { LV_BUTTONMATRIX_CTRL_WIDTH_
 static const char* _tx_ctrl_btn_matrix_map[] = { "Send", "Add", "Delete", NULL};
 
 static void (*_connect_to_can1_btn_cb)() = NULL;
+static void (*_disconnect_from_can1_btn_cb)() = NULL;
 static void (*_connect_to_can2_btn_cb)() = NULL;
 static void (*_back_to_main_btn_cb)() = NULL;
 static void (*_tx_ctrl_btn_matrix_cb)(lv_event_t* e) = NULL;
@@ -58,6 +60,7 @@ static void (*_tx_ctrl_btn_matrix_cb)(lv_event_t* e) = NULL;
 static void ui_can_sniffer_init();      //Initializes all the LVGL objects used on the screen.
 static void _table_draw_event_cb(lv_event_t* e);
 static void _connect_to_can1_btn_handler();
+static void _disconnect_from_can1_btn_handler(lv_event_t* e);
 static void _connect_to_can2_btn_handler();
 static void _back_to_main_btn_handler();
 static void _text_box_handler(lv_event_t* e);
@@ -111,8 +114,11 @@ static void ui_can_sniffer_init()
 
     /*CONNECTION BUTTONS.*/
     _connect_to_can1_btn = ui_helpers_create_btn_with_text(ui_can_sniffer_scr, "Connect to CAN1", LV_FONT_DEFAULT);
+    _disconnect_from_can1_btn = ui_helpers_create_btn_with_text(ui_can_sniffer_scr, "Disconnect", LV_FONT_DEFAULT);
     _connect_to_can2_btn = ui_helpers_create_btn_with_text(ui_can_sniffer_scr, "Connect to CAN2", LV_FONT_DEFAULT);
     lv_obj_align(_connect_to_can1_btn, LV_ALIGN_CENTER, 60, CAN_CONNECTION_Y_POS);
+    lv_obj_align(_disconnect_from_can1_btn, LV_ALIGN_CENTER, 60, CAN_CONNECTION_Y_POS);
+    lv_obj_add_flag(_disconnect_from_can1_btn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_align(_connect_to_can2_btn, LV_ALIGN_CENTER, 60, CAN_CONNECTION_Y_POS + 55);
 
     /*DROP DOWN MENUS.*/
@@ -165,18 +171,21 @@ static void ui_can_sniffer_init()
     lv_obj_set_size(_id_txt_box, 95, 55);
     lv_obj_align(_id_txt_box, LV_ALIGN_CENTER, -150, TX_TEXTBOXES_Y_POS);
     lv_obj_set_style_border_width(_id_txt_box, 1, LV_STATE_DEFAULT);
+    lv_textarea_set_text(_id_txt_box, "7DF");
 
     /*Initialize TX frequency text box.*/
     _freq_txt_box = lv_textarea_create(ui_can_sniffer_scr);
     lv_obj_set_size(_freq_txt_box, 55, 55);
     lv_obj_align(_freq_txt_box, LV_ALIGN_CENTER, -60, TX_TEXTBOXES_Y_POS);
     lv_obj_set_style_border_width(_freq_txt_box, 1, LV_STATE_DEFAULT);
+    lv_textarea_set_text(_freq_txt_box, "100");
 
     /*Initialze TX data text box.*/
     _data_txt_box = lv_textarea_create(ui_can_sniffer_scr);
     lv_obj_set_size(_data_txt_box, 175, 55);
     lv_obj_align(_data_txt_box, LV_ALIGN_CENTER, 80, TX_TEXTBOXES_Y_POS);
     lv_obj_set_style_border_width(_data_txt_box, 1, LV_STATE_DEFAULT);
+    lv_textarea_set_text(_data_txt_box, "020105");
 
     /*TX CTRL KEYPAD*/
     _tx_keypad = lv_keyboard_create(ui_can_sniffer_scr);
@@ -185,8 +194,17 @@ static void ui_can_sniffer_init()
     lv_obj_align(_tx_keypad, LV_ALIGN_CENTER, 0, TX_KEYPAD_Y_POS);
     lv_obj_set_size(_tx_keypad, 300, 275);
 
+    /* Hide all the TX controls until we connect to CAN. */
+    lv_obj_add_flag(_tx_ctrl_btn_matrix, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_tx_msg_table, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_id_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_freq_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_data_txt_box, LV_OBJ_FLAG_HIDDEN);
 
     /*Bind all the controls callbacks.*/
+    lv_obj_add_event(_connect_to_can1_btn, _connect_to_can1_btn_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event(_disconnect_from_can1_btn, _disconnect_from_can1_btn_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event(_connect_to_can2_btn, _connect_to_can2_btn_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event(_back_to_main_btn, _back_to_main_btn_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event(_id_txt_box, _text_box_handler, LV_EVENT_ALL, NULL);
     lv_obj_add_event(_freq_txt_box, _text_box_handler, LV_EVENT_ALL, NULL);
@@ -232,9 +250,31 @@ static void _table_draw_event_cb(lv_event_t* e)
 
 static void _connect_to_can1_btn_handler()
 {
+    lv_obj_add_flag(_connect_to_can1_btn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_tx_ctrl_btn_matrix, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_tx_msg_table, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_id_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_freq_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_data_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_disconnect_from_can1_btn, LV_OBJ_FLAG_HIDDEN);
     if (_connect_to_can1_btn_cb != NULL)
     {
         _connect_to_can1_btn_cb();
+    }
+}
+
+static void _disconnect_from_can1_btn_handler(lv_event_t* e)
+{
+    lv_obj_add_flag(_disconnect_from_can1_btn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_tx_ctrl_btn_matrix, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_tx_msg_table, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_id_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_freq_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_data_txt_box, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(_connect_to_can1_btn, LV_OBJ_FLAG_HIDDEN);
+    if (_disconnect_from_can1_btn_cb != NULL)
+    {
+        _disconnect_from_can1_btn_cb(e);
     }
 }
 
@@ -271,22 +311,41 @@ static void _tx_ctrl_btn_matrix_handler(lv_event_t* e)
     lv_obj_t* temp_btn_matrix = lv_event_get_target_obj(e);
     if (code == LV_EVENT_VALUE_CHANGED)
     {
+
         uint32_t btn_id = lv_buttonmatrix_get_selected_button(temp_btn_matrix);
         char* btn_txt = lv_buttonmatrix_get_button_text(temp_btn_matrix, btn_id);
         if (strcmp(btn_txt, "Add") == 0)
         {
-            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 0, lv_textarea_get_text(_id_txt_box));
-            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 1, lv_textarea_get_text(_freq_txt_box));
-            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 2, lv_textarea_get_text(_data_txt_box));
+            char* id_str = lv_textarea_get_text(_id_txt_box);
+            char* interval_str = lv_textarea_get_text(_freq_txt_box);
+            char* data_str = lv_textarea_get_text(_data_txt_box);
+            /* id_str cant be blank and needs to be less than 0x1fffffff. */
+            if ((id_str == "") || (strtol(id_str, NULL, 16) > 0x1FFFFFFF))
+            {
+                lv_obj_set_style_border_color(_id_txt_box, UI_COLOR_RED, LV_PART_MAIN);
+            }
+            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 0, id_str);
+            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 1, interval_str);
+            lv_table_set_cell_value(_tx_msg_table, _tx_msg_table_row_count, 2, data_str);
             lv_textarea_set_text(_id_txt_box, "");
             lv_textarea_set_text(_freq_txt_box, "");
             lv_textarea_set_text(_data_txt_box, "");
             _tx_msg_table_row_count++;
+
+            if (_tx_ctrl_btn_matrix_cb != NULL)
+            {
+                _tx_ctrl_btn_matrix_cb(e);
+            }
+
         }
         else if (strcmp(btn_txt, "Delete") == 0)
         {
             if (_tx_msg_table_selected_row != LV_TABLE_CELL_NONE)
             {
+                if (_tx_ctrl_btn_matrix_cb != NULL)
+                {
+                    _tx_ctrl_btn_matrix_cb(e);
+                }
 
                 if (_tx_msg_table_row_count <= 1)
                 {
@@ -313,13 +372,12 @@ static void _tx_ctrl_btn_matrix_handler(lv_event_t* e)
         }
         else if (strcmp(btn_txt, "Send") == 0)
         {
-
+            if (_tx_ctrl_btn_matrix_cb != NULL)
+            {
+                _tx_ctrl_btn_matrix_cb(e);
+            }
         }
 
-        if (_tx_ctrl_btn_matrix_cb != NULL)
-        {
-            _tx_ctrl_btn_matrix_cb(e);
-        }
     }
 }
 
@@ -344,6 +402,11 @@ void ui_can_sniffer_assign_can1_connect_btn_cb(void (*func)())
     _connect_to_can1_btn_cb = func;
 }
 
+void ui_can_sniffer_assign_can1_disconnect_btn_cb(void (*func)(lv_event_t* e))
+{
+    _disconnect_from_can1_btn_cb = func;
+}
+
 void ui_can_sniffer_assign_can2_connect_btn_cb(void (*func)())
 {
     _connect_to_can2_btn_cb = func;
@@ -352,4 +415,36 @@ void ui_can_sniffer_assign_can2_connect_btn_cb(void (*func)())
 void ui_can_sniffer_assign_back_to_main_btn_cb(void (*func)())
 {
     _back_to_main_btn_cb = func;
+}
+
+void ui_can_sniffer_assign_tx_ctrl_btn_matrix_cb(void (*func)(lv_event_t* e))
+{
+	_tx_ctrl_btn_matrix_cb = func;
+}
+
+char* ui_can_sniffer_get_can1_dd_list_text()
+{
+	static char text[8];
+	lv_dropdown_get_selected_str(_can1_baud_dropdown, text, sizeof(text));
+	return &text;
+}
+
+char* ui_can_sniffer_get_can2_dd_list_text()
+{
+
+}
+
+uint32_t ui_can_sniffer_get_tx_table_selected_row()
+{
+	return _tx_msg_table_selected_row;
+}
+
+char* ui_can_sniffer_get_tx_table_cell_value(uint32_t row, uint32_t column)
+{
+	return lv_table_get_cell_value(_tx_msg_table, row, column);
+}
+
+uint32_t ui_can_sniffer_get_tx_table_number_of_rows()
+{
+	return _tx_msg_table_row_count;
 }

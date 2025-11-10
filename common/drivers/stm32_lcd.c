@@ -13,8 +13,12 @@
 #include "stm32_dma2d.h"	//For frame buffer control.
 #include "stm32_timer.h"	//For lcd backlight PWM.
 #include "stm32_spi.h"		//For initializing the ST7701 driver used on CANgauge config.
+#include <assert.h>
 
 /*******STATIC VARIABLES************/
+static lv_display_t* disp;
+__attribute__((__section__(".disp_buffer1"))) static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
+__attribute__((__section__(".disp_buffer2"))) static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /*******	STATIC FUNCTION DECLARATIONS	************/
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map);
@@ -34,18 +38,24 @@ static void lcd_st7701_adafruit_spi_config();
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map)
 {
 	/*Swap the active display pointer in the LTDC.*/
-	if (lv_display_flush_is_last(display)) {
+	volatile int32_t is_last = lv_display_flush_is_last(display);
+	uint32_t addr = (uint32_t)lv_display_get_buf_active(display)->data;
+	if (is_last == 1) {
+		LTDC->ICR = LTDC_ICR_CRRIF;
 		SCB_CleanInvalidateDCache();
 		// wait for VSYNC to avoid tearing
-		while (!(LTDC->CDSR & LTDC_CDSR_VSYNCS));
+		//while ((LTDC->CDSR & LTDC_CDSR_VSYNCS) == 0){}
 		// swap framebuffers (NOTE: LVGL will swap the buffers in the background, so here we can set the LCD framebuffer to the current LVGL buffer, which has been just completed)
-		LTDC_Layer1->CFBAR = (uint32_t)(lv_display_get_buf_active(display)->data);
-		LTDC->SRCR = LTDC_SRCR_IMR;
+		LTDC_Layer1->CFBAR = addr;
+		LTDC->SRCR = LTDC_SRCR_VBR;
+		/*Tell LVGL the display flush is done.*/
+		while ((LTDC->ISR & LTDC_ISR_RRIF) == 0)
+		{
+
+		}
 	}
 
-	/*Tell LVGL the display flush is done.*/
 	lv_display_flush_ready(display);
-
 }
 
 static void disp_clean_dcache(lv_display_t* drv)
@@ -716,11 +726,18 @@ void lcd_init()
 						| (LTDC_LxCFBLR_LINE_LENGTH_Val << LTDC_LxCFBLR_CFBLL_Pos);
 	LTDC_Layer1->CFBLNR = LTDC_LxCFBLNR_NUM_LINES_Val;
 
+	/*Set color mode.*/
+	LTDC_Layer1->PFCR = LTDC_LxPFCR_PF_RGB565;
+
 	/*Enable layer 1.*/
 	LTDC_Layer1->CR = LTDC_LxCR_LEN;
 
 	/*Reload the layer registers.*/
 	LTDC->SRCR = LTDC_SRCR_IMR;
+
+	/*Enable register reload interrupt.*/
+	LTDC->IER = LTDC_IER_RRIE;
+	//NVIC_EnableIRQ(LTDC_IRQn);
 
 	/*Enable pin alternate function for all the LTDC pins.*/
 	io_set_pin_mux(LTDC_RED_DATA_2_io, GPIO_AFR_AF14);
@@ -729,20 +746,6 @@ void lcd_init()
 	io_set_pin_mux(LTDC_RED_DATA_5_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_RED_DATA_6_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_RED_DATA_7_io, GPIO_AFR_AF14);
-
-	//io_set_pin_dir_out(LTDC_RED_DATA_2_io);
-	//io_pin_out_clr(LTDC_RED_DATA_2_io);
-	//io_set_pin_dir_out(LTDC_RED_DATA_3_io);
-	//io_pin_out_clr(LTDC_RED_DATA_3_io);
-	//io_set_pin_dir_out(LTDC_RED_DATA_4_io);
-	//io_pin_out_clr(LTDC_RED_DATA_4_io);
-	//io_set_pin_dir_out(LTDC_RED_DATA_5_io);
-	//io_pin_out_clr(LTDC_RED_DATA_5_io);
-	//io_set_pin_dir_out(LTDC_RED_DATA_6_io);
-	//io_pin_out_clr(LTDC_RED_DATA_6_io);
-	//io_set_pin_dir_out(LTDC_RED_DATA_7_io);
-	//io_pin_out_clr(LTDC_RED_DATA_7_io);
-
 
 	io_set_pin_mux(LTDC_GREEN_DATA_2_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_GREEN_DATA_3_io, GPIO_AFR_AF14);
@@ -762,8 +765,6 @@ void lcd_init()
 	io_set_pin_mux(LTDC_HSYNC_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_VSYNC_io, GPIO_AFR_AF14);
 	io_set_pin_mux(LTDC_DE_io, GPIO_AFR_AF14);
-
-
 
 	/*Set the output speed to very high for all the IO lines.*/
 	io_set_output_speed(LTDC_RED_DATA_2_io, GPIO_OSPEEDR_VERY_HIGH);
@@ -840,10 +841,10 @@ void lcd_enable()
 void lcd_lvgl_init()
 {
 	/*Create the display object.*/
-	lv_display_t* disp = lv_display_create(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
+	disp = lv_display_create(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
 
 	/*Set up the buffers.*/
-	lv_display_set_buffers(disp, LTDC_LVGL_BUFFER1_ADDR, LTDC_LVGL_BUFFER2_ADDR, LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px * LTDC_BYTES_PER_PIXEL, LV_DISPLAY_RENDER_MODE_DIRECT);
+	lv_display_set_buffers(disp, (void*)LTDC_DISP_BUFFER_ADDR, (void*)LTDC_LVGL_BUFFER1_ADDR, LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px * LTDC_BYTES_PER_PIXEL, LV_DISPLAY_RENDER_MODE_FULL);
 
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
@@ -1085,5 +1086,12 @@ void lcd_solid_color_test_inputs()
 	io_set_pin_dir_in(LTDC_BLUE_DATA_7_io);
 }
 
+
+void LTDC_IRQHandler()
+{
+	lv_display_flush_ready(disp);
+	LTDC->ICR = LTDC_ICR_CRRIF;
+	LTDC->IER = 0;
+}
 
 #endif //CORE_CM7

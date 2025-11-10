@@ -10,6 +10,8 @@
 #ifndef CORE_SYSTEM_CM4_SYSTEM_CM4_H_
 #define CORE_SYSTEM_CM4_SYSTEM_CM4_H_
 
+#define ENABLE_CM4		true
+
 #include "stm32h745xx.h"
 #include "app_shared_mem.h"
 
