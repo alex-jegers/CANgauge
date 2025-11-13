@@ -46,7 +46,7 @@ volatile UBaseType_t system_stack_watermark;
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void _init_fpu();
 static void _can_sniffer_btn_hanlder(lv_event_t* e);
-static void _task_test();
+static void _gauges_btn_handler(lv_event_t* e);
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 static void _init_fpu()
@@ -59,22 +59,9 @@ static void _can_sniffer_btn_hanlder(lv_event_t* e)
 	assert(xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL));
 }
 
-static void _task_test()
+static void _gauges_btn_handler(lv_event_t* e)
 {
-	while (1)
-	{
-		if (LTDC_Layer1->CFBAR == 0xd0000000)
-		{
-			LTDC_Layer1->CFBAR = 0xd00A8C00;
-			LTDC->SRCR = LTDC_SRCR_VBR;
-		}
-		else if (LTDC_Layer1->CFBAR == 0xd00A8C00)
-		{
-			LTDC_Layer1->CFBAR = 0xd0000000;
-			LTDC->SRCR = LTDC_SRCR_VBR;
-		}
-		vTaskDelay(pdMS_TO_TICKS(33));
-	}
+	app_gauges_run();
 }
 
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
@@ -120,8 +107,8 @@ void system_task_init()
 	{
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
-		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 1, NULL);
-		//xTaskCreate(_task_test, "TASK_TEST", 1500, NULL, 1, NULL);
+		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
+		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 4, NULL);
 	}
 
 	vTaskDelete(NULL);
