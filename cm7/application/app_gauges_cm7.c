@@ -1,10 +1,16 @@
 /**********     INCLUDES        **********/
 #include "app_gauges_cm7.h"
+#include "system/system_cm7.h"
+
 #include "ui/ui_gauges.h"
+
 #include "drivers/stm32_canbus.h"
-#include "lvgl.h"
 #include "drivers/stm32_hsem.h"
+
+#include "lvgl.h"
+
 #include "common/app_shared_mem.h"
+#include "common/saej1979.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -36,6 +42,7 @@ uint8_t saej1979_pid_intake_air_temp = 0x0F;
 uint8_t saej1979_pid_maf_flow_rate = 0x10;
 uint8_t saej1979_pid_fuel_rail_pressure = 0x22;
 uint8_t saej1979_pid_air_fuel_ratio = 0x34;
+static uint8_t _currently_displayed_pid = 0;
 
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -64,17 +71,12 @@ static void _task_gauges()
 	vTaskDelay(500);
 
 	/* Add a std ID filter. */
-	can_std_id_filter_t _saej1979_filter;
-	_saej1979_filter.S0.bit.SFEC = CAN_SFEC_STORE_FIFO1;
-	_saej1979_filter.S0.bit.SFT = CAN_SFT_RANGE;
-	_saej1979_filter.S0.bit.SFID1 = 0x7E8;
-	_saej1979_filter.S0.bit.SFID2 = 0x7EF;
-	can_set_std_id_filter(FDCAN1, 0, &_saej1979_filter);
+
 
 	while (_run)
 	{
 		/* Check if there is data in FIFO1. */
-		if (can_check_for_rx_fifo1(FDCAN1) == false)
+		while (shared_get_can_rx1_unique_ids(FDCAN1) == 0)
 		{
 			/*If there's not, wait for a bit and check again. */
 			vTaskDelay(30);
@@ -84,8 +86,15 @@ static void _task_gauges()
 		can_rx_buffer_entry_t* new_data = NULL;
 		shared_get_can_rx1_buffer_entry(FDCAN1, 0, new_data);
 
+		int32_t processed_data = saej1979_current_data_process_data(new_data);
 
-		/* If it's the correct PID code call ui_gauge_set_value with the data. */
+		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
+		{
+			ui_gauges_set_gauge_value(processed_data);
+			xSemaphoreGive(sys_mutex_lvgl);
+		}
+		
+		vTaskDelay(25);
 	}
 }
 
@@ -96,45 +105,7 @@ static void _gauge_btn_event_cb(lv_event_t* e)
 	lv_obj_t* lbl = lv_obj_get_child(btn, 0);
 	const char* lbl_text = lv_label_get_text(lbl);
 
-	if (strcmp(lbl_text, "Coolant Temp") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_coolant_temp;
-	}
-	else if (strcmp(lbl_text, "Fuel Pressure") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_fuel_pressure;
-	}
-	else if (strcmp(lbl_text, "Intake Air Pressure") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_intake_air_pressure;
-	}
-	else if (strcmp(lbl_text, "Timing Advance") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_timing_advance;
-	}
-	else if (strcmp(lbl_text, "Intake Air Temp") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_intake_air_temp;
-	}
-	else if (strcmp(lbl_text, "MAF Flow Rate") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_maf_flow_rate;
-	}
-	else if (strcmp(lbl_text, "Fuel Rail Pressure") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_fuel_rail_pressure;
-	}
-	else if (strcmp(lbl_text, "Air/Fuel Ratio") == 0)
-	{
-		saej1979_getter_template.data[2] = saej1979_pid_air_fuel_ratio;
-	}
-
-	/* Put its CAN TX message into the buffers. */
-	can_add_tx_buffer(FDCAN1, &saej1979_getter_template, 0);
-	
-	/* Set the unique CAN TX IDs to 1. And set the interval at which to transmit at. */
-	shared_set_can_tx_timing_data(30, 0);
-	shared_set_can_tx_unique_ids(FDCAN1, 1);
+	saej1979_current_data_set_getter(lbl_text);
 }
 
 static void _gauge_event_cb(lv_event_t* e)
