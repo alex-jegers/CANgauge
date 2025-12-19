@@ -8,11 +8,8 @@
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static int32_t convert_coolant_temp(uint32_t val) { return val - 40; };
-<<<<<<< Updated upstream
 static int32_t convert_fuel_pressure(uint32_t val) { return val * 3;};
-=======
 static int32_t convert_gauge_fuel_pressure(uint32_t val) { return val * 3;};
->>>>>>> Stashed changes
 static int32_t convert_intake_air_pressure(uint32_t val) { return val; };
 static int32_t convert_timing_advance(uint32_t val) { return (val / 2) - 64; };
 static int32_t convert_intake_air_temp(uint32_t val) { return val - 40; };
@@ -21,7 +18,6 @@ static int32_t convert_fuel_rail_pressure(uint32_t val);
 static int32_t convert_air_fuel_ratio(uint32_t val);
 
 /**********		STATIC VARIABLES		**********/
-<<<<<<< Updated upstream
 static saej1979_current_data_t saej1979_coolant_temp =          {.name = "Coolant Temp",        .pid_code = 0x05,   .conversion_func = convert_coolant_temp, 		.data_bytes = 1};
 static saej1979_current_data_t saej1979_fuel_pressure =         {.name = "Fuel Pressure",       .pid_code = 0x0A,   .conversion_func = convert_fuel_pressure, 		.data_bytes = 1};
 static saej1979_current_data_t saej1979_intake_air_pressure =   {.name = "Intake Air Temp",     .pid_code = 0x0B,   .conversion_func = convert_intake_air_pressure, .data_bytes = 1};
@@ -33,7 +29,7 @@ static saej1979_current_data_t saej1979_air_fuel_ratio =        {.name = "Air/Fu
 
 saej1979_current_data_t* saej1979_current_data_arr[] = {&saej1979_coolant_temp,
 &saej1979_fuel_pressure,
-=======
+
 
 static saej1979_current_data_t saej1979_monitor_status 			= {.name = "Monitor Status",     				.pid_code = 0x01, 	.conversion_func = NULL, 						.data_bytes = 4};
 static saej1979_current_data_t saej1979_dtc_freeze_frame		= {.name = "DTC Freeze Frame",     				.pid_code = 0x02,  	.conversion_func = NULL, 						.data_bytes = 2};
@@ -243,7 +239,6 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_calculated_engine_load 	,
 &saej1979_coolant_temp,
 &saej1979_gauge_fuel_pressure,
->>>>>>> Stashed changes
 &saej1979_intake_air_temp,
 &saej1979_timing_advance,
 &saej1979_intake_air_temp,
@@ -251,10 +246,6 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_fuel_rail_pressure,
 &saej1979_air_fuel_ratio};
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static int32_t convert_fuel_rail_pressure(uint32_t val)
 {
@@ -272,10 +263,6 @@ static int32_t convert_air_fuel_ratio(uint32_t val)
 void saej1979_current_data_set_getter(const char* name)
 {
 	/* Data byte 2 needs to be changed depending on the data being requested. */
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 	static can_tx_buffer_entry_t saej1979_getter_template =
 	{
 		.T0.bit.ID = 0x7DF << 18, .T0.bit.XTD = CAN_ID_STD, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
@@ -322,7 +309,3 @@ int32_t saej1979_current_data_process_data(can_rx_buffer_entry_t* input)
 	}	
 	return 0;
 }
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
