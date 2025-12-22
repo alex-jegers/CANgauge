@@ -21,13 +21,11 @@ void adc_init_clk(ADC_TypeDef* adc)
 	RCC->AHB1ENR |= RCC_AHB1ENR_ADC12EN;		//Enable the bus clock.
 }
 
-void adc_enable_interrupt(ADC_TypeDef* adc, adc_interrupt_t interrupt)
-{
-	adc->IER |= interrupt;
-}
-
 void adc_enable(ADC_TypeDef* adc)
 {
+	adc->CR &= ~(ADC_CR_DEEPPWD);
+	adc->CR |= ADC_CR_ADVREGEN;
+	while ((adc->ISR & ADC_ISR_LDORDY) == 0) {}
 	adc->CR |= ADC_CR_ADEN;
 }
 
@@ -139,6 +137,7 @@ void adc_set_sample_time(ADC_TypeDef* adc, adc_sample_time_t sample_time, uint8_
 
 void adc_set_channel(ADC_TypeDef* adc, uint8_t channel)
 {
+	adc->SQR1 = 15 << 6;
 	adc->PCSEL = (1 << channel);
 }
 
@@ -147,10 +146,37 @@ uint32_t adc_get_conversion(ADC_TypeDef* adc)
 	return adc->DR;
 }
 
+uint32_t adc_get_interrupt(ADC_TypeDef* adc, adc_int_flag_t interrupt)
+{
+	return adc->ISR & (uint32_t)interrupt;
+}
+void adc_clear_interrupt(ADC_TypeDef* adc, adc_int_flag_t interrupt)
+{
+	adc->ISR = (uint32_t)interrupt;
+}
+void adc_enable_interrupt(ADC_TypeDef* adc, adc_int_flag_t interrupt)
+{
+	adc->IER |= interrupt;
+}
+void adc_disable_interrupt(ADC_TypeDef* adc, adc_int_flag_t interrupt)
+{
+	adc->IER &= ~(interrupt);
+}
+
 void adc12_set_clock_prescaler(adc_prescaler_t prescaler)
 {
 	ADC12_COMMON->CCR &= ~(ADC_CCR_PRESC_Msk);				//bit clear.
 	ADC12_COMMON->CCR |= prescaler << ADC_CCR_PRESC_Pos;	//bit set.
+}
+
+void adc12_enable_nvic_interrupts()
+{
+	NVIC_EnableIRQ(ADC_IRQn);
+}
+
+void adc12_disable_nvic_interrupts()
+{
+	NVIC_DisableIRQ(ADC_IRQn);
 }
 
 void adc12_set_int_handler(void (*func)())
@@ -161,6 +187,16 @@ void adc12_set_int_handler(void (*func)())
 void adc3_set_int_handler(void (*func)())
 {
 	adc3_interrupt_cb = func;
+}
+
+void adc3_enable_nvic_interrupts()
+{
+	NVIC_EnableIRQ(ADC3_IRQn);
+}
+
+void adc3_disable_nvic_interrupts()
+{
+	NVIC_DisableIRQ(ADC3_IRQn);
 }
 
 void ADC1_2_IRQHandler()

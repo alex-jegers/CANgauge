@@ -7,7 +7,6 @@
  *
  ******************************************************************************
  */
-#ifdef CORE_CM7
 
 #if defined(TARGET_HARDWARE_CANGAUGE) && defined(TARGET_HARDWARE_STM32H745DISCO)
 	#error "Error: Both hardware targets defined, please only define one."
@@ -18,6 +17,7 @@
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 #include "stm32h745xx.h"
 #include "system/system_cm7.h"
 #include "drivers/stm32_rcc.h"
@@ -37,4 +37,4 @@ int main(void)
    	while(1);
 }
 
-#endif	//CORE_CM7
+
