@@ -2,6 +2,7 @@
 #include "ui_gauges.h"
 #include "ui_car_menu.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 /**********		DEFINES		**********/
 #define NUMBER_OF_GAUGES		8
@@ -56,6 +57,7 @@ static void _back_btn_handler(lv_event_t* e);
 static void _gauge_hanlder(lv_event_t* e);
 static void _gauge_anim_map(void* obj, uint32_t val);
 
+static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl);
 static void _load_coolant_temp_gauge();
 static void _load_fuel_pressure_gauge();
 static void _load_intake_air_pressure_gauge();
@@ -137,7 +139,7 @@ static void _gauge_select_btn_handler(lv_event_t* e)
 	}
 	else if (strcmp(btn_txt, "Intake Air Pressure") == 0)
 	{
-		_load_intake_air_pressure_gauge();
+		_load_gauge(0, 255, "Intake Air Pressure");
 	}
 	else if (strcmp(btn_txt, "Timing Advance") == 0)
 	{
@@ -210,6 +212,27 @@ static void _gauge_hanlder(lv_event_t* e)
 static void _gauge_anim_map(void* obj, uint32_t val)
 {
 	ui_gauges_set_gauge_value(val);
+}
+
+static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
+{
+	_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 270, 135, &_gauge_needle);
+	_gauge_data_lbl = lv_label_create(_gauge);
+	_gauge_info_lbl = lv_label_create(_gauge);
+	lv_obj_align(_gauge_data_lbl, LV_ALIGN_CENTER, 0, 90);
+	lv_obj_align(_gauge_info_lbl, LV_ALIGN_CENTER, 0, 150);
+	lv_label_set_text(_gauge_data_lbl, "");
+	lv_obj_set_style_text_font(_gauge_data_lbl, &lv_font_montserrat_26, LV_PART_MAIN);
+	lv_label_set_text(_gauge_info_lbl, lbl);
+	lv_obj_set_style_text_color(_gauge_data_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
+	lv_obj_set_style_text_color(_gauge_info_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
+	lv_obj_set_style_text_align(_gauge_data_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+	lv_obj_set_style_text_align(_gauge_info_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+	
+	if (ui_helpers_is_demo_mode())
+	{
+		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 2250, min_val, max_val);
+	}
 }
 
 static void _load_coolant_temp_gauge()

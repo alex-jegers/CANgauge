@@ -16,8 +16,10 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void ui_car_load_menu_screen();
-void ui_car_set_dtc_reader_load_btn_clicked_cb(void* (func)());
-void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)(lv_event_t* e));
+void ui_car_set_dtc_reader_load_btn_clicked_cb(lv_event_cb_t func);
+void ui_car_set_can_sniffer_btn_clicked_cb(lv_event_cb_t func);
+void ui_car_set_dtc_btn_clicked_cb(lv_event_cb_t func);
+void ui_car_set_data_logger_btn_clicked_cb(lv_event_cb_t func);
 
 
 
