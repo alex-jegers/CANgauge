@@ -119,7 +119,7 @@ void ui_car_load_menu_screen()
 	ui_car_menu_screen_is_init = true;
 }
 
-void ui_car_set_dtc_reader_load_btn_clicked_cb(lv_event_cb_t func)
+void ui_car_set_gauges_load_btn_clicked_cb(lv_event_cb_t func)
 {
 	ui_car_gauges_btn_clicked_cb = func;
 }
