@@ -3,7 +3,7 @@
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
-static bool ui_demo_mode = false;
+static bool ui_demo_mode = true;
 /**********		STATIC VARIABLES		**********/
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/

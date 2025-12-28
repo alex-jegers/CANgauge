@@ -126,7 +126,7 @@ static void rcc_init_pll2()
 	RCC->PLL2DIVR = (28 << RCC_PLL2DIVR_N2_Pos) 	//Mult 29..
 				| (0 << RCC_PLL2DIVR_R2_Pos)		//No div,	R = 232MHz
 				| (0 << RCC_PLL2DIVR_Q2_Pos)		//No Div,	Q = 232MHz
-				| (0 << RCC_PLL2DIVR_P2_Pos);		//No div,	P = 232MHz
+				| (6 << RCC_PLL2DIVR_P2_Pos);		//Div 7,	P = 33.143MHz
 
 	/*Enable PLL1.*/
 	RCC->CR |= RCC_CR_PLL2ON;
@@ -141,7 +141,7 @@ static void rcc_init_pll3()
 
 	/*Set up the dividers.*/
 	RCC->PLL3DIVR = (26 << RCC_PLL3DIVR_N3_Pos)		//Mult 27...
-				| (10 << RCC_PLL3DIVR_R3_Pos)		//Div 18,	R = 12MHz	//TODO: CHANGE BACK TO 17
+				| (10 << RCC_PLL3DIVR_R3_Pos)		//Div 18,	R = 12MHz
 				| (17 << RCC_PLL3DIVR_Q3_Pos)		//Div 18,	Q = 12MHz
 				| (0 << RCC_PLL3DIVR_P3_Pos);		//No div, 	P = 216MHz
 

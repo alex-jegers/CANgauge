@@ -5,7 +5,6 @@
  *      Author: awjpp
  */
 
-#ifdef CORE_CM7
 
 /**********		INCLUDES		**********/
 #include "system_cm7.h"
@@ -19,6 +18,7 @@
 
 #include "application/app_ui_test_cm7.h"
 #include "application/app_can_sniffer_cm7.h"
+#include "application/app_battery_monitor.h"
 
 #include "touch_screen/iic_touch.h"
 #include "touch_screen/cst830_touch_cm7.h"
@@ -108,7 +108,9 @@ void system_task_init()
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
-		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 4, NULL);
+		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 3, NULL);
+		xTaskCreate(app_battery_monitor_task, "BATT_MON", 500, NULL, 1, app_battery_monitor_task_handle);
+		//xTaskCreate(_task_test, "TASK_TEST", 1500, NULL, 1, NULL);
 	}
 
 	vTaskDelete(NULL);
@@ -143,4 +145,3 @@ void vApplicationTickHook()
 	lv_tick_inc(pdTICKS_TO_MS(1));
 }
 
-#endif	//CORE_CM7

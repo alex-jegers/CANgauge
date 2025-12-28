@@ -50,6 +50,7 @@ typedef struct
 	uint32_t can1_rx0_unique_ids;				//How many messages have been rx'd in CAN1.
 	struct can_rx_data can1_rx1_data[20];		//Data from FDCAN1 formatted as strings for CM7.
 	uint32_t can1_rx1_unique_ids;				//How many messages have been rx'd in CAN1.
+	
 	struct can_rx_data can2_rx0_data[20];		//Copy of above for CAN2
 	uint32_t can2_rx0_unique_ids;					//Copy of above for CAN2
 	struct can_rx_data can2_rx1_data[20];		//Copy of above for CAN2
