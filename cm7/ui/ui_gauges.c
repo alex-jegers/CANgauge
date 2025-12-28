@@ -5,8 +5,6 @@
 #include <stdio.h>
 
 /**********		DEFINES		**********/
-#define NUMBER_OF_GAUGES		8
-
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
 #define BACK_BTN_Y_POS					320
 #define HIDDEN_LABEL_Y_POS				600
@@ -18,11 +16,6 @@ static bool _is_init = false;
 /*LVGL/UI variables.*/
 static lv_obj_t* _main_scr;
 static lv_obj_t* _gauge_select_btn_container;
-static lv_obj_t* _gauge_select_btn[NUMBER_OF_GAUGES];
-static const char* _gauge_select_btn_lbl[NUMBER_OF_GAUGES] = { "Coolant Temp", "Fuel Pressure", 
-															"Intake Air Pressure", "Timing Advance", 
-															"Intake Air Temp", "MAF Flow Rate", 
-															"Fuel Rail Pressure", "Air/Fuel Ratio"};
 static lv_obj_t* _back_btn;
 
 
@@ -79,12 +72,6 @@ static void _init()
 	lv_obj_set_flex_flow(_gauge_select_btn_container, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(_gauge_select_btn_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 
-	/*GAUGE SELECT BUTTONS.*/
-	for (uint8_t i = 0; i < NUMBER_OF_GAUGES; i++)
-	{
-		_gauge_select_btn[i] = ui_helpers_create_btn_with_text(_gauge_select_btn_container, _gauge_select_btn_lbl[i], LV_FONT_DEFAULT);
-	}
-
 	/*BACK BUTTON.*/
 	_back_btn = ui_helpers_create_btn_with_text(_main_scr, "Back", LV_FONT_DEFAULT);
 	lv_obj_align(_back_btn, LV_ALIGN_CENTER, 0, BACK_BTN_Y_POS);
@@ -101,22 +88,17 @@ static void _init()
 	/*Bind the controls and event function handlers.*/
 	/*BACK BUTTON EVENT.*/
 	lv_obj_add_event(_back_btn, _back_btn_handler, LV_EVENT_CLICKED, NULL);
-
-	/*GAUGE SELECT BUTTONS EVENT.*/
-	for (uint8_t i = 0; i < NUMBER_OF_GAUGES; i++)
-	{
-		lv_obj_add_event(_gauge_select_btn[i], _gauge_select_btn_handler, LV_EVENT_CLICKED, NULL);
-	}
-	
+	lv_obj_add_event(_main_scr, _scr_load_cb, LV_EVENT_SCREEN_LOAD_START, NULL);	
 }
 
 static void _gauge_select_btn_handler(lv_event_t* e)
-{
-	lv_obj_t* sender = lv_event_get_target_obj(e);
-	lv_obj_t* lbl = lv_obj_get_child(sender, 0);
-	const char* btn_txt = NULL;
-	btn_txt = lv_label_get_text(lbl);
-
+{	
+	/*Check if there's a function CB assign and call it if there is.*/
+	if (_gauge_select_btn_cb != NULL)
+	{
+		_gauge_select_btn_cb(e);
+	}
+	
 	if (_gauge == NULL)
 	{
 		return;
@@ -124,12 +106,6 @@ static void _gauge_select_btn_handler(lv_event_t* e)
 
 	lv_screen_load(_gauge_scr);
 	lv_obj_add_event(_gauge, _gauge_hanlder, LV_EVENT_CLICKED, NULL);	//Bind the event to go back and clean the gauge if it's clicked.
-
-	/*Check if there's a function CB assign and call it if there is.*/
-	if (_gauge_select_btn_cb != NULL)
-	{
-		_gauge_select_btn_cb(e);
-	}
 }
 
 static void _back_btn_handler(lv_event_t* e)
@@ -138,6 +114,8 @@ static void _back_btn_handler(lv_event_t* e)
 	if (event_code == LV_EVENT_CLICKED)
 	{
 		ui_car_load_menu_screen();
+		lv_obj_clean(_main_scr);
+		_is_init = false;
 	}
 
 	/*Check if there's a function CB assign and call it if there is.*/
@@ -207,6 +185,7 @@ void ui_gauges_load()
 		_is_init = true;
 	}
 	lv_scr_load(_main_scr);
+	lv_obj_remove_event(_main_scr, 0);
 }
 
 void ui_gauges_set_gauge_value(int32_t val)
@@ -222,16 +201,13 @@ void ui_gauges_set_gauge_value(int32_t val)
 
 void ui_gauges_create_gauge_btn(const char* name)
 {
-	ui_helpers_create_btn_with_text(_gauge_select_btn_container, name, LV_FONT_DEFAULT);
+	lv_obj_t* btn = ui_helpers_create_btn_with_text(_gauge_select_btn_container, name, LV_FONT_DEFAULT);
+	lv_obj_add_event(btn, _gauge_select_btn_handler, LV_EVENT_CLICKED, NULL);
 }
 
-void ui_gauges_load_gauge()
+void ui_gauges_create_gauge(const char* name, uint32_t min, uint32_t max)
 {
-	if (_gauge != NULL)
-	{
-		lv_screen_load(_gauge_scr);
-		lv_obj_add_event(_gauge, _gauge_hanlder, LV_EVENT_CLICKED, NULL);	//Bind the event to go back and clean the gauge if it's clicked.
-	}
+	_load_gauge(min, max, name);
 }
 
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e))
