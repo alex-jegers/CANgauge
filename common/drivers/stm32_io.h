@@ -81,6 +81,7 @@ void io_deinit();
 /*Set pin direction.*/
 void io_set_pin_dir_out(GPIO_TypeDef* port, uint32_t mask);
 void io_set_pin_dir_in(GPIO_TypeDef* port, uint32_t mask);
+void io_set_pin_analog(GPIO_TypeDef* port, uint32_t mask);
 
 /*Set pin output value.*/
 void io_pin_out_set(GPIO_TypeDef* port, uint32_t mask);

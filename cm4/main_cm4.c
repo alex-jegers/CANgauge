@@ -17,6 +17,7 @@
  */
 
 
+#include <application/app_can_controller_cm4.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "stm32h745xx.h"
@@ -25,8 +26,6 @@
 
 #include "touch_screen/cst830_touch_cm4.h"
 #include "application/app_can_get_baud_rate_cm4.h"
-#include "application/app_can_sniffer_cm4.h"
-
 #include "FreeRTOS.h"
 #include <task.h>
 #include <queue.h>
