@@ -6,15 +6,19 @@
  */
 
 
+
 #ifndef CORE_SYSTEM_CM7_SYSTEM_H_
 #define CORE_SYSTEM_CM7_SYSTEM_H_
 
 
 /**********		INCLUDES		**********/
 #include "stm32h745xx.h"
+
 #include "FreeRTOS.h"
 #include <task.h>
-#include "semphr.h"
+#include <queue.h>
+#include <list.h>
+#include <semphr.h>
 
 /**********		DEFINES		**********/
 #define SYS_LVGL_TICK_INC_TASK_CODE				"LV_TICK_INC"
