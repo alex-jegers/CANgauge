@@ -10,8 +10,10 @@
 static bool ui_car_menu_screen_is_init = false;
 
 /*Event callbacks.*/
-void (*ui_car_gauges_btn_clicked_cb)();
-void (*ui_car_can_sniffer_btn_clicked_cb)();
+lv_event_cb_t ui_car_gauges_btn_clicked_cb;
+lv_event_cb_t ui_car_can_sniffer_btn_clicked_cb;
+lv_event_cb_t ui_car_dtc_btn_clicked_cb;
+lv_event_cb_t ui_car_data_logger_btn_clicked_cb;
 
 /*Panels and screens.*/
 static lv_obj_t* ui_car_menu_scr;
@@ -19,12 +21,16 @@ static lv_obj_t* ui_car_menu_btn_panel;
 
 /*Buttons.*/
 static lv_obj_t* ui_car_gauges_btn;
+static lv_obj_t* ui_car_dtc_btn;
+static lv_obj_t* ui_car_data_logger_btn;
 static lv_obj_t* ui_car_can_sniffer_load_btn;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void ui_car_init_menu_screen();
 static void ui_car_gauges_btn_clicked();
 static void ui_car_can_sniffer_btn_clicked();
+static void ui_car_dtc_btn_clicked();
+static void ui_car_data_logger_btn_clicked();
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void ui_car_init_menu_screen()
@@ -47,31 +53,60 @@ static void ui_car_init_menu_screen()
 
 	/*Add a button to launch the CAN sniffer.*/
 	ui_car_can_sniffer_load_btn = ui_helpers_create_btn_with_text(ui_car_menu_scr, "CAN Sniffer", &lv_font_montserrat_16);
-	lv_obj_align(ui_car_can_sniffer_load_btn, LV_ALIGN_CENTER, 0, 100);
+	lv_obj_align(ui_car_can_sniffer_load_btn, LV_ALIGN_CENTER, 0, 220);
 	lv_obj_add_event_cb(ui_car_can_sniffer_load_btn, ui_car_can_sniffer_btn_clicked, LV_EVENT_PRESSED, NULL);
 
+	/*Add a button for the DTC reader.*/
+	ui_car_dtc_btn = ui_helpers_create_btn_with_text(ui_car_menu_scr, "DTC Reader", &lv_font_montserrat_16);
+	lv_obj_align(ui_car_dtc_btn, LV_ALIGN_CENTER, 0, 100);
+	lv_obj_add_event_cb(ui_car_dtc_btn, ui_car_dtc_btn_clicked, LV_EVENT_PRESSED, NULL);
+
+
+	/*Add a button for the data logger.*/
+	ui_car_data_logger_btn = ui_helpers_create_btn_with_text(ui_car_menu_scr, "Data Logger", &lv_font_montserrat_16);
+	lv_obj_align(ui_car_data_logger_btn, LV_ALIGN_CENTER, 0, 160);
+	lv_obj_add_event_cb(ui_car_data_logger_btn, ui_car_data_logger_btn_clicked, LV_EVENT_PRESSED, NULL);
 }
 
-static void ui_car_gauges_btn_clicked()
+static void ui_car_gauges_btn_clicked(lv_event_t* e)
 {
 	if (ui_helpers_is_demo_mode() == false)
 	{
 		if (ui_car_gauges_btn_clicked_cb)
 		{
-			ui_car_gauges_btn_clicked_cb();
+			ui_car_gauges_btn_clicked_cb(e);
 		}
 	}
 	ui_gauges_load();
 }
 
-static void ui_car_can_sniffer_btn_clicked()
+static void ui_car_can_sniffer_btn_clicked(lv_event_t* e)
 {
 	if (ui_car_can_sniffer_btn_clicked_cb)
 	{
-		ui_car_can_sniffer_btn_clicked_cb();
+		ui_car_can_sniffer_btn_clicked_cb(e);
 	}
 	ui_can_sniffer_load();
 }
+
+static void ui_car_dtc_btn_clicked(lv_event_t* e)
+{
+	if (ui_car_dtc_btn_clicked_cb)
+	{
+		ui_car_dtc_btn_clicked_cb(e);
+	}
+	//TODO: load the DTC screen.
+}
+
+static void ui_car_data_logger_btn_clicked(lv_event_t* e)
+{
+	if (ui_car_data_logger_btn_clicked_cb)
+	{
+		ui_car_data_logger_btn_clicked_cb(e);
+	}
+	//TODO: load data logger screen.
+}
+
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void ui_car_load_menu_screen()
@@ -84,12 +119,24 @@ void ui_car_load_menu_screen()
 	ui_car_menu_screen_is_init = true;
 }
 
-void ui_car_set_gauges_load_btn_clicked_cb(void* (func)())
+void ui_car_set_dtc_reader_load_btn_clicked_cb(lv_event_cb_t func)
 {
 	ui_car_gauges_btn_clicked_cb = func;
 }
 
-void ui_car_set_can_sniffer_btn_clicked_cb(void* (func)(lv_event_t* e))
+void ui_car_set_can_sniffer_btn_clicked_cb(lv_event_cb_t func)
 {
 	ui_car_can_sniffer_btn_clicked_cb = func;
 }
+
+void ui_car_set_dtc_btn_clicked_cb(lv_event_cb_t func)
+{
+	ui_car_dtc_btn_clicked_cb = func;
+}
+
+void ui_car_set_data_logger_btn_clicked_cb(lv_event_cb_t func)
+{
+	ui_car_data_logger_btn_clicked_cb = func;
+}
+
+
