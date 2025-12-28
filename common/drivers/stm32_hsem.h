@@ -16,17 +16,20 @@
 #include "stddef.h"
 
 /**********     DEFINES     **********/
-#define HSEM_INIT					1
-#define HSEM_ID_INIT_CM7			0
-#define HSEM_ID_INIT_CM4			0
+#define HSEM_INIT							1
+#define HSEM_ID_INIT_CM7					0
+#define HSEM_ID_INIT_CM4					0
 
-#define HSEM_CAN_BAUD_RATE			0
-#define HSEM_ID_CAN_BAUD_RATE_RUN	0
-#define HSEM_ID_CAN_BAUD_RATE_DONE	0
-#define HSEM_ID_CAN_BAUD_RATE_STOP	0
+#define HSEM_CAN_BAUD_RATE					0
+#define HSEM_ID_CAN_BAUD_RATE_RUN			0
+#define HSEM_ID_CAN_BAUD_RATE_DONE			0
+#define HSEM_ID_CAN_BAUD_RATE_STOP			0
 
-#define HSEM_APP_CAN_SNIFFER		2
-#define HSEM_ID_APP_CAN_SNIFFER		0
+#define HSEM_APP_CAN_CONTROLLER_START		2
+#define HSEM_ID_APP_CAN_CONTROLLER_START	0
+
+#define HSEM_APP_CAN_CONTROLLER_STOP		3
+#define HSEM_ID_APP_CAN_CONTROLLER_STOP		0
 
 
 

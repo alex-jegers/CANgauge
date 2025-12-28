@@ -22,8 +22,8 @@ typedef enum
 
 typedef enum
 {
-	DATA_FRAME,
-	REMOTE_FRAME,
+	CAN_RTR_DATA_FRAME,
+	CAN_RTR_REMOTE_FRAME,
 }can_rtr_t;
 
 typedef enum
@@ -40,6 +40,26 @@ typedef enum
 	CAN_BAUD_1M,
 	CAN_BAUD_ERROR
 }can_baud_rate_t;
+
+typedef enum
+{
+	CAN_SFT_RANGE,			//Range filter from SFID1 to SFID2.
+	CAN_SFT_DUAL_ID,		//Dual ID filter: SFID1 or SFID2
+	CAN_SFT_CLASSIC,		//Classic mode: SFID1 = filter, SFID2 = mask.
+	CAN_SFT_DISABLE,		//Disable the filter element.
+}can_sft_t;
+
+typedef enum
+{
+	CAN_SFEC_DISABLE,		//Disable the filter element.
+	CAN_SFEC_STORE_FIFO0,
+	CAN_SFEC_STORE_FIFO1,
+	CAN_SFEC_REJECT,
+	CAN_SFEC_SET_PRI,		//Set priority.
+	CAN_SFEC_SET_PRI_FIFO0,	//Set priority and store in FIFO0.
+	CAN_SFEC_SET_PRI_FIFO1, //Set priority and store in FIFO1.
+	CAN_SFEC_DBG,			//Store into RX buffer or as a debug message.
+}can_sfec_t;
 
 /***********	DEFINES		************/
 #define CAN1_RX_BUFFER_ELEMENTS			1
@@ -162,8 +182,8 @@ typedef struct
 			uint32_t SFID2 : 11; /*!< Standard Filter ID 2 */
 			uint32_t : 5;        /*!< Reserved */
 			uint32_t SFID1 : 11; /*!< Standard Filter ID 1 */
-			uint32_t SFEC : 3;   /*!< Standard Filter Configuration */
-			uint32_t SFT : 2;    /*!< Standard Filter Type */
+			can_sfec_t SFEC : 3;   /*!< Standard Filter Configuration */
+			can_sft_t SFT : 2;    /*!< Standard Filter Type */
 		} bit;
 		uint32_t val; /*!< Type used for register access */
 	} S0;
@@ -219,18 +239,31 @@ void can_filter_init(FDCAN_GlobalTypeDef* canbus);
 
 
 /*TX control.*/
+
+/**
+*Adds a TX buffer entry to the CAN message RAM TX buffers.
+*canbus: Either FDCAN1 or FDCAN2.
+*new_message: A pointer to the tx_buffer_entry_t that will be copied to message RAM.
+*index: What index in message RAM to place the buffer (will overwrite previous data written to said index).
+**/
 int8_t can_add_tx_buffer(FDCAN_GlobalTypeDef* canbus, can_tx_buffer_entry_t* new_message, uint8_t index);
 can_tx_buffer_entry_t* can_get_tx_buffer(FDCAN_GlobalTypeDef* canbus, uint8_t index);
 int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index);								//immediately transmits a message from the tx buffer of a given index.
 
 /*RX control.*/
 void can_assign_rx_rf0n_cb(FDCAN_GlobalTypeDef* canbus, void (*func)());		//New RX in FIFO0 interrupt.
+void can_assign_rx_rf1n_cb(FDCAN_GlobalTypeDef* canbus, void (*func)());		//New RX in FIFO1 interrupt.
 void can_enable_rx_rf0n_interrupt(FDCAN_GlobalTypeDef* canbus);
+void can_enable_rx_rf1n_interrupt(FDCAN_GlobalTypeDef* canbus);
 void can_assign_rx_rf0f_cb(FDCAN_GlobalTypeDef* canbus, void (*func)());		//RX FIFO0 full interrupt.
 bool can_check_for_rx_fifo0(FDCAN_GlobalTypeDef* canbus);
 uint8_t can_read_from_fifo0(FDCAN_GlobalTypeDef* canbus, can_rx_buffer_entry_t* message);
 
-/*Extended ID filter control*/
+bool can_check_for_rx_fifo1(FDCAN_GlobalTypeDef* canbus);
+uint8_t can_read_from_fifo1(FDCAN_GlobalTypeDef* canbus, can_rx_buffer_entry_t* message);
+
+/*Filter control*/
+void can_set_std_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_std_id_filter_t* filter);
 int8_t can_add_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id, bool overwrite);		//returns 1 if list is full, 2 if ID is not a valid ID, 0 if no error.
 int8_t can_remove_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id);
 void can_remove_all_ext_id_filters(FDCAN_GlobalTypeDef* canbus);

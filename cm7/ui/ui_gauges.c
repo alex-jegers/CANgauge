@@ -198,6 +198,7 @@ static void _gauge_hanlder(lv_event_t* e)
 		ui_gauges_load();
 		lv_obj_clean(_gauge_scr);
 		_gauge_value_modifier = NULL;
+		_gauge = NULL;
 
 		/*Check if there's a function CB assign and call it if there is.*/
 		if (_gauge_cb != NULL)
@@ -363,14 +364,18 @@ static void _load_fuel_rail_pressure_gauge()
 
 static void _load_air_fuel_ratio_gauge()
 {
-	const int32_t min_val = 80;
-	const int32_t max_val = 200;
-	lv_obj_t* visible_gauge = ui_helpers_create_gauge(_gauge_scr, 8, 20, 270, 135, NULL);
-	_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 270, 135, &_gauge_needle);
-	lv_obj_set_style_arc_width(_gauge, 0, LV_PART_MAIN);
-	lv_obj_set_style_line_width(_gauge, 0, LV_PART_INDICATOR);
-	lv_obj_set_style_line_width(_gauge, 0, LV_PART_ITEMS);
+	const int32_t min_val = 60;
+	const int32_t max_val = 220;
+	lv_obj_t* visible_gauge = ui_helpers_create_gauge(_gauge_scr, 6, 22, 180, 180, NULL);
+	_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 180, 180, &_gauge_needle);
+
+	/* Hide the hidden gauge elements. */
+	lv_obj_set_style_arc_opa(_gauge, 0, LV_PART_MAIN);
+	lv_obj_set_style_line_opa(_gauge, 0, LV_PART_INDICATOR);
+	lv_obj_set_style_line_opa(_gauge, 0, LV_PART_ITEMS);
 	lv_scale_set_label_show(_gauge, false);
+
+	/* Create the labels. */
 	_gauge_data_lbl = lv_label_create(visible_gauge);
 	_gauge_info_lbl = lv_label_create(visible_gauge);
 	lv_obj_align(_gauge_data_lbl, LV_ALIGN_CENTER, 0, 90);
@@ -394,7 +399,7 @@ static void _air_fuel_ratio_gauge_modifier(int32_t val)
 {
 	float val_float = (float)val / 10;
 	lv_scale_set_line_needle_value(_gauge, _gauge_needle, 160, val);
-	lv_label_set_text_fmt(_gauge_data_lbl, "%.1f", val_float);
+	lv_label_set_text_fmt(_gauge_data_lbl, "%2.1f", val_float);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -415,8 +420,14 @@ void ui_gauges_set_gauge_value(int32_t val)
 		_gauge_value_modifier(val);
 		return;
 	}
+
+	if (_gauge == NULL)
+	{
+		return;
+	}
+
 	lv_scale_set_line_needle_value(_gauge, _gauge_needle, 160, val);
-	lv_label_set_text_fmt(_gauge_data_lbl, "%d", val);
+	lv_label_set_text_fmt(_gauge_data_lbl, "%d", (int)val);
 }
 
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e))
