@@ -19,7 +19,8 @@
 static void _update_baud_rate_lbls();							//
 static void _update_rx_table();									//Updates the received data.
 static void _run_get_baud_rate();
-static void _tgl_cm4_can_sniffer();
+static void _run_cm4_can_controller();
+static void _stop_cm4_can_controller();
 
 static void _connect_to_can1_btn_hanlder(lv_event_t* e);		//Tell CM4 to attempt to connect to CAN1 and start receiving data at the specified baud rate.
 static void _disconnect_from_can1_btn_handler(lv_event_t* e);
@@ -71,21 +72,16 @@ static void _update_baud_rate_lbls()
 
 static void _update_rx_table()
 {
-	/*If there hasn't been any data received we dont need to update the table at all.*/
-	if (shared_get_can_unique_ids(FDCAN1) == 0)
-	{
-		return;
-	}
-
 	/*Wait for the LVGL mutex to become available.*/
 	if (xSemaphoreTake(sys_mutex_lvgl, 0) == pdPASS)
 	{
-		for (uint8_t i = 0; i < shared_get_can_unique_ids(FDCAN1); i++)
+		for (uint8_t i = 0; i < shared_get_can_rx0_unique_ids(FDCAN1); i++)
 		{
-			lv_table_set_cell_value(ui_can_sniffer_table, i, 0, shared_get_can_str_id(FDCAN1, i));
-			lv_table_set_cell_value(ui_can_sniffer_table, i, 1, shared_get_can_str_period(FDCAN1, i));
-			lv_table_set_cell_value(ui_can_sniffer_table, i, 2, shared_get_can_str_data(FDCAN1, i));
+			lv_table_set_cell_value(ui_can_sniffer_table, i, 0, shared_get_can_rx0_str_id(FDCAN1, i));
+			lv_table_set_cell_value(ui_can_sniffer_table, i, 1, shared_get_can_rx0_str_period(FDCAN1, i));
+			lv_table_set_cell_value(ui_can_sniffer_table, i, 2, shared_get_can_rx0_str_data(FDCAN1, i));
 		}
+		lv_table_set_row_count(ui_can_sniffer_table, shared_get_can_rx0_unique_ids(FDCAN1));
 		xSemaphoreGive(sys_mutex_lvgl);
 	}
 }
@@ -97,10 +93,16 @@ static void _run_get_baud_rate()
 	hsem_signal(HSEM_CAN_BAUD_RATE, HSEM_ID_CAN_BAUD_RATE_RUN);
 }
 
-static void _tgl_cm4_can_sniffer()
+static void _run_cm4_can_controller()
 {
-	hsem_lock(HSEM_APP_CAN_SNIFFER, HSEM_ID_APP_CAN_SNIFFER);
-	hsem_signal(HSEM_APP_CAN_SNIFFER, HSEM_ID_APP_CAN_SNIFFER);
+	hsem_lock(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
+	hsem_signal(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
+}
+
+static void _stop_cm4_can_controller()
+{
+	hsem_lock(HSEM_APP_CAN_CONTROLLER_STOP, HSEM_ID_APP_CAN_CONTROLLER_STOP);
+	hsem_signal(HSEM_APP_CAN_CONTROLLER_STOP, HSEM_ID_APP_CAN_CONTROLLER_STOP);
 }
 
 static void _connect_to_can1_btn_hanlder(lv_event_t* e)
@@ -130,12 +132,12 @@ static void _connect_to_can1_btn_hanlder(lv_event_t* e)
 	{
 		return;
 	}
-	_tgl_cm4_can_sniffer();
+	_run_cm4_can_controller();
 }
 
 static void _disconnect_from_can1_btn_handler(lv_event_t* e)
 {
-	_tgl_cm4_can_sniffer();
+	_stop_cm4_can_controller();
 }
 
 static void _connect_to_can2_btn_hanlder(lv_event_t* e)
@@ -150,6 +152,10 @@ static void _back_btn_handler(lv_event_t* e)
 
 static void _tx_ctrl_btn_handler(lv_event_t* e)
 {
+	if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) != pdPASS)
+	{
+		return;
+	}
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t* temp_btn_matrix = lv_event_get_target_obj(e);
     if (code == LV_EVENT_VALUE_CHANGED)
@@ -227,23 +233,23 @@ static void _tx_ctrl_btn_handler(lv_event_t* e)
         	memcpy(tx_buf.data, data_int, sizeof(data_int));
         	can_add_tx_buffer(FDCAN1, &tx_buf, row);
 
-        	shared_set_can_tx_data(interval_int, row);
-        	shared_set_tx_unique_ids(FDCAN1, shared_get_tx_unique_ids(FDCAN1) + 1);
+        	shared_set_can_tx_timing_data(interval_int, row);
+        	shared_set_can_tx_unique_ids(FDCAN1, shared_get_tx_unique_ids(FDCAN1) + 1);
         }
         else if (strcmp(btn_txt, "Delete") == 0)
         {
             if (row_count <= 1)
             {
-                shared_set_tx_unique_ids(FDCAN1, 0);
+                shared_set_can_tx_unique_ids(FDCAN1, 0);
             }
             else
             {
                 for (uint32_t i = selected_row; i < (row_count - 1); i++)
                 {
                     can_add_tx_buffer(FDCAN1, can_get_tx_buffer(FDCAN1, i + 1), i);
-                    shared_set_can_tx_data(shared_get_tx_interval(i + 1), i);
+                    shared_set_can_tx_timing_data(shared_get_tx_interval(i + 1), i);
                 }
-                shared_set_tx_unique_ids(FDCAN1, shared_get_tx_unique_ids(FDCAN1) - 1);
+                shared_set_can_tx_unique_ids(FDCAN1, shared_get_tx_unique_ids(FDCAN1) - 1);
             }
 
         }
@@ -253,6 +259,7 @@ static void _tx_ctrl_btn_handler(lv_event_t* e)
         }
 
     }
+    xSemaphoreGive(sys_mutex_lvgl);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/

@@ -80,6 +80,20 @@ void io_set_pin_dir_in(GPIO_TypeDef* port, uint32_t mask)
 	}
 }
 
+void io_set_pin_analog(GPIO_TypeDef* port, uint32_t mask)
+{
+	for (uint8_t i = 0; i < 16; i++)
+	{
+		uint32_t x = 1 << i;
+		if (x & mask)
+		{
+			uint32_t bit_pos = i * 2;
+			port->MODER &= ~(GPIO_MODER_MASK << bit_pos);		//Clear the bits.
+			port->MODER |= GPIO_MODER_ANALOG << bit_pos;		//Write the bits.
+		}
+	}	
+}
+
 /*Set pin output value.*/
 void io_pin_out_set(GPIO_TypeDef* port, uint32_t mask)
 {

@@ -133,6 +133,7 @@ static void _gauge_hanlder(lv_event_t* e)
 		ui_gauges_load();
 		lv_obj_clean(_gauge_scr);
 		_gauge_value_modifier = NULL;
+		_gauge = NULL;
 
 		/*Check if there's a function CB assign and call it if there is.*/
 		if (_gauge_cb != NULL)
@@ -195,8 +196,14 @@ void ui_gauges_set_gauge_value(int32_t val)
 		_gauge_value_modifier(val);
 		return;
 	}
+
+	if (_gauge == NULL)
+	{
+		return;
+	}
+
 	lv_scale_set_line_needle_value(_gauge, _gauge_needle, 160, val);
-	lv_label_set_text_fmt(_gauge_data_lbl, "%d", val);
+	lv_label_set_text_fmt(_gauge_data_lbl, "%d", (int)val);
 }
 
 void ui_gauges_create_gauge_btn(const char* name)

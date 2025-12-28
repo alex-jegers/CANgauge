@@ -9,7 +9,7 @@
 #include "system/system_cm4.h"
 
 #include "application/app_can_get_baud_rate_cm4.h"
-#include "application/app_can_sniffer_cm4.h"
+#include <application/app_can_controller_cm4.h>
 
 #include "drivers/stm32_hsem.h"
 #include "drivers/stm32_hsem.h"
@@ -82,18 +82,15 @@ void system_task_monitor()
 			hsem_clear_int(HSEM_CAN_BAUD_RATE);
 			vTaskResume(sys_task_handle_app_get_baud_rate);
 		}
-		if(hsem_get_status(HSEM_APP_CAN_SNIFFER))
+		if(hsem_get_status(HSEM_APP_CAN_CONTROLLER_START))
 		{
-			hsem_clear_int(HSEM_APP_CAN_SNIFFER);
-			if (app_can_sniffer_running())
-			{
-				app_can_sniffer_stop();
-			}
-			else
-			{
-				app_can_sniffer_run();
-			}
-
+			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_START);
+			app_can_sniffer_run();
+		}
+		if (hsem_get_status(HSEM_APP_CAN_CONTROLLER_STOP))
+		{
+			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_STOP);
+			app_can_sniffer_stop();
 		}
 
 		vTaskDelay(100);
