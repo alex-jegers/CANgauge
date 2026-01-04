@@ -101,15 +101,16 @@ void system_task_init()
 	sys_mutex_lvgl = xSemaphoreCreateMutex();
 	if (sys_mutex_lvgl == NULL)
 	{
-		xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
+		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
 	}
 	else
 	{
+		xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
-		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 3, NULL);
-		xTaskCreate(app_battery_monitor_task, "BATT_MON", 500, NULL, 1, app_battery_monitor_task_handle);
+		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
+		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, app_battery_monitor_task_handle);
 		//xTaskCreate(_task_test, "TASK_TEST", 1500, NULL, 1, NULL);
 	}
 
@@ -136,7 +137,7 @@ void system_task_blink()
 	while(1)
 	{
 		io_test_led_tgl();
-		vTaskDelayUntil(&last_run_time, 250);
+		vTaskDelayUntil(&last_run_time, 500);
 	}
 }
 

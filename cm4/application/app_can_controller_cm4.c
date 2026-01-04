@@ -103,14 +103,17 @@ static void _task_can_transmit(FDCAN_GlobalTypeDef* canbus)
 static void _task_can_receive(FDCAN_GlobalTypeDef* canbus)
 {
 
+	/* Create a filter to store SAE J1979 messages in fifo1. */
 	can_std_id_filter_t _saej1979_filter;
 	_saej1979_filter.S0.bit.SFEC = CAN_SFEC_STORE_FIFO1;
 	_saej1979_filter.S0.bit.SFT = CAN_SFT_RANGE;
 	_saej1979_filter.S0.bit.SFID1 = 0x7E8;
 	_saej1979_filter.S0.bit.SFID2 = 0x7EF;
 	can_set_std_id_filter(FDCAN1, 0, &_saej1979_filter);
+
 	while(_run == true)
 	{
+
 		bool empty = true;
 		
 		/* If there's data in FIFO0, read it. */
@@ -139,7 +142,13 @@ static void _task_can_receive(FDCAN_GlobalTypeDef* canbus)
 	{
 		memset(&can_raw_rx0, 0, sizeof(can_raw_rx0));
 	}
+	for (uint8_t i = 0; i < shared_get_can_rx1_unique_ids(canbus); i++)
+	{
+		memset(&can_raw_rx1, 0, sizeof(can_raw_rx1));
+	}
+
 	shared_set_can_rx0_unique_ids(canbus, 0);
+	shared_set_can_rx1_unique_ids(canbus, 0);
 	vTaskDelete(NULL);
 }
 
@@ -147,7 +156,7 @@ static void _task_can_process(FDCAN_GlobalTypeDef* canbus)
 {
 	while (_run)
 	{
-		/* Check to see if any are expired. */
+		/* Check to see if any are expired in FIFO0. */
 		for (uint8_t i = 0; i < can_raw_rx0[0].unique_ids; i++)
 		{
 			BaseType_t current_time = pdTICKS_TO_MS(xTaskGetTickCount());
@@ -163,7 +172,7 @@ static void _task_can_process(FDCAN_GlobalTypeDef* canbus)
 			}
 		}
 
-		/* Check to see if any are expired. */
+		/* Check to see if any are expired in FIFO1. */
 		for (uint8_t i = 0; i < can_raw_rx1[0].unique_ids; i++)
 		{
 			BaseType_t current_time = pdTICKS_TO_MS(xTaskGetTickCount());
@@ -182,6 +191,7 @@ static void _task_can_process(FDCAN_GlobalTypeDef* canbus)
 		/* Process FIFO0 data into shared memory. */
 		for (uint8_t i = 0; i < can_raw_rx0[0].unique_ids; i++)
 		{
+			// TODO: Delete this below? Already checking for expiration above.
 			/* Check to see if any are expired (havent been RX'd in 3 seconds or longer). */
 			BaseType_t current_time = pdTICKS_TO_MS(xTaskGetTickCount());
 			uint32_t time_since_last = current_time - can_raw_rx0[i].timestamp;
@@ -194,12 +204,12 @@ static void _task_can_process(FDCAN_GlobalTypeDef* canbus)
 				can_raw_rx0[0].unique_ids--;
 			}
 
-			/* Convert period to a string. */
+			/* Convert period to a string and write to shared memory. */
 			char _temp_period_ms[10];
 			sprintf(_temp_period_ms, "%d", can_raw_rx0[i].period);
 			shared_set_can_rx0_str_period(canbus, i, _temp_period_ms);
 
-			/* Convert the ID to a string. */
+			/* Convert the ID to a string and write to shared memory. */
 			char _temp_id[8] = {0,0,0,0,0,0,0,0};
 			sprintf(_temp_id, "%X", can_raw_rx0[i].buf.R0.bit.ID);		//Convert the ID into a hex string.
 			shared_set_can_rx0_str_id(canbus, i, _temp_id);				//Write that string into shared mem for CM7 to get.
@@ -228,7 +238,7 @@ static void _task_can_process(FDCAN_GlobalTypeDef* canbus)
 
 			char _temp_id[8] = {0,0,0,0,0,0,0,0};
 			sprintf(_temp_id, "%X", can_raw_rx0[i].buf.R0.bit.ID);				//Convert the ID into a hex string.
-			shared_set_can_rx1_str_id(canbus, i, _temp_id);				//Write that string into shared mem for CM7 to get.
+			shared_set_can_rx1_str_id(canbus, i, _temp_id);						//Write that string into shared mem for CM7 to get.
 
 			/*Convert all the data bytes into hex strings.*/
 			char _temp_data[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};	//Need to write to _temp first because sprintf writes a null terminator which overwrites data in can_data_str.
@@ -302,7 +312,7 @@ static void _fifo1_int_handler()
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void app_can_sniffer_run()
+void app_can_controller_run()
 {
 	_run = true;
 
