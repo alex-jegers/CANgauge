@@ -9,7 +9,7 @@
 
 #include "lvgl.h"
 
-#include "common/app_shared_mem.h"
+#include "common/shared_mem.h"
 #include "common/saej1979.h"
 
 #include "FreeRTOS.h"

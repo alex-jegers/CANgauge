@@ -1,6 +1,6 @@
 /**********     INCLUDES        **********/
 #include <application/app_can_controller_cm4.h>
-#include "app_shared_mem.h"
+#include <shared_mem.h>
 #include "drivers/stm32_hsem.h"
 #include <stdio.h>				//For sprintf.
 #include <string.h>				//For memcpy.

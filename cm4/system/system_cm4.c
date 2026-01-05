@@ -4,7 +4,7 @@
  *  Created on: May 31, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM4
+
 
 #include "system/system_cm4.h"
 
@@ -104,4 +104,4 @@ void system_hsem_handler()
 }
 
 
-#endif	//CORE_CM4
+

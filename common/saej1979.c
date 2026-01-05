@@ -1,7 +1,7 @@
 /**********     INCLUDES        **********/
+#include <shared_mem.h>
 #include "saej1979.h"
 #include "string.h"
-#include "common/app_shared_mem.h"
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/

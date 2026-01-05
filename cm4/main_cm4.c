@@ -32,6 +32,8 @@
 #include <list.h>
 #include <semphr.h>
 
+__attribute__((__section__(".ext_mem_ram"))) touch_info_t touch_info_storage_area;
+
 int main(void)
 {
 	system_task_init();
@@ -40,7 +42,8 @@ int main(void)
 	 * Updates the touch screen data. Needs to be high priority, runs quick and the latency of
 	 * the touch screen relies on it.
 	 * */
-	xTaskCreate(cst830_update, "CST830_UPDATE", 1024, NULL, 4, NULL);
+	p.p_touch_data = &touch_info_storage_area;
+	xTaskCreate(cst830_task_update, "CST830_UPDATE", 1024, &touch_info_storage_area, 4, NULL);
 
 	/*Gets CAN baud rates, triggered by HSEM 0.*/
 	xTaskCreate(app_can_baud_rate_run, "APP_GET_BAUD_RATE", 1000, NULL, 2, &sys_task_handle_app_get_baud_rate);

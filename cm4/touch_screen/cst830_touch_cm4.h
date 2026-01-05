@@ -14,6 +14,9 @@ extern "C" {
 #include "stm32h745xx.h"
 #include "stdbool.h"
 
+#include "FreeRTOS.h"
+#include "queue.h"
+
 /**********     DEFINES      **********/
 
 #define TOUCH_SWAP_XY				0
@@ -54,14 +57,20 @@ extern "C" {
 #define CST830_REFRESH_RATE			30
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
+typedef struct
+{
+	uint8_t touch_num;
+	uint16_t touch1_x;
+	uint16_t touch1_y;
+}touch_info_t;
+
+/**********		GLOBAL VARIABLE DEFINITIONS		**********/
+extern touch_info_t touch_info;
+
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void cst830_read_data();				//performs transaction with screen to get most recent touch data.
-bool cst830_is_pressed();				//returns true if the screen was being touched at last update.
-uint16_t cst830_get_x();				//returns the last touched x coordinate.
-uint16_t cst830_get_y();				//returns the last touched y coordinate.
-uint8_t cst830_get_pts();				//returns the number of touch points.
-void cst830_update();					//Checks how long its been since last update and updates data if necessary.
+void cst830_task_update(touch_info_t* p_touch_data);	//Checks how long its been since last update and updates data if necessary.
 
 
 
