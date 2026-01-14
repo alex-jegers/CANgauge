@@ -58,10 +58,10 @@ static void prv_init()
 	i2c_init_clk(I2C_INST);
 	i2c_set_clk_speed(I2C_INST, I2C_CLK_400K);
 	i2c_disable_analog_filt(I2C_INST);
+	i2c_enable_timeout_detection(I2C_INST);
 	i2c_enable(I2C_INST);
 
 	/*Put the screen in normal mode.*/
-	const uint8_t work_mode_val = CST830_WORK_MODE_RAW;
 	const uint8_t work_mode_val = CST830_WORK_MODE_NORMAL;
 	//i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST830_WORK_MODE, &work_mode_val, 2, true);
 
