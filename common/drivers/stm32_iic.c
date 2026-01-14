@@ -82,8 +82,8 @@ void i2c_set_clk_speed(I2C_TypeDef* i2c, i2c_clk_speed_t i2c_clk)
 	
 	case I2C_CLK_400K:
 		i2c->TIMINGR = (8 << I2C_TIMINGR_PRESC_Pos)
-						| (16 << I2C_TIMINGR_SCLH_Pos)
-						| (16 << I2C_TIMINGR_SCLL_Pos)
+						| (15 << I2C_TIMINGR_SCLH_Pos)
+						| (15 << I2C_TIMINGR_SCLL_Pos)
 						| (2 << I2C_TIMINGR_SDADEL_Pos)
 						| (2 << I2C_TIMINGR_SCLDEL_Pos);
 		break;
