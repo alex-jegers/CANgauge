@@ -9,6 +9,8 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 
+#include <assert.h>
+
 /**********		DEFINES		**********/
 
 /**********		VARIABLE DEFINITIONS		**********/
@@ -24,6 +26,7 @@ typedef struct
 /**********		STATIC VARIABLES		**********/
 touch_info_t touch_info;
 static uint32_t time_since_last_update_ms = 0;
+static uint8_t iic_addr = 0;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_init();
@@ -38,9 +41,9 @@ static void prv_init()
 	//TODO: Make sure the delays are happening.
 	io_set_pin_dir_out(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
 	io_pin_out_clr(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
-	vTaskDelay(10);
+	vTaskDelay(1000);
 	io_pin_out_set(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
-	vTaskDelay(400);
+	vTaskDelay(1000);
 
 	/*Set the interrupt pin as input.*/
 	io_set_pin_dir_in(TOUCH_INT_PORT, TOUCH_INT_PIN);
@@ -59,7 +62,11 @@ static void prv_init()
 
 	/*Put the screen in normal mode.*/
 	const uint8_t work_mode_val = CST830_WORK_MODE_RAW;
-	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST830_WORK_MODE, &work_mode_val, 1, true);
+	const uint8_t work_mode_val = CST830_WORK_MODE_NORMAL;
+	//i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST830_WORK_MODE, &work_mode_val, 2, true);
+
+	const uint8_t auto_sleep_val = CST820_DISAUTOSLEEP_ON;
+	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -67,6 +74,7 @@ void cst830_read_data()
 {
 	touch_info_raw_t data;
 	i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, (uint8_t*)&data, 5);
+
 
 	touch_info.touch_num = data.touch_num & 0x0F;
 

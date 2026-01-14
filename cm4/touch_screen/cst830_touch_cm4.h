@@ -36,7 +36,7 @@ extern "C" {
 #define TOUCH_INT_PORT				GPIOI
 #define TOUCH_INT_PIN				GPIO_PIN6_Msk
 
-#define CST830_SLAVE_ADDR           0x2A
+#define CST830_SLAVE_ADDR           0x15
 
 #define CST830_FW_VER_H             0xA7
 #define CST830_FW_VER_L             0xA8
@@ -53,6 +53,10 @@ extern "C" {
 #define CST830_TOUCH1_XL			0x04
 #define CST830_TOUCH1_XH_PTS_Msk	0x0F
 #define CST830_TOUCH1_XL_PTS_Msk	0xFF
+
+#define CST820_DISAUTOSLEEP			0xFE
+#define CST820_DISAUTOSLEEP_ON		0x01	//Disables auto sleep.
+#define CST820_DISAUTOSLEEP_OFF		0x00	//Enables auto sleep.
 
 #define CST830_REFRESH_RATE			30
 

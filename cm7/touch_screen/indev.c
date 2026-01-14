@@ -29,7 +29,7 @@ static void touch_lvgl_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
 	{
 		data->point.x = new_data->touch1_x;
 		data->point.y = new_data->touch1_y;
-		data->state = new_data->touch_num;
+ 		data->state = new_data->touch_num;
 	}
 
 
