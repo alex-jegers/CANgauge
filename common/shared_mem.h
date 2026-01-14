@@ -12,11 +12,62 @@
 #include "drivers/stm32_canbus.h"
 #include "stdbool.h"
 
+#include "FreeRTOS.h"
+#include "queue.h"
+
 #define HS_CAN				FDCAN1
 #define LS_CAN				FDCAN2
 
+struct can_rx_data
+{
+	char ids[9];			//Only uses 8 but needs to be size 9 for the null terminator.
+	char data[17];			//Only uses size 16 but needs to be 17 for the null terminator.
+	char period_ms[10];
 
+	can_rx_buffer_entry_t buf;	//Numeric version of the data.
+	uint32_t timestamp;			//Timestamp of last time recieved.
+};
 
+struct can_tx_data
+{
+	uint32_t interval_ms;
+	uint32_t last_time_sent_ms;
+};
+
+typedef struct
+{
+	/* Data for the touch screen, CM4 writes, CM7 reads. */
+	bool cst830_is_touched;						//True or false, the touch screen is being pressed.
+	uint16_t cst830_pos_x;						//The x position of the touch screen press.
+	uint16_t cst830_pos_y;						//The y position of the touch screen press.
+
+	void* p_touch_data;
+
+	/* General CANbus data. CM4 writes, CM7 reads. */
+	can_baud_rate_t hs_can_baud;				//speed of the HS CANbus.
+	can_baud_rate_t ls_can_baud;				//speed of the LS CANbus.
+	bool can_error;
+	can_baud_rate_t hs_can_baud_override;		//manually request a baud rate for FDCAN1. Set to CAN_BAUD_ERROR for auto detect.
+	can_baud_rate_t ls_can_baud_override;		//manually request a baud rate for FDCAN2. Set to CAN_BAUD_ERROR for auto detect.
+	FDCAN_GlobalTypeDef* target_canbus;			//which CAN is being referenced for any given command.
+
+	/* Data for CAN sniffer app. */
+	struct can_rx_data can1_rx0_data[20];		//Data from FDCAN1 formatted as strings for CM7.
+	uint32_t can1_rx0_unique_ids;				//How many messages have been rx'd in CAN1.
+	struct can_rx_data can1_rx1_data[20];		//Data from FDCAN1 formatted as strings for CM7.
+	uint32_t can1_rx1_unique_ids;				//How many messages have been rx'd in CAN1.
+
+	struct can_rx_data can2_rx0_data[20];		//Copy of above for CAN2
+	uint32_t can2_rx0_unique_ids;					//Copy of above for CAN2
+	struct can_rx_data can2_rx1_data[20];		//Copy of above for CAN2
+	uint32_t can2_rx1_unique_ids;					//Copy of above for CAN2
+
+	struct can_tx_data can1_tx[CAN1_TX_BUFFER_ELEMENTS];	//Holds the raw data to be transmitted.
+	uint8_t can1_tx_unique_ids;								//How many individual messages are being used.
+
+}shared_mem_t;
+
+__attribute__((__section__(".shared_data"))) extern volatile shared_mem_t p;
 
 /**********     GLOBAL FUNCTION PROTOTYPES     **********/
 void system_init_shared_mem();

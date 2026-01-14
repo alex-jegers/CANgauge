@@ -46,12 +46,12 @@ void app_battery_monitor_task()
     {
     	if (prv_measurement < prv_low_threshold)
     	{
-    		io_test_led_off();
+
     	}
 
     	if (prv_measurement > prv_high_threshold)
     	{
-    		io_test_led_on();
+
     	}
 
         adc_start_conversion(ADC1);

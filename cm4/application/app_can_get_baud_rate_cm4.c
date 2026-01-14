@@ -4,7 +4,6 @@
  *  Created on: May 31, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM4
 
 #include "app_can_get_baud_rate_cm4.h"
 
@@ -42,4 +41,4 @@ void app_can_baud_rate_stop()
 }
 
 
-#endif	//CORE_CM4
+

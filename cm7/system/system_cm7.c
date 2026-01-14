@@ -21,13 +21,13 @@
 #include "application/app_battery_monitor.h"
 
 #include "touch_screen/iic_touch.h"
-#include "touch_screen/cst830_touch_cm7.h"
+#include "touch_screen/indev.h"
 #include "lvgl/lvgl.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
 
-#include "app_shared_mem.h"
+#include "shared_mem.h"
 
 
 /**********		DEFINES		**********/
@@ -67,7 +67,7 @@ static void _gauges_btn_handler(lv_event_t* e)
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
-	/*Non-time dependent initializations.*/
+	/*Set up and enable all the clocks.*/
 	hsem_init_clk();
 	/*Taking HSEM 1 to hold CM4 in place.*/
 	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM7);
@@ -80,12 +80,7 @@ void system_task_init()
 
 	/*Time dependent initializations.*/
 	lcd_init();
-	#ifdef TARGET_HARDWARE_CANGAUGE
-	cst830_init();
-	#endif
-	#ifdef TARGET_HARDWARE_STM32H745DISCO
-	touch_init();
-	#endif
+	indev_init(&p.p_touch_data);
 
 	SCB_EnableDCache();
 	SCB_EnableICache();
@@ -105,13 +100,12 @@ void system_task_init()
 	}
 	else
 	{
-		xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
+		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
 		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
 		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, app_battery_monitor_task_handle);
-		//xTaskCreate(_task_test, "TASK_TEST", 1500, NULL, 1, NULL);
 	}
 
 	vTaskDelete(NULL);
@@ -130,14 +124,14 @@ void system_task_lvgl_timer_update()
 	}
 }
 
-void system_task_blink()
+void system_task_blink(const uint32_t delay_time_ms)
 {
 	TickType_t last_run_time;
 	last_run_time = xTaskGetTickCount();
 	while(1)
 	{
 		io_test_led_tgl();
-		vTaskDelayUntil(&last_run_time, 500);
+		vTaskDelayUntil(&last_run_time, delay_time_ms);
 	}
 }
 
