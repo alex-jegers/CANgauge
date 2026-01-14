@@ -1,6 +1,6 @@
 /**********     INCLUDES        **********/
 #include "app_can_sniffer_cm7.h"
-#include "common/app_shared_mem.h"
+#include "common/shared_mem.h"
 #include "ui/ui_can_sniffer.h"
 
 #include "drivers/stm32_canbus.h"

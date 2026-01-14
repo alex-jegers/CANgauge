@@ -4,13 +4,13 @@
  *  Created on: May 31, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM4
+
 
 #ifndef CORE_APPLICATION_CM4_APP_CAN_GET_BAUD_RATE_CM4_H_
 #define CORE_APPLICATION_CM4_APP_CAN_GET_BAUD_RATE_CM4_H_
 
+#include <shared_mem.h>
 #include "drivers/stm32_canbus.h"
-#include "app_shared_mem.h"
 #include "drivers/stm32_hsem.h"
 
 #include "FreeRTOS.h"
@@ -22,5 +22,3 @@ void app_can_baud_rate_stop();			//deinits can peripheral and what not.
 
 #endif /* CORE_APPLICATION_CM4_APP_CAN_GET_BAUD_RATE_CM4_H_ */
 
-
-#endif	//CORE_CM4

@@ -22,7 +22,7 @@ void ui_gauges_load();
 * params:
 * val: must be the actual value times 10. This is to account for params which have decimals.
 */
-void ui_gauges_set_gauge_value(int32_t val);
+void ui_gauges_set_gauge_value(float val);
 void ui_gauges_create_gauge_btn(const char* name);
 void ui_gauges_create_gauge(const char* name, uint32_t min, uint32_t max);
 

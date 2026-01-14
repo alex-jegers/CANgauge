@@ -4,7 +4,7 @@
  *  Created on: May 31, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM4
+
 
 #include "system/system_cm4.h"
 
@@ -85,7 +85,7 @@ void system_task_monitor()
 		if(hsem_get_status(HSEM_APP_CAN_CONTROLLER_START))
 		{
 			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_START);
-			app_can_sniffer_run();
+			app_can_controller_run();
 		}
 		if (hsem_get_status(HSEM_APP_CAN_CONTROLLER_STOP))
 		{
@@ -104,4 +104,4 @@ void system_hsem_handler()
 }
 
 
-#endif	//CORE_CM4
+

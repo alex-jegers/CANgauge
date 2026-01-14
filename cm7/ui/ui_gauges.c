@@ -25,9 +25,7 @@ static lv_obj_t* _gauge;				//The lv_scale that is the gauge.
 static lv_obj_t* _gauge_needle;			//The lv_line that acts as the needle, set to -1 if not using a needle.
 static lv_obj_t* _gauge_data_lbl;		//The label on the gauge face that displays the number on the gauge.
 static lv_obj_t* _gauge_info_lbl;		//Label that tells the user about what data is being displayed.
-static int32_t _gauge_min_value;		//The min value that can be displayed on the current gauge.
-static int32_t _gauge_max_value;		//The max value that can be displayed on the current gauge.
-
+static float _gauge_scaling_factor;	//How the value is multiplied by when decimals are needed.
 /**
 Some gauges need their value modified to fit an alternate scale when the resolution of the 
 scale is too small or the value uses decimal points. When we cant plug the value straight 
@@ -50,7 +48,7 @@ static void _gauge_select_btn_handler(lv_event_t* e);
 static void _back_btn_handler(lv_event_t* e);
 static void _gauge_hanlder(lv_event_t* e);
 static void _scr_load_handler(lv_event_t* e);
-static void _gauge_anim_map(void* obj, uint32_t val);
+static void _gauge_anim_map(void* obj, int32_t val);
 
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl);
 
@@ -88,7 +86,7 @@ static void _init()
 	/*Bind the controls and event function handlers.*/
 	/*BACK BUTTON EVENT.*/
 	lv_obj_add_event(_back_btn, _back_btn_handler, LV_EVENT_CLICKED, NULL);
-	lv_obj_add_event(_main_scr, _scr_load_cb, LV_EVENT_SCREEN_LOAD_START, NULL);	
+	lv_obj_add_event(_main_scr, _scr_load_handler, LV_EVENT_SCREEN_LOAD_START, NULL);
 }
 
 static void _gauge_select_btn_handler(lv_event_t* e)
@@ -151,16 +149,46 @@ static void _scr_load_handler(lv_event_t* e)
 	}
 }
 
-static void _gauge_anim_map(void* obj, uint32_t val)
+static void _gauge_anim_map(void* obj, int32_t val)
 {
-	ui_gauges_set_gauge_value(val);
+	ui_gauges_set_gauge_value((float)val / _gauge_scaling_factor);
 }
 
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
 {
-	_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 270, 135, &_gauge_needle);
-	_gauge_data_lbl = lv_label_create(_gauge);
-	_gauge_info_lbl = lv_label_create(_gauge);
+	uint32_t number_of_ticks = max_val - min_val;
+	uint32_t og_max = max_val;
+	uint32_t og_min = min_val;
+	_gauge_scaling_factor = 1.0;
+	while (number_of_ticks < 100)
+	{
+		max_val *= 10;
+		min_val *= 10;
+		_gauge_scaling_factor *= 10;
+		number_of_ticks = max_val - min_val;
+	}
+
+	/* For values with decimal points or small range we need 2 gauges, one hidden that's scaled up and one visible
+	with the values that were given. */
+	if ((uint32_t)_gauge_scaling_factor > 1)
+	{
+		lv_obj_t* visible_gauge = ui_helpers_create_gauge(_gauge_scr, og_min, og_max, 270, 135, NULL);
+		_gauge_data_lbl = lv_label_create(visible_gauge);
+		_gauge_info_lbl = lv_label_create(visible_gauge);
+		_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 270, 135, &_gauge_needle);
+		lv_obj_set_style_arc_width(_gauge, 0, LV_PART_MAIN);
+		lv_obj_set_style_line_width(_gauge, 0, LV_PART_INDICATOR);
+		lv_obj_set_style_line_width(_gauge, 0, LV_PART_ITEMS);
+		lv_scale_set_label_show(_gauge, false);
+	}
+	else
+	{
+		_gauge = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, 270, 135, &_gauge_needle);
+		_gauge_data_lbl = lv_label_create(_gauge);
+		_gauge_info_lbl = lv_label_create(_gauge);
+	}
+
+
 	lv_obj_align(_gauge_data_lbl, LV_ALIGN_CENTER, 0, 90);
 	lv_obj_align(_gauge_info_lbl, LV_ALIGN_CENTER, 0, 150);
 	lv_label_set_text(_gauge_data_lbl, "");
@@ -173,7 +201,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
 	
 	if (ui_helpers_is_demo_mode())
 	{
-		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 2250, min_val, max_val);
+		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 5000, min_val, max_val + 1);
 	}
 }
 
@@ -189,21 +217,23 @@ void ui_gauges_load()
 	lv_obj_remove_event(_main_scr, 0);
 }
 
-void ui_gauges_set_gauge_value(int32_t val)
+void ui_gauges_set_gauge_value(float val)
 {
-	if (_gauge_value_modifier != NULL)
-	{
-		_gauge_value_modifier(val);
-		return;
-	}
-
 	if (_gauge == NULL)
 	{
 		return;
 	}
 
-	lv_scale_set_line_needle_value(_gauge, _gauge_needle, 160, val);
-	lv_label_set_text_fmt(_gauge_data_lbl, "%d", (int)val);
+	lv_scale_set_line_needle_value(_gauge, _gauge_needle, 160, (int32_t)(val * _gauge_scaling_factor));
+	if ((uint32_t)_gauge_scaling_factor == 100)
+	{
+		lv_label_set_text_fmt(_gauge_data_lbl, "%.2f", val);
+	}
+	else
+	{
+		lv_label_set_text_fmt(_gauge_data_lbl, "%.1f", val);
+	}
+
 }
 
 void ui_gauges_create_gauge_btn(const char* name)

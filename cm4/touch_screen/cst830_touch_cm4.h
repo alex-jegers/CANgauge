@@ -14,6 +14,9 @@ extern "C" {
 #include "stm32h745xx.h"
 #include "stdbool.h"
 
+#include "FreeRTOS.h"
+#include "queue.h"
+
 /**********     DEFINES      **********/
 
 #define TOUCH_SWAP_XY				0
@@ -33,7 +36,7 @@ extern "C" {
 #define TOUCH_INT_PORT				GPIOI
 #define TOUCH_INT_PIN				GPIO_PIN6_Msk
 
-#define CST830_SLAVE_ADDR           0x2A
+#define CST830_SLAVE_ADDR           0x15
 
 #define CST830_FW_VER_H             0xA7
 #define CST830_FW_VER_L             0xA8
@@ -51,17 +54,27 @@ extern "C" {
 #define CST830_TOUCH1_XH_PTS_Msk	0x0F
 #define CST830_TOUCH1_XL_PTS_Msk	0xFF
 
+#define CST820_DISAUTOSLEEP			0xFE
+#define CST820_DISAUTOSLEEP_ON		0x01	//Disables auto sleep.
+#define CST820_DISAUTOSLEEP_OFF		0x00	//Enables auto sleep.
+
 #define CST830_REFRESH_RATE			30
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
+typedef struct
+{
+	uint8_t touch_num;
+	uint16_t touch1_x;
+	uint16_t touch1_y;
+}touch_info_t;
+
+/**********		GLOBAL VARIABLE DEFINITIONS		**********/
+extern touch_info_t touch_info;
+
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void cst830_read_data();				//performs transaction with screen to get most recent touch data.
-bool cst830_is_pressed();				//returns true if the screen was being touched at last update.
-uint16_t cst830_get_x();				//returns the last touched x coordinate.
-uint16_t cst830_get_y();				//returns the last touched y coordinate.
-uint8_t cst830_get_pts();				//returns the number of touch points.
-void cst830_update();					//Checks how long its been since last update and updates data if necessary.
+void cst830_task_update(touch_info_t* p_touch_data);	//Checks how long its been since last update and updates data if necessary.
 
 
 

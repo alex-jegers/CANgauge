@@ -5,7 +5,6 @@
  *      Author: awjpp
  */
 
-#ifdef CORE_CM4
 
 #ifndef CORE_SYSTEM_CM4_SYSTEM_CM4_H_
 #define CORE_SYSTEM_CM4_SYSTEM_CM4_H_
@@ -13,7 +12,7 @@
 #define ENABLE_CM4		true
 
 #include "stm32h745xx.h"
-#include "app_shared_mem.h"
+#include <shared_mem.h>
 
 #include "FreeRTOS.h"
 #include <task.h>
@@ -31,4 +30,3 @@ void system_hsem_handler();
 
 #endif /* CORE_SYSTEM_CM4_SYSTEM_CM4_H_ */
 
-#endif //CORE_CM4
