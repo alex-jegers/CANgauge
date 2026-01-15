@@ -115,8 +115,7 @@ void i2c_disable_clk_stretch(I2C_TypeDef* i2c)
 
 void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
 {
-	i2c->TIMEOUTR = 2
-				| (1 << I2C_TIMEOUTR_TIMOUTEN);
+	i2c->TIMEOUTR = (uint32_t)(2 | (1 << I2C_TIMEOUTR_TIMOUTEN));
 }
 
 int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes)

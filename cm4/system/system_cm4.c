@@ -8,22 +8,15 @@
 
 #include "system/system_cm4.h"
 
-#include "application/app_can_get_baud_rate_cm4.h"
-#include <application/app_can_controller_cm4.h>
+#include "application/applications_cm4.h"
 
-#include "drivers/stm32_hsem.h"
-#include "drivers/stm32_hsem.h"
-#include "drivers/stm32_rcc.h"
-#include "drivers/stm32_io.h"
-
-#include "touch_screen/cst830_touch_cm4.h"
+#include "drivers/drivers.h"
 
 #include "FreeRTOS.h"
-#include <task.h>
-#include <queue.h>
-#include <list.h>
-#include <semphr.h>
-
+#include "task.h"
+#include "queue.h"
+#include "list.h"
+#include "semphr.h"
 
 /**********     TYPEDEFS     **********/
 
@@ -76,8 +69,7 @@ void system_task_monitor()
 {
 	while(1)
 	{
-		uint32_t ir = hsem_get_ir();
-		if ((ir & (1 << HSEM_CAN_BAUD_RATE)) != 0)
+		if (hsem_get_status(HSEM_CAN_BAUD_RATE))
 		{
 			hsem_clear_int(HSEM_CAN_BAUD_RATE);
 			vTaskResume(sys_task_handle_app_get_baud_rate);

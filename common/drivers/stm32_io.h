@@ -99,7 +99,6 @@ void io_init_test_led(GPIO_TypeDef* port, uint32_t mask);
 void io_test_led_on();
 void io_test_led_off();
 void io_test_led_tgl();
-void io_test_led_blink(uint32_t ms);
 
 
 #endif /* INC_STM32_IO_H_ */

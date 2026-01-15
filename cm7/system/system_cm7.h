@@ -15,10 +15,10 @@
 #include "stm32h745xx.h"
 
 #include "FreeRTOS.h"
-#include <task.h>
-#include <queue.h>
-#include <list.h>
-#include <semphr.h>
+#include "task.h"
+#include "queue.h"
+#include "list.h"
+#include "semphr.h"
 
 /**********		DEFINES		**********/
 #define SYS_LVGL_TICK_INC_TASK_CODE				"LV_TICK_INC"

@@ -208,10 +208,3 @@ void io_test_led_tgl()
 {
 	io_pin_out_tgl(test_led_port, test_led_mask);
 }
-
-void io_test_led_blink(uint32_t ms)
-{
-	io_pin_out_tgl(test_led_port, test_led_mask);
-	timer_delay_ms(ms);
-	io_pin_out_tgl(test_led_port, test_led_mask);
-}

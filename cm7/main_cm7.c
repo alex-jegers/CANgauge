@@ -16,17 +16,8 @@
 	#error "Error: No hardware target defined. Please define either TARGET_HARDWARE_CANGAUGE or TARGET_HARDWARE_STM32H745DISCO."
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
-#include "stm32h745xx.h"
 #include "system/system_cm7.h"
-#include "drivers/stm32_rcc.h"
-
-#include "FreeRTOS.h"
-#include <task.h>
-#include <queue.h>
-#include <list.h>
-#include <semphr.h>
+#include "drivers/drivers.h"
 
 int main(void)
 {

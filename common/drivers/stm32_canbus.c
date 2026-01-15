@@ -582,6 +582,8 @@ can_tx_buffer_entry_t* can_get_tx_buffer(FDCAN_GlobalTypeDef* canbus, uint8_t in
 int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index)
 {
 	canbus->TXBAR = 1 << index;		//Request next transfer.
+	//TODO: Check for successful transmission or change to void.
+	return 1;
 }
 
 void can_set_std_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_std_id_filter_t* filter)
@@ -683,6 +685,12 @@ int8_t can_remove_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id)
 				return 1;
 			}
 		}
+		return -1;
+	}
+
+	if (canbus == FDCAN2)
+	{
+		//TODO:
 		return -1;
 	}
 }
