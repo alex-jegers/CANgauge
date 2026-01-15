@@ -137,7 +137,7 @@ void adc_set_sample_time(ADC_TypeDef* adc, adc_sample_time_t sample_time, uint8_
 
 void adc_set_channel(ADC_TypeDef* adc, uint8_t channel)
 {
-	adc->SQR1 = 15 << 6;
+	adc->SQR1 = channel << 6;
 	adc->PCSEL = (1 << channel);
 }
 
