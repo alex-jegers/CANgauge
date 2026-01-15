@@ -44,12 +44,12 @@ SemaphoreHandle_t sys_mutex_lvgl = NULL;
 volatile UBaseType_t system_stack_watermark;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
-static void _init_fpu();
+static void prv_init_fpu();
 static void _can_sniffer_btn_hanlder(lv_event_t* e);
 static void _gauges_btn_handler(lv_event_t* e);
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
-static void _init_fpu()
+static void prv_init_fpu()
 {
 	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
 }
@@ -71,10 +71,17 @@ void system_task_init()
 	hsem_init_clk();
 	/*Taking HSEM 1 to hold CM4 in place.*/
 	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM7);
+
+	/*Enable all the IO clocks.*/
 	io_init();
+
+	/*Turn on the test LED.*/
 	io_init_test_led(TEST_LED_PORT, TEST_LED_PIN);
 	io_test_led_on();
-	_init_fpu();
+	
+	/*Initialize the FPU.*/
+	prv_init_fpu();
+
 
 	system_init_shared_mem();
 
@@ -82,6 +89,7 @@ void system_task_init()
 	lcd_init();
 	indev_init(&p.p_touch_data);
 
+	/*Enable the caches.*/
 	SCB_EnableDCache();
 	SCB_EnableICache();
 
@@ -93,14 +101,14 @@ void system_task_init()
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
 	hsem_clear_int(1);
 
-	sys_mutex_lvgl = xSemaphoreCreateMutex();
+	sys_mutex_lvgl = NULL;//xSemaphoreCreateMutex();
 	if (sys_mutex_lvgl == NULL)
 	{
-		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
+		xTaskCreate(system_task_blink, "SYS_BLINK", 50, 100, 4, NULL);
 	}
 	else
 	{
-		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
+		xTaskCreate(system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);

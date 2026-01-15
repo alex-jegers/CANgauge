@@ -12,12 +12,6 @@
 
 #include "drivers/drivers.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "list.h"
-#include "semphr.h"
-
 /**********     TYPEDEFS     **********/
 
 /**********     DEFINES     **********/

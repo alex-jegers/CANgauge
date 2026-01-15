@@ -21,10 +21,19 @@
 
 int main(void)
 {
+	/* Configures the clocks to run at full speed in full power mode. */
 	rcc_main_clock_config();
+
+	/* Initializes the external SDRAM. */
 	fmc_init_sdram();
+
+	/* Creates a task to finish the rest of the system initialization. */
    	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 0, NULL);
-   	vTaskStartScheduler();
+   	
+	/* Starts the FreeRTOS scheduler. */
+	vTaskStartScheduler();
+
+	/* Should never reach here. */
    	while(1);
 }
 

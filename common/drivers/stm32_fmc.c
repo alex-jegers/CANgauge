@@ -4,7 +4,7 @@
  *  Created on: Feb 27, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM7
+
 
 #include "stm32_fmc.h"
 #include "stm32_io.h"
@@ -350,4 +350,4 @@ void fmc_init_io_test()
 	io_pin_out_clr(SDRAM_CKE1);
 }
 
-#endif //CORE_CM7
+

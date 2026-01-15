@@ -1,12 +1,16 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _APPLICATIONS_CM7_
+#define _APPLICATIONS_CM7_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
+#include "application/app_battery_monitor.h"
+#include "application/app_can_sniffer_cm7.h"
+#include "application/app_gauges_cm7.h"
+#include "application/app_ui_test_cm7.h"
 
 /**********     DEFINES      **********/
 
