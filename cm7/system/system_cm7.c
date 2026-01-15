@@ -101,7 +101,7 @@ void system_task_init()
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
 	hsem_clear_int(1);
 
-	sys_mutex_lvgl = NULL;//xSemaphoreCreateMutex();
+	sys_mutex_lvgl = xSemaphoreCreateMutex();
 	if (sys_mutex_lvgl == NULL)
 	{
 		xTaskCreate(system_task_blink, "SYS_BLINK", 50, 100, 4, NULL);
