@@ -22,9 +22,6 @@
 
 #include "stm32h7xx_it_cm4.h"
 
-#include "drivers/stm32_sys_timer.h"
-#include "drivers/stm32_io.h"
-
 
 /******************************************************************************/
 /*           Cortex Processor Interruption and Exception Handlers          */

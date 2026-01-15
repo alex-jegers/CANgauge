@@ -17,10 +17,19 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void ui_gauges_load();
-void ui_gauges_set_gauge_value(int32_t val);
+/**
+* ui_gauge_set_gauge_value
+* params:
+* val: must be the actual value times 10. This is to account for params which have decimals.
+*/
+void ui_gauges_set_gauge_value(float val);
+void ui_gauges_create_gauge_btn(const char* name);
+void ui_gauges_create_gauge(const char* name, uint32_t min, uint32_t max);
+
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_back_btn_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e));
+void ui_gauges_set_scr_load_cb(lv_event_cb_t func);
 
 
 

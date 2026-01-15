@@ -30,8 +30,7 @@ static void lcd_st7701_read_param(uint32_t* data, bool hold_ss_low);
 static bool lcd_st7701_check_id();
 static uint8_t lcd_st7701_self_diag();
 
-/*TODO: Rename these and combine into 1 once i figure out whats broken*/
-static void lcd_st7701_my_spi_config();
+/*TODO: Rename this.*/
 static void lcd_st7701_adafruit_spi_config();
 
 /*******		STATIC FUNCTION DEFINITIONS		********/
@@ -142,253 +141,6 @@ static uint8_t lcd_st7701_self_diag()
 #endif
 }
 
-#ifdef TARGET_HARDWARE_CANGAUGE
-static void lcd_st7701_my_spi_config()
-{
-	uint8_t self_diag = lcd_st7701_self_diag();
-	if (self_diag != 0)
-	{
-		while (1)
-		{
-			io_test_led_on();
-			timer_delay_ms(500);
-			io_test_led_off();
-			timer_delay_ms(500);
-		}
-	}
-
-	//Software reset.
-	lcd_st7701_send_cmd(ST7701_SWRESET_CMD, false);		//SW reset.
-	timer_delay_ms(200);
-
-	//Read and validate the LCD ID.
-	if (!lcd_st7701_check_id())
-	{
-		//TODO: Call error handler here.
-		while (1)
-		{
-			io_test_led_on();
-			timer_delay_ms(500);
-			io_test_led_off();
-			timer_delay_ms(500);
-		}
-	}
-
-	/*Sleep out.*/
-	lcd_st7701_send_cmd(ST7701_SLPOUT_CMD, false);
-
-	/*Display on.*/
-	lcd_st7701_send_cmd(ST7701_DISPON_CMD, false);
-
-	//Enable BK0 function of command 2.
-	lcd_st7701_send_cmd(ST7701_CND2BKxSEL_CMD, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM1, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM2, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM3, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM4, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_ENABLE_BK0, false);
-
-	//Display line setting.
-	lcd_st7701_send_cmd(0xC0, true);
-	lcd_st7701_send_param(0x3B, true);
-	lcd_st7701_send_param(0x00, false);
-
-	//Porch control.
-	lcd_st7701_send_cmd(0xC1, true);
-	lcd_st7701_send_param(0x0B, true);
-	lcd_st7701_send_param(0x02, false);
-
-	//Inversion selection and frame rate control.
-	lcd_st7701_send_cmd(0xC2, true);
-	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x02, false);
-
-	//RGB control.
-	lcd_st7701_send_cmd(0xC3, true);
-	lcd_st7701_send_param(0x00, false);
-
-	//Color control.
-	lcd_st7701_send_cmd(0xCD, true);
-	lcd_st7701_send_param(0x08, false);
-
-	//Positive gamma control.
-	lcd_st7701_send_cmd(0xB0, true);
-	lcd_st7701_send_param(0x02, true);
-	lcd_st7701_send_param(0x13, true);
-	lcd_st7701_send_param(0x1B, true);
-	lcd_st7701_send_param(0x0D, true);
-	lcd_st7701_send_param(0x10, true);
-	lcd_st7701_send_param(0x05, true);
-	lcd_st7701_send_param(0x08, true);
-	lcd_st7701_send_param(0x07, true);
-	lcd_st7701_send_param(0x07, true);
-	lcd_st7701_send_param(0x24, true);
-	lcd_st7701_send_param(0x04, true);
-	lcd_st7701_send_param(0x11, true);
-	lcd_st7701_send_param(0x0E, true);
-	lcd_st7701_send_param(0x2C, true);
-	lcd_st7701_send_param(0x33, true);
-	lcd_st7701_send_param(0x1D, false);
-
-	//Negative gamma control.
-	lcd_st7701_send_cmd(0xB1, true);
-	lcd_st7701_send_param(0x05, true);
-	lcd_st7701_send_param(0x13, true);
-	lcd_st7701_send_param(0x1B, true);
-	lcd_st7701_send_param(0x0D, true);
-	lcd_st7701_send_param(0x10, true);
-	lcd_st7701_send_param(0x05, true);
-	lcd_st7701_send_param(0x08, true);
-	lcd_st7701_send_param(0x07, true);
-	lcd_st7701_send_param(0x07, true);
-	lcd_st7701_send_param(0x24, true);
-	lcd_st7701_send_param(0x04, true);
-	lcd_st7701_send_param(0x11, true);
-	lcd_st7701_send_param(0x0E, true);
-	lcd_st7701_send_param(0x2C, true);
-	lcd_st7701_send_param(0x33, true);
-	lcd_st7701_send_param(0x1D, false);
-
-	//Enable BK1 function of command 2.
-	lcd_st7701_send_cmd(ST7701_CND2BKxSEL_CMD, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM1, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM2, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM3, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM4, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_ENABLE_BK1, false);
-
-	//VOP amplitude setting.
-	lcd_st7701_send_cmd(0xB0, true);
-	lcd_st7701_send_param(0x5D, false);
-
-	//VCOM amplitude setting.
-	lcd_st7701_send_cmd(0xB1, true);
-	lcd_st7701_send_param(0x43, false);
-
-	//VGH voltage setting.
-	lcd_st7701_send_cmd(0xB2, true);
-	lcd_st7701_send_param(0x81, false);
-
-	//VGL voltage setting.
-	lcd_st7701_send_cmd(0xB5, true);
-	lcd_st7701_send_param(0x43, false);
-
-	//Power control 1.
-	lcd_st7701_send_cmd(0xB7, true);
-	lcd_st7701_send_param(0x85, false);
-
-	//Power control 2.
-	lcd_st7701_send_cmd(0xB8, true);
-	lcd_st7701_send_param(0x20, false);
-
-	//Source pre drive timing set 1.
-	lcd_st7701_send_cmd(0xC1, true);
-	lcd_st7701_send_param(0x78, false);
-
-	//Source EQ2 setting.
-	lcd_st7701_send_cmd(0xC2, true);
-	lcd_st7701_send_param(0x78, false);
-
-	//MIPI setting 1.
-	//lcd_st7701_send_cmd(0xD0, true);
-	//lcd_st7701_send_param(0x88, false);
-
-	//Sunlight readable enhancement.
-	//lcd_st7701_send_cmd(0xE0, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x02, false);
-
-	//Noise reduce control.
-	//lcd_st7701_send_cmd(0xE1, true);
-	//lcd_st7701_send_param(0x03, true);
-	//lcd_st7701_send_param(0xA0, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x04, true);
-	//lcd_st7701_send_param(0xA0, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x20, true);
-	//lcd_st7701_send_param(0x20, false);
-
-	//Sharpness control.
-	//lcd_st7701_send_cmd(0xE2, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, false);
-
-	//Color calibration control.
-	//lcd_st7701_send_cmd(0xE3, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x00, true);
-	//lcd_st7701_send_param(0x11, true);
-	//lcd_st7701_send_param(0x00, false);
-
-	//Skin tone preservation control.
-	//lcd_st7701_send_cmd(0xE4, true);
-	//lcd_st7701_send_param(0x22, true);
-	//lcd_st7701_send_param(0x00, false);
-
-	//Disable BKx function of command 2.
-	lcd_st7701_send_cmd(ST7701_CND2BKxSEL_CMD, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM1, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM2, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM3, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_PARAM4, true);
-	lcd_st7701_send_param(ST7701_CND2BKxSEL_DISABLE, false);
-
-	/*MADCTL*/
-	lcd_st7701_send_cmd(ST7701_MADCTL_CMD, true);
-	lcd_st7701_send_cmd(ST7701_MADCTL_ML_NORMAL_SCAN | ST7701_MADCTL_BGR_RGB, false);
-
-	/*COLMOD*/
-	lcd_st7701_send_cmd(ST7701_COLMOD_CMD, true);
-	lcd_st7701_send_cmd(ST7701_COLMOD_VIPF_18BPP, false);
-
-	//All pixels on.
-	lcd_st7701_send_cmd(ST7701_ALLPON_CMD, false);
-
-	//Read back the power mode.
-	static uint32_t power_mode;
-	lcd_st7701_send_cmd(ST7701_RDDPM_CMD, true);
-	lcd_st7701_read_param(&power_mode, false);
-	if (power_mode != ST7701_RDDPM_PARAM)
-	{
-		while (1)
-		{
-			io_test_led_on();
-			timer_delay_ms(500);
-			io_test_led_off();
-			timer_delay_ms(500);
-		}
-	}
-
-	//Read and check the self diagnostic register.
-	self_diag = 0x00;
-	self_diag = lcd_st7701_self_diag();
-	if (self_diag != ST7701_RDDSDR_PARAM)
-	{
-		while (1)
-		{
-			io_test_led_on();
-			timer_delay_ms(500);
-			io_test_led_off();
-			timer_delay_ms(500);
-		}
-	}
-}
-#endif //TARGET_HARDWARE_CANGAUGE
 
 #ifdef TARGET_HARDWARE_CANGAUGE
 static void lcd_st7701_adafruit_spi_config()
@@ -399,32 +151,34 @@ static void lcd_st7701_adafruit_spi_config()
 	 */
 	lcd_st7701_send_cmd(0x01, false);		//Software reset.
 
+	vTaskDelay(100);
+
 	lcd_st7701_send_cmd(0xFF, true);		//Command2 BKx Selection
 	lcd_st7701_send_param(0x77, true);		//Nothing.
 	lcd_st7701_send_param(0x01, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
-	lcd_st7701_send_param(0x10, false);		//Selects and enables BK0.
+	lcd_st7701_send_param(0x10, true);		//Selects and enables BK0.
 
 
 	lcd_st7701_send_cmd(0xC0, true);		//Display line setting (LNESET).
 	lcd_st7701_send_param(0x3B, true);		//0b0011 1011, display line setting = 59, no extra line.
-	lcd_st7701_send_param(0x00, false);		//No delta line.
+	lcd_st7701_send_param(0x00, true);		//No delta line.
 
 
 	lcd_st7701_send_cmd(0xC1, true);							//Porch control (PORCTRL)
 	lcd_st7701_send_param(LTDC_VERT_BK_PORCH_px, true);			//Vertical back porch.
-	lcd_st7701_send_param(LTDC_VERT_FRNT_PORCH_px, false);		//Vertical front porch.
+	lcd_st7701_send_param(LTDC_VERT_FRNT_PORCH_px, true);		//Vertical front porch.
 
 	lcd_st7701_send_cmd(0xC2, true);		//Inversion and frame rate control.
 	lcd_st7701_send_param(0x00, true);		//"1 dot inversion"
-	lcd_st7701_send_param(0x02, false);		//Sets minimum number of PCLK per line to 2.
+	lcd_st7701_send_param(0x02, true);		//Sets minimum number of PCLK per line to 2.
 
 	lcd_st7701_send_cmd(0xCC, true);		//THIS IS NOT IN THE DATASHEET????
-	lcd_st7701_send_param(0x10, false);
+	lcd_st7701_send_param(0x10, true);
 
 	lcd_st7701_send_cmd(0xCD, true);		//Color control (COLCTRL)
-	lcd_st7701_send_param(0x08, false);		//Pixel collect to DB[17:0] (see table 17), copy self MSB.
+	lcd_st7701_send_param(0x08, true);		//Pixel collect to DB[17:0] (see table 17), copy self MSB.
 
 	lcd_st7701_send_cmd(0xB0, true);		//Positive voltage gamma control.
 	lcd_st7701_send_param(0x02, true);
@@ -442,7 +196,7 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x0E, true);
 	lcd_st7701_send_param(0x2C, true);
 	lcd_st7701_send_param(0x33, true);
-	lcd_st7701_send_param(0x1D, false);
+	lcd_st7701_send_param(0x1D, true);
 
 	lcd_st7701_send_cmd(0xB1, true);		//Negative voltage gamma control.
 	lcd_st7701_send_param(0x05, true);
@@ -460,49 +214,49 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x0E, true);
 	lcd_st7701_send_param(0x2C, true);
 	lcd_st7701_send_param(0x33, true);
-	lcd_st7701_send_param(0x1D, false);
+	lcd_st7701_send_param(0x1D, true);
 
 	lcd_st7701_send_cmd(0xFF, true);		//Command2 BKx Selection.
 	lcd_st7701_send_param(0x77, true);		//Nothing.
 	lcd_st7701_send_param(0x01, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
-	lcd_st7701_send_param(0x11, false);		//Selects BK1 mode.
+	lcd_st7701_send_param(0x11, true);		//Selects BK1 mode.
 
 	lcd_st7701_send_cmd(0xB0, true);		//Vop amplitude setting.
-	lcd_st7701_send_param(0x5D, false);
+	lcd_st7701_send_param(0x5D, true);
 
 	lcd_st7701_send_cmd(0xB1, true);		//VCOM amplitude setting.
-	lcd_st7701_send_param(0x43, false);
+	lcd_st7701_send_param(0x43, true);
 
 	lcd_st7701_send_cmd(0xB2, true);		//VGH voltage setting.
-	lcd_st7701_send_param(0x81, false);
+	lcd_st7701_send_param(0x81, true);
 
 	lcd_st7701_send_cmd(0xB3, true);		//TEST command setting..?
-	lcd_st7701_send_param(0x80, false);
+	lcd_st7701_send_param(0x80, true);
 
 	lcd_st7701_send_cmd(0xB5, true);		//VGL voltage setting.
-	lcd_st7701_send_param(0x43, false);
+	lcd_st7701_send_param(0x43, true);
 
 	lcd_st7701_send_cmd(0xB7, true);		//Power control 1.
-	lcd_st7701_send_param(0x85, false);
+	lcd_st7701_send_param(0x85, true);
 
 	lcd_st7701_send_cmd(0xB8, true);		//Power control 2.
-	lcd_st7701_send_param(0x20, false);
+	lcd_st7701_send_param(0x20, true);
 
 	lcd_st7701_send_cmd(0xC1, true);		//Source pre drive timing set 1.
-	lcd_st7701_send_param(0x78, false);
+	lcd_st7701_send_param(0x78, true);
 
 	lcd_st7701_send_cmd(0xC2, true);		//Source EQ2 setting.
-	lcd_st7701_send_param(0x78, false);
+	lcd_st7701_send_param(0x78, true);
 
 	lcd_st7701_send_cmd(0xD0, true);		//MIPI setting. (why are we doing this)
-	lcd_st7701_send_param(0x88, false);		//Enable EOTP report error, disable ERR pin output.
+	lcd_st7701_send_param(0x88, true);		//Enable EOTP report error, disable ERR pin output.
 
 	lcd_st7701_send_cmd(0xE0, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x02, false);
+	lcd_st7701_send_param(0x02, true);
 
 	lcd_st7701_send_cmd(0xE1, true);		//Noise reduction control.
 	lcd_st7701_send_param(0x03, true);		//Disable?? and set to level 3.
@@ -515,7 +269,7 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x20, true);
-	lcd_st7701_send_param(0x20, false);
+	lcd_st7701_send_param(0x20, true);
 
 	lcd_st7701_send_cmd(0xE2, true);		//Sharpness control.
 	lcd_st7701_send_param(0x00, true);		//Disable and set level to 0.
@@ -530,17 +284,17 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xE3, true);		//Color calibration control.
 	lcd_st7701_send_param(0x00, true);		//Disable.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
 	lcd_st7701_send_param(0x11, true);		//Nothing.
-	lcd_st7701_send_param(0x00, false);		//Nothing.
+	lcd_st7701_send_param(0x00, true);		//Nothing.
 
 	lcd_st7701_send_cmd(0xE4, true);		//Skin tone preservation control.
 	lcd_st7701_send_param(0x22, true);		//Enable and set mode?
-	lcd_st7701_send_param(0x00, false);		//Does nothing.
+	lcd_st7701_send_param(0x00, true);		//Does nothing.
 
 	lcd_st7701_send_cmd(0xE5, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x05, true);
@@ -558,17 +312,17 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xE6, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x11, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xE7, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x22, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xE8, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x06, true);
@@ -586,7 +340,7 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xEB, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x00, true);
@@ -595,7 +349,7 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x40, true);
 	lcd_st7701_send_param(0x00, true);
 	lcd_st7701_send_param(0x00, true);
-	lcd_st7701_send_param(0x00, false);
+	lcd_st7701_send_param(0x00, true);
 
 	lcd_st7701_send_cmd(0xED, true);		//Not in datasheet???
 	lcd_st7701_send_param(0xFF, true);
@@ -613,7 +367,7 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0xAB, true);
 	lcd_st7701_send_param(0xFF, true);
 	lcd_st7701_send_param(0xFF, true);
-	lcd_st7701_send_param(0xFF, false);
+	lcd_st7701_send_param(0xFF, true);
 
 	lcd_st7701_send_cmd(0xEF, true);		//Not in datasheet???
 	lcd_st7701_send_param(0x10, true);
@@ -621,32 +375,32 @@ static void lcd_st7701_adafruit_spi_config()
 	lcd_st7701_send_param(0x04, true);
 	lcd_st7701_send_param(0x08, true);
 	lcd_st7701_send_param(0x3F, true);
-	lcd_st7701_send_param(0x1F, false);
+	lcd_st7701_send_param(0x1F, true);
 
 	lcd_st7701_send_cmd(0xFF, true);		//Command2 BKx Selection.
 	lcd_st7701_send_param(0x77, true);		//Nothing.
 	lcd_st7701_send_param(0x01, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
-	lcd_st7701_send_param(0x13, false);		//Selects BK3 setting.
+	lcd_st7701_send_param(0x13, true);		//Selects BK3 setting.
 
 	lcd_st7701_send_cmd(0xEF, true);		//Not in datasheet...
-	lcd_st7701_send_param(0x08, false);
+	lcd_st7701_send_param(0x08, true);
 
 	lcd_st7701_send_cmd(0xFF, true);		//Command2 BKx Selection.
 	lcd_st7701_send_param(0x77, true);		//Nothing.
 	lcd_st7701_send_param(0x01, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
 	lcd_st7701_send_param(0x00, true);		//Nothing.
-	lcd_st7701_send_param(0x00, false);		//Disable BK function of command 2.
+	lcd_st7701_send_param(0x00, true);		//Disable BK function of command 2.
 
 	lcd_st7701_send_cmd(0x36, true);		//Display data access control. MADCTL
-	lcd_st7701_send_param(0x00, false);		//Normal scan, RGB not BGR.
+	lcd_st7701_send_param(0x00, true);		//Normal scan, RGB not BGR.
 
 	lcd_st7701_send_cmd(0x3A, true);		//Interface pixel format (COLMOD).
-	lcd_st7701_send_param(0x60, false);		//18 bits per pixel.
+	lcd_st7701_send_param(0x60, true);		//18 bits per pixel.
 
-	lcd_st7701_send_cmd(0x11, false);		//Sleep out (SLPOUT).
+	lcd_st7701_send_cmd(0x11, true);		//Sleep out (SLPOUT).
 
 	lcd_st7701_send_cmd(0x29, false);		//Display on (DISPON).
 }
@@ -719,7 +473,7 @@ void lcd_init()
 						| (LTDC_LxBFCR_BF2_PXxCONST << LTDC_LxBFCR_BF2_Pos);
 
 	/*Set the buffer address.*/
-	LTDC_Layer1->CFBAR = LTDC_DISP_BUFFER_ADDR;
+	LTDC_Layer1->CFBAR = (uint32_t)LTDC_DISP_BUFFER_ADDR;
 
 	/*Set the buffer size registers.*/
 	LTDC_Layer1->CFBLR = (LTDC_LxCFBLR_BUFFER_PITCH_Val << LTDC_LxCFBLR_CFBP_Pos)

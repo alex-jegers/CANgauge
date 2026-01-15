@@ -22,7 +22,7 @@ void fmc_init_sdram()
 {
 	/*Initialize the IO pins needed for SDRAM.*/
 	fmc_init_gpio_sdram();
-	//fmc_init_io_test();
+
 	/*Enable RCC AHB3 clock for the FMC.*/
 	RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;
 
@@ -88,14 +88,6 @@ void fmc_init_sdram()
 							| (FMC_SDTR_TRP_Val << FMC_SDTRx_TRP_Pos)
 							| (FMC_SDTR_TRCD_Val << FMC_SDTRx_TRCD_Pos);
 
-	const uint32_t fmc_sdcmr_msk = (FMC_SDCMR_MRD_Val << FMC_SDCMR_MRD_Pos)
-							| (FMC_SDCMR_NRFS_Val << FMC_SDCMR_NRFS_Pos)
-							| (FMC_SDCMR_CTB1_Msk)
-							| (FMC_SDCMR_CTB2_Msk);
-
-	const uint32_t fmc_sdrtr_msk = (FMC_SDRTR_COUNT_Val << FMC_SDRTR_COUNT_Pos);
-
-
 #endif //TARGET_HARDWARE == CANGAUGE
 
 	FMC_Bank1_R->BTCR[0] |= FMC_BCR1_FMCEN;
@@ -132,45 +124,6 @@ void fmc_init_sdram()
 	/*Set the refresh rate counter. Tested.*/
 	FMC_Bank5_6_R->SDRTR = 156;
 
-
-	//TODO: Read back the memory and add error handling for if it reads back incorrectly.
-	/*Put the color calibration in normally*/
-	/*
-	for (uint32_t addr = 0xd0000000; addr < 0xd0054600; addr += 1)
-	{
-		*(uint8_t*)addr = color_cal_map[addr - 0xd0000000];
-	}
-
-	for (uint32_t addr = 0xd0054600; addr < 0xd00A8C00; addr += 1)
-	{
-		*(uint8_t*)addr = color_cal_map[addr - 0xd0054600];
-	}
-
-	//Put the color cal image in in reverse.
-	for (uint32_t addr = 0xd00A8C00; addr < 0xd00FD200; addr += 1)
-	{
-		*(uint8_t*)addr = color_cal_map[345599 - (addr - 0xd00A8C00)];
-	}
-
-	for (uint32_t addr = 0xd00FD200; addr < 0xD0151800; addr += 1)
-	{
-		*(uint8_t*)addr = color_cal_map[345599 - (addr - 0xd00FD200)];
-	}
-
-
-	for (uint32_t addr = 0xd0000000; addr < 0xd0054600; addr += 1)
-	{
-		uint8_t data = *(uint8_t*)addr;
-		if (data != color_cal_map[addr - 0xd0000000])
-		{
-			while (1)
-			{
-
-			}
-
-		}
-	}
-*/
 }
 
 

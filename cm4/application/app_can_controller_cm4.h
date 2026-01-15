@@ -11,13 +11,15 @@ extern "C" {
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
+#include "semphr.h"
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_can_sniffer_run();
+void app_can_controller_run();
 void app_can_sniffer_stop();
 bool app_can_sniffer_running();
 

@@ -1,22 +1,22 @@
 
-#ifndef _APP_GAUGES_CM7_H_
-#define _APP_GAUGES_CM7_H_
+#ifndef _APPLICATIONS_CM4_H_
+#define _APPLICATIONS_CM4_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "stm32h745xx.h"
-#include <string.h>
+#include "application/app_can_controller_cm4.h"
+#include "application/app_can_get_baud_rate_cm4.h"
+#include "touch_screen/cst830_touch_cm4.h"
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_gauges_run();
-void app_gauges_stop();
+
 
 
 
@@ -24,4 +24,4 @@ void app_gauges_stop();
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_APPLICATIONS_CM4_H_

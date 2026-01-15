@@ -7,7 +7,7 @@
 
 
 #include "stm32_iic.h"
-
+#include <assert.h>
 
 
 
@@ -81,9 +81,9 @@ void i2c_set_clk_speed(I2C_TypeDef* i2c, i2c_clk_speed_t i2c_clk)
 		break;
 	
 	case I2C_CLK_400K:
-		i2c->TIMINGR = (7 << I2C_TIMINGR_PRESC_Pos)
-						| (16 << I2C_TIMINGR_SCLH_Pos)
-						| (16 << I2C_TIMINGR_SCLL_Pos)
+		i2c->TIMINGR = (8 << I2C_TIMINGR_PRESC_Pos)
+						| (15 << I2C_TIMINGR_SCLH_Pos)
+						| (15 << I2C_TIMINGR_SCLL_Pos)
 						| (2 << I2C_TIMINGR_SDADEL_Pos)
 						| (2 << I2C_TIMINGR_SCLDEL_Pos);
 		break;
@@ -113,25 +113,28 @@ void i2c_disable_clk_stretch(I2C_TypeDef* i2c)
 	i2c->CR1 |= I2C_CR1_NOSTRETCH;
 }
 
+void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
+{
+	i2c->TIMEOUTR = (uint32_t)(2 | (1 << I2C_TIMEOUTR_TIMOUTEN));
+}
+
 int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes)
 {
+	/* If setting the internal register pointer failed, return an error. */
 	if (i2c_write(i2c, slave_addr, internal_addr, NULL, 1, false) != 0)
 	{
-		i2c_clear_status(i2c);
 		return -1;
 	}
 
-	/*Wait for write transfer to complete.*/
-	while (!(i2c_status(i2c) & I2C_ISR_TC)){}
-
-	i2c->CR2 = slave_addr;							//set slave address and clear the rest of the register.
+	i2c->CR2 = slave_addr << 1;						//set slave address and clear the rest of the register.
 	i2c->CR2 |= I2C_CR2_RD_WRN;						//set bit for requesting read.
 	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
 	i2c->CR2 |= I2C_CR2_AUTOEND;					//enable auto stop.
+	i2c_clear_status(i2c);
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
 	uint8_t x = 0;
-	while (x < num_bytes)
+	while (1)
 	{
 		if (i2c_status(i2c) & I2C_ISR_RXNE)
 		{
@@ -141,53 +144,81 @@ int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uin
 		}
 		if (i2c_status(i2c) & I2C_ISR_NACKF)
 		{
-			i2c_clear_status(i2c);
+			return -1;
+		}
+		if (i2c_status(i2c) & I2C_ISR_STOPF)
+		{
+			if (x == num_bytes)
+			{
+				return 0;
+			}
+			return -1;
+		}
+		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
+		{
+			return -1;
+		}
+		if (i2c_status(i2c) & I2C_ISR_ARLO)
+		{
 			return -1;
 		}
 
 	}
-	i2c_clear_status(i2c);
 	return 0;
 }
 
 /*Returns zero for success, non-zero for a failure.*/
 int8_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
-	i2c->CR2 = slave_addr;							//set slave address and clear the rest of the register.
-	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.	
+	i2c->CR2 = slave_addr << 1;						//set slave address and clear the rest of the register.
+	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
+	i2c->ISR |= I2C_ISR_TXE;						//Flush the TXDR register.
 	i2c->TXDR = internal_addr;						//send the internal address first.
-	i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
+	//i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
+	i2c_clear_status(i2c);
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
-	uint8_t x = 1;
-	while (x < num_bytes)
+	uint8_t bytes_transferred = 0;
+
+	while(1)
 	{
+
 		if (i2c_status(i2c) & I2C_ISR_TXE)
 		{
+			if (bytes_transferred + 1 == num_bytes)
+			{
+				i2c->CR2 |= I2C_CR2_STOP;
+			}
 			i2c_write_data(i2c, *data);
 			data++;
-			x++;
+			bytes_transferred++;
 		}
-		if (i2c_status(i2c) & I2C_ISR_NACKF)
-		{
-			i2c_clear_status(i2c);
-			return -1;
-		}
+
 		if (i2c_status(i2c) & I2C_ISR_STOPF)
 		{
-			i2c_clear_status(i2c);
+			if (i2c_status(i2c) & I2C_ISR_NACKF)
+			{
+				return -1;
+			}
 			return 0;
 		}
+		if (i2c_status(i2c) & I2C_ISR_TC)
+		{
+			return 0;
+		}
+		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
+		{
+			return -1;
+		}
 	}
-	i2c_clear_status(i2c);
 	return 0;
 }
 
 int8_t i2c_probe(I2C_TypeDef* i2c)
 {
-	for (int8_t addr = 40; addr < 128; addr++)
+	for (int8_t addr = 0; addr < 128; addr++)
 	{
-		int8_t rtn = i2c_write(i2c, addr, 0x00, NULL, 2, false);
+		int8_t rtn = i2c_write(i2c, addr, 0x00, NULL, 0, false);
 		if (rtn == 0)
 		{
 			return addr;

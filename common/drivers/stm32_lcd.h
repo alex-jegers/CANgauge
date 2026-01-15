@@ -96,14 +96,14 @@
 #define LTDC_LVGL_BUFFER1_ADDR              &ltdc_lvgl_buffer2//LTDC_DISP_BUFFER_ADDR + LTDC_BUFFER_SIZE
 //#define LTDC_LVGL_BUFFER2_ADDR              &ltdc_lvgl_buffer2//LTDC_LVGL_BUFFER1_ADDR + LTDC_BUFFER_SIZE
 
-#define LTDC_SSCR_VSYNC_HEIGHT_px			35
-#define LTDC_SSCR_HSYNC_WIDTH_px			35
-#define LTDC_BPCR_VERT_BK_PORCH_px			(LTDC_SSCR_VSYNC_HEIGHT_px + 35)
-#define LTDC_BPCR_HORZ_BK_PORCH_px			(LTDC_SSCR_HSYNC_WIDTH_px + 35)
+#define LTDC_SSCR_VSYNC_HEIGHT_px			10
+#define LTDC_SSCR_HSYNC_WIDTH_px			10
+#define LTDC_BPCR_VERT_BK_PORCH_px			(LTDC_SSCR_VSYNC_HEIGHT_px + 10)
+#define LTDC_BPCR_HORZ_BK_PORCH_px			(LTDC_SSCR_HSYNC_WIDTH_px + 10)
 #define LTDC_AWCR_ACT_HEIGHT_px				(LTDC_BPCR_VERT_BK_PORCH_px + LTDC_SCREEN_SIZE_Y_px)
 #define LTDC_AWCR_ACT_WIDTH_px				(LTDC_BPCR_HORZ_BK_PORCH_px + LTDC_SCREEN_SIZE_X_px)
-#define LTDC_TWCR_TOT_HEIGHT_px				(LTDC_AWCR_ACT_HEIGHT_px + 35)			//This adds on the front porch.
-#define LTDC_TWCR_TOT_WIDTH_px				(LTDC_AWCR_ACT_WIDTH_px + 35)			//This adds on the front porch.
+#define LTDC_TWCR_TOT_HEIGHT_px				(LTDC_AWCR_ACT_HEIGHT_px + 10)			//This adds on the front porch.
+#define LTDC_TWCR_TOT_WIDTH_px				(LTDC_AWCR_ACT_WIDTH_px + 10)			//This adds on the front porch.
 
 #if LTDC_TWCR_TOT_HEIGHT_px > 864
 #error "LTDC Total Height too Large."

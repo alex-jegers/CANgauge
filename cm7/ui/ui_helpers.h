@@ -17,6 +17,8 @@ extern "C" {
 #define UI_COLOR_GRAY		lv_color_hex(0x3b3b3b)
 #define UI_COLOR_DARK_GRAY	lv_color_hex(0x262626)
 
+#define UI_BTN_FONT			&lv_font_montserrat_20
+
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/

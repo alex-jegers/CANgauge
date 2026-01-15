@@ -108,7 +108,7 @@
 #endif //TARGET_HARDWARE_DISCO_BOARD
 
 
-#ifdef TARGET_HARDWARE_CANGAUGE
+//#ifdef TARGET_HARDWARE_CANGAUGE
 
 #define SDRAM_D2				GPIOD, GPIO_PIN0_Msk		
 #define SDRAM_D3				GPIOD, GPIO_PIN1_Msk		
@@ -163,4 +163,4 @@ void fmc_init_sdram();
 void fmc_init_gpio_sdram();
 void fmc_init_io_test();
 
-#endif /* DRIVERS_STM32_FMC_H_ */
+//#endif /* DRIVERS_STM32_FMC_H_ */
