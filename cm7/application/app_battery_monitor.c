@@ -5,8 +5,8 @@
 
 /**********		DEFINES		**********/
 /*This is GPIOB, GPIO_PIN5_Msk for prod hw.*/
-#define BATT_MON_io             GPIOA, GPIO_PIN3_Msk//GPIOB, GPIO_PIN5_Msk
-#define ADC_CHANNEL_NUMBER		15//4
+#define BATT_MON_io             GPIOB, GPIO_PIN1_Msk
+#define ADC_CHANNEL_NUMBER		5
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 TaskHandle_t app_battery_monitor_task_handle = NULL;
