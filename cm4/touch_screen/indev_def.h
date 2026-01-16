@@ -1,19 +1,26 @@
 
-#ifndef _APP_UI_TEST_CM7_H_
-#define _APP_UI_TEST_CM7_H_
+#ifndef _INDEV_DEF_H_
+#define _INDEV_DEF_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
+#include <stdint.h>
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
+typedef struct
+{
+	uint8_t touch_num;
+	uint16_t touch1_x;
+	uint16_t touch1_y;
+}touch_info_t;
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_ui_test_run();
+
 
 
 
@@ -21,4 +28,4 @@ void app_ui_test_run();
 } /*extern "C"*/
 #endif
 
-#endif  //_APP_UI_TEST_CM7_H_
+#endif  //_INDEV_DEF_H_

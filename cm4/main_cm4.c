@@ -14,10 +14,9 @@
 #include "stm32h745xx.h"
 
 #include "system/system_cm4.h"
-#include "application/applications_cm4.h"
 
 
-__attribute__((__section__(".ext_mem_ram"))) touch_info_t touch_info_storage_area;
+CG_MEMORY_REGION_EXT touch_info_t touch_info_storage_area;
 
 
 int main(void)

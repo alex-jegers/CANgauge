@@ -1,23 +1,22 @@
 
-#ifndef _APPLICATIONS_CM7_
-#define _APPLICATIONS_CM7_
+#ifndef _APP_GAUGES_CM7_H_
+#define _APP_GAUGES_CM7_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "application/app_battery_monitor.h"
-//#include "application/app_can_sniffer_cm7.h"
-#include "application/app_gauges_cm7.h"
-
+#include "stm32h745xx.h"
+#include <string.h>
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-
+void app_gauges_run();
+void app_gauges_stop();
 
 
 
