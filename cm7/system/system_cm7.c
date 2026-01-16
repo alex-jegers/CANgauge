@@ -7,8 +7,10 @@
 
 
 /**********		INCLUDES		**********/
+#include <application/applications_cm7.h>
+#include "cangauge_common.h"
 #include "system_cm7.h"
-#include "assert.h"
+
 
 #include "drivers/stm32_io.h"
 #include "drivers/stm32_lcd.h"
@@ -16,18 +18,15 @@
 #include "drivers/stm32_rcc.h"
 #include "drivers/stm32_hsem.h"
 
-#include "application/app_ui_test_cm7.h"
-#include "application/app_can_sniffer_cm7.h"
+
 #include "application/app_battery_monitor.h"
 
-#include "touch_screen/iic_touch.h"
-#include "touch_screen/indev.h"
+#include "lvgl_port/indev.h"
 #include "lvgl/lvgl.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
 
-#include "shared_mem.h"
 
 
 /**********		DEFINES		**********/
@@ -56,7 +55,7 @@ static void prv_init_fpu()
 
 static void _can_sniffer_btn_hanlder(lv_event_t* e)
 {
-	assert(xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL));
+	//xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL);
 }
 
 static void _gauges_btn_handler(lv_event_t* e)
@@ -81,9 +80,6 @@ void system_task_init()
 	
 	/*Initialize the FPU.*/
 	prv_init_fpu();
-
-
-	system_init_shared_mem();
 
 	/*Time dependent initializations.*/
 	lcd_init();

@@ -8,8 +8,6 @@
 
 #include "system/system_cm4.h"
 
-#include "application/applications_cm4.h"
-
 #include "drivers/drivers.h"
 
 /**********     TYPEDEFS     **********/

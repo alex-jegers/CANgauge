@@ -9,7 +9,7 @@
 #ifndef CORE_APPLICATION_CM4_APP_CAN_GET_BAUD_RATE_CM4_H_
 #define CORE_APPLICATION_CM4_APP_CAN_GET_BAUD_RATE_CM4_H_
 
-#include <shared_mem.h>
+#include <cangauge_common.h>
 #include "drivers/stm32_canbus.h"
 #include "drivers/stm32_hsem.h"
 

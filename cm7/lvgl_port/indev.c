@@ -1,9 +1,8 @@
 
 
 /**********     INCLUDES        **********/
+#include <cangauge_common.h>
 #include "indev.h"
-
-#include "shared_mem.h"
 
 #include "FreeRTOS.h"
 #include "task.h"

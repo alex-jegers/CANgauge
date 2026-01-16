@@ -1,5 +1,5 @@
 /**********     INCLUDES        **********/
-#include <shared_mem.h>
+#include <cangauge_common.h>
 #include "saej1979.h"
 #include "string.h"
 /**********		DEFINES		**********/
@@ -475,8 +475,8 @@ void saej1979_current_data_set_getter(uint8_t pid)
 
 	saej1979_getter_template.data[2] = pid;
 	can_add_tx_buffer(FDCAN1, &saej1979_getter_template, 0);
-	shared_set_can_tx_timing_data(30, 0);
-	shared_set_can_tx_unique_ids(FDCAN1, 1);
+	//shared_set_can_tx_timing_data(30, 0);
+	//shared_set_can_tx_unique_ids(FDCAN1, 1);
 	return;
 
 }

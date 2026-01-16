@@ -1,4 +1,5 @@
 /**********     INCLUDES        **********/
+#include <cangauge_common.h>
 #include "app_gauges_cm7.h"
 #include "system/system_cm7.h"
 
@@ -9,7 +10,6 @@
 
 #include "lvgl.h"
 
-#include "common/shared_mem.h"
 #include "common/saej1979.h"
 
 #include "FreeRTOS.h"
@@ -55,11 +55,11 @@ static void _task_gauges()
 	ui_gauges_set_gauge_select_btn_cb(_gauge_select_btn_cb);
 
 	/* Manually set the baud rate. */
-	shared_set_can_baud_override(FDCAN1, CAN_BAUD_500K);
+	//shared_set_can_baud_override(FDCAN1, CAN_BAUD_500K);
 
 	/* Start the CAN controller on CM4. */
-	hsem_lock(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
-	hsem_signal(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
+	//hsem_lock(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
+	//hsem_signal(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
 
 	/* Wait for CAN controller to be up and running. */
 	//TODO: Make this actually check if CAN has been init-ed not just a delay.
@@ -72,24 +72,22 @@ static void _task_gauges()
 	while (_run)
 	{
 		/* Check if there is data in FIFO1. */
-		while (shared_get_can_rx1_unique_ids(FDCAN1) == 0)
-		{
+
 			/*If there's not, wait for a bit and check again. */
 			vTaskDelay(30);
-		}
 
 		/* Check the PID code against what it should be. */
 		can_rx_buffer_entry_t* new_data = NULL;
-		shared_get_can_rx1_buffer_entry(FDCAN1, 0, new_data);
+		//shared_get_can_rx1_buffer_entry(FDCAN1, 0, new_data);
 
 		/* Convert the raw CAN data into something that can be sent to LVGL. */
 		int32_t processed_data = saej1979_current_data_process_data(new_data);
 
-		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
-		{
-			ui_gauges_set_gauge_value(processed_data);
-			xSemaphoreGive(sys_mutex_lvgl);
-		}
+		//if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
+		//{
+		//	ui_gauges_set_gauge_value(processed_data);
+		//	xSemaphoreGive(sys_mutex_lvgl);
+		//}
 		vTaskDelay(25);
 	}
 	/* Stop running. */
@@ -114,7 +112,7 @@ static void _gauge_btn_event_cb(lv_event_t* e)
 static void _gauge_event_cb(lv_event_t* e)
 {
 	/* Tell CM4 to stop transmitting data. */
-	shared_set_can_tx_unique_ids(FDCAN1, 0);
+	//shared_set_can_tx_unique_ids(FDCAN1, 0);
 }
 
 static void _gauge_scr_load_cb()

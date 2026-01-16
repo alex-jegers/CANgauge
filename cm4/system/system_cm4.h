@@ -12,7 +12,9 @@
 #define ENABLE_CM4		true
 
 #include "stm32h745xx.h"
-#include "common/shared_mem.h"
+#include "common/cangauge_common.h"
+
+#include "application/applications_cm4.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
