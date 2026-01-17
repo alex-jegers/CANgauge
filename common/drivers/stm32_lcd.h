@@ -5,7 +5,7 @@
  *      Author: awjpp
  */
 
-#ifdef CORE_CM7
+
 
 #ifndef INC_STM32_LCD_H_
 #define INC_STM32_LCD_H_
@@ -91,10 +91,6 @@
 #define LTDC_SCREEN_AREA_px					(LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px)
 #define LTDC_BYTES_PER_PIXEL				2
 #define LTDC_BUFFER_SIZE                    (LTDC_SCREEN_AREA_px * LTDC_BYTES_PER_PIXEL)
-
-#define LTDC_DISP_BUFFER_ADDR             	&ltdc_lvgl_buffer1
-#define LTDC_LVGL_BUFFER1_ADDR              &ltdc_lvgl_buffer2//LTDC_DISP_BUFFER_ADDR + LTDC_BUFFER_SIZE
-//#define LTDC_LVGL_BUFFER2_ADDR              &ltdc_lvgl_buffer2//LTDC_LVGL_BUFFER1_ADDR + LTDC_BUFFER_SIZE
 
 #define LTDC_SSCR_VSYNC_HEIGHT_px			10
 #define LTDC_SSCR_HSYNC_WIDTH_px			10
@@ -202,8 +198,6 @@
 
 void lcd_init();														//Configures the LTDC Peripheral.
 void lcd_enable();														//Enables the LTDC.
-void lcd_lvgl_init();													//Initializes LVGL and configures LVGL to run with the LTDC.
-
 
 
 void lcd_solid_color_test_red();
@@ -215,4 +209,4 @@ void lcd_solid_color_test_inputs();
 
 #endif /* INC_STM32_LCD_H_ */
 
-#endif //CORE_CM7
+

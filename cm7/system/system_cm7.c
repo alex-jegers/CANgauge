@@ -7,22 +7,17 @@
 
 
 /**********		INCLUDES		**********/
-#include <application/applications_cm7.h>
+#include "application/applications_cm7.h"
 #include "cangauge_common.h"
 #include "system_cm7.h"
 
 
-#include "drivers/stm32_io.h"
-#include "drivers/stm32_lcd.h"
-#include "drivers/stm32_fmc.h"
-#include "drivers/stm32_rcc.h"
-#include "drivers/stm32_hsem.h"
-
+#include "drivers/drivers.h"
 
 #include "application/app_battery_monitor.h"
 
 #include "lvgl_port/indev.h"
-#include "lvgl/lvgl.h"
+#include "lvgl_port/disp.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
@@ -81,13 +76,36 @@ void system_task_init()
 	/*Initialize the FPU.*/
 	prv_init_fpu();
 
-	/*Time dependent initializations.*/
-	lcd_init();
-	indev_init(&p.p_touch_data);
+	/*LCD and LVGL.*/
+	lcd_init();						//The LTDC.
+	disp_init();					//LVGL display bindings
+	indev_init(&p.p_touch_data);	//LVGL input device (touch screen).
+
+
+	/* LCD backlight power supply. */
+	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
+	io_pin_out_set(GPIOK, GPIO_PIN2_Msk);
 
 	/*Enable the caches.*/
 	SCB_EnableDCache();
 	SCB_EnableICache();
+
+	/**** TESTING USB CONFIGURATION *****/
+	io_set_pin_mux(GPIOA, GPIO_PIN10_Msk, GPIO_AFR_AF10);
+	io_set_pin_mux(GPIOA, GPIO_PIN11_Msk, GPIO_AFR_AF10);
+	io_set_pin_mux(GPIOA, GPIO_PIN12_Msk, GPIO_AFR_AF10);
+
+	RCC->CR |= RCC_CR_HSI48ON;
+	while ((RCC->CR & RCC_CR_HSI48RDY) == 0) {}
+
+	RCC->D2CCIP2R |= 0x3 << RCC_D2CCIP2R_USBSEL_Pos;	//Enable kernel clock.
+	RCC->AHB1ENR |= RCC_AHB1ENR_USB2OTGFSEN | RCC_AHB1ENR_USB2OTGFSULPIEN;	//Enable PHY and peripheral clocks.
+
+	USB2_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
+
+
+	/***********************************/
+
 
 	/*
 	 * Signal to CM4 that were done with system init.
