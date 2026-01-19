@@ -3,7 +3,7 @@
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
-static bool ui_demo_mode = true;
+static bool ui_demo_mode = false;
 /**********		STATIC VARIABLES		**********/
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -48,7 +48,7 @@ lv_obj_t* ui_helpers_create_btn_with_text(lv_obj_t* parent, char* text, lv_font_
 lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle)
 {
 	uint32_t total_tick_count = max_val - min_val;						
-	uint32_t major_tick_increment = 128;
+	uint32_t major_tick_increment = 1000;
 
 	while (1)
 	{

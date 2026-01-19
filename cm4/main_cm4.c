@@ -27,7 +27,7 @@ int main(void)
 	 * Updates the touch screen data. Needs to be high priority, runs quick and the latency of
 	 * the touch screen relies on it.
 	 * */
-	p.p_touch_data = &touch_info_storage_area;
+	common.p_touch_data = &touch_info_storage_area;
 	xTaskCreate((TaskFunction_t)cst830_task_update, "CST830_UPDATE", 1024, &touch_info_storage_area, 4, NULL);
 
 	/*Gets CAN baud rates, triggered by HSEM 0.*/

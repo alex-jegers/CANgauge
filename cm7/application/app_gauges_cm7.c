@@ -3,10 +3,11 @@
 #include "app_gauges_cm7.h"
 #include "system/system_cm7.h"
 
+#include "applications_cm7.h"
+
 #include "ui/ui_gauges.h"
 
-#include "drivers/stm32_canbus.h"
-#include "drivers/stm32_hsem.h"
+#include "drivers/drivers.h"
 
 #include "lvgl.h"
 
@@ -22,26 +23,15 @@
 
 /**********		STATIC VARIABLES		**********/
 bool _run = false;
-static TaskHandle_t _gauges_task_handle;
-
-/* The PIDs that are to be plugged into data byte 2 of the template above. */
-uint8_t saej1979_pid_coolant_temp = 0x05;
-uint8_t saej1979_pid_fuel_pressure = 0x0A;
-uint8_t saej1979_pid_intake_air_pressure = 0x0B;
-uint8_t saej1979_pid_timing_advance = 0x0E;
-uint8_t saej1979_pid_intake_air_temp = 0x0F;
-uint8_t saej1979_pid_maf_flow_rate = 0x10;
-uint8_t saej1979_pid_fuel_rail_pressure = 0x22;
-uint8_t saej1979_pid_air_fuel_ratio = 0x34;
-static uint8_t _currently_displayed_pid = 0;
-
+static TaskHandle_t prv_gauges_task_handle;
+static saej1979_current_data_t* active_param = NULL;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void _task_gauges();							//The FreeRTOS task.
-static void _gauge_btn_event_cb(lv_event_t* e);		//Handler for the gauge selection buttons events.
-static void _gauge_event_cb(lv_event_t* e);			//Handler for the gauge itself events.
-static void _gauge_scr_load_cb(lv_event_t* e);		//Handler for the gauge screen loading.
-static void _gauge_select_btn_cb(lv_event_t* e);	//Handler for a gauge being selected.
+
+static void prv_gauge_event_cb(lv_event_t* e);			//Handler for the gauge itself events.
+static void prv_gauge_scr_load_cb(lv_event_t* e);		//Handler for the gauge screen loading.
+static void prv_gauge_select_btn_cb(lv_event_t* e);	//Handler for a gauge being selected.
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void _task_gauges()
@@ -49,21 +39,9 @@ static void _task_gauges()
 	_run = true;
 
 	/* Set the LVGL event callbacks. */
-	ui_gauges_set_gauge_select_btn_cb(_gauge_btn_event_cb);
-	ui_gauges_set_gauge_cb(_gauge_event_cb);
-	ui_gauges_set_scr_load_cb(_gauge_scr_load_cb);
-	ui_gauges_set_gauge_select_btn_cb(_gauge_select_btn_cb);
-
-	/* Manually set the baud rate. */
-	//shared_set_can_baud_override(FDCAN1, CAN_BAUD_500K);
-
-	/* Start the CAN controller on CM4. */
-	//hsem_lock(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
-	//hsem_signal(HSEM_APP_CAN_CONTROLLER_START, HSEM_ID_APP_CAN_CONTROLLER_START);
-
-	/* Wait for CAN controller to be up and running. */
-	//TODO: Make this actually check if CAN has been init-ed not just a delay.
-	vTaskDelay(500);
+	ui_gauges_set_gauge_cb(prv_gauge_event_cb);
+	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);
+	ui_gauges_set_gauge_select_btn_cb(prv_gauge_select_btn_cb);
 
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
@@ -71,23 +49,24 @@ static void _task_gauges()
 	/* While _run is set to true. */
 	while (_run)
 	{
-		/* Check if there is data in FIFO1. */
+		uint8_t current_pid = active_param->pid_code;
+		uint8_t num_params = active_param->data_bytes;
+		uint8_t first_byte = active_param->first_byte;
+		uint32_t raw_value = 0;
+		for (uint8_t i = 0; i < num_params; i++)
+		{
+			raw_value |= (*common.p_can_controller_memory)[current_pid][i + first_byte] << ((num_params - (i+1)) * 8);
+		}
 
-			/*If there's not, wait for a bit and check again. */
-			vTaskDelay(30);
+		float scale = active_param->scale;
+		float offset = active_param->offset;
+		float processed_val = ((float)raw_value * scale) + offset;
 
-		/* Check the PID code against what it should be. */
-		can_rx_buffer_entry_t* new_data = NULL;
-		//shared_get_can_rx1_buffer_entry(FDCAN1, 0, new_data);
-
-		/* Convert the raw CAN data into something that can be sent to LVGL. */
-		int32_t processed_data = saej1979_current_data_process_data(new_data);
-
-		//if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
-		//{
-		//	ui_gauges_set_gauge_value(processed_data);
-		//	xSemaphoreGive(sys_mutex_lvgl);
-		//}
+		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
+		{
+			ui_gauges_set_gauge_value(processed_val);
+			xSemaphoreGive(sys_mutex_lvgl);
+		}
 		vTaskDelay(25);
 	}
 	/* Stop running. */
@@ -99,35 +78,56 @@ static void _task_gauges()
 
 }
 
-static void _gauge_btn_event_cb(lv_event_t* e)
+static void prv_gauge_event_cb(lv_event_t* e)
 {
-	/* Determine which button was clicked. */
-	lv_obj_t* btn = lv_event_get_target_obj(e);
-	lv_obj_t* lbl = lv_obj_get_child(btn, 0);
-	const char* lbl_text = lv_label_get_text(lbl);
-
-	saej1979_current_data_set_getter(lbl_text);
+	/* Stop transmitting the requestor on CAN. */
+	common.p_can_transmit_period_list[0] = 0;
 }
 
-static void _gauge_event_cb(lv_event_t* e)
+static void prv_gauge_scr_load_cb()
 {
-	/* Tell CM4 to stop transmitting data. */
-	//shared_set_can_tx_unique_ids(FDCAN1, 0);
-}
+	CG_MEMORY_REGION_EXT static uint16_t can_transmit_period_list[10];
+	common.p_can_transmit_period_list = can_transmit_period_list;
+	app_can_transmit_run(can_transmit_period_list, 10);
 
-static void _gauge_scr_load_cb()
-{
-	for (uint8_t i = 0; i < 209; i++)
+	CG_MEMORY_REGION_EXT static uint8_t can_control_memory[176][10];
+	common.p_can_controller_memory = &can_control_memory;
+	app_can_controller_run(&can_control_memory);
+
+	vTaskDelay(1000);
+
+	for (uint8_t x = 0; x < 0x80; x += 0x20)
 	{
-		saej1979_current_data_t* x = saej1979_get_current_data(i);
-		if (x->gauge == true)
+		uint32_t available_pids_1 = can_control_memory[x][0] << 24;
+		available_pids_1 |= can_control_memory[x][1] << 16;
+		available_pids_1 |= can_control_memory[x][2] << 8;
+		available_pids_1 |= can_control_memory[x][3];
+		for (int8_t i = 31; i >= 0; i--)
+		{
+			saej1979_current_data_t* y = saej1979_get_current_data(32 - i + x);
+			if ((available_pids_1 & (1 << i)) != 0)
+			{
+				y->gauge = true;
+			}
+			else
+			{
+				y->gauge = false;
+			}
+		}
+	}
+
+
+	for (uint8_t i = 0; i < 176; i++)
+	{
+		saej1979_current_data_t* y = saej1979_get_current_data(i);
+		if ((y->gauge == true) && (y->units != NULL))
 		{
 			ui_gauges_create_gauge_btn(saej1979_get_current_data(i)->name);
 		}
 	}
 }
 
-static void _gauge_select_btn_cb(lv_event_t* e)
+static void prv_gauge_select_btn_cb(lv_event_t* e)
 {
 	lv_obj_t* btn = lv_event_get_target_obj(e);
 	lv_obj_t* lbl = lv_obj_get_child(btn, 0);
@@ -143,10 +143,8 @@ static void _gauge_select_btn_cb(lv_event_t* e)
 		if (strcmp(x->name, txt) == 0)
 		{
 			ui_gauges_create_gauge(txt, x->min, x->max);
-			if (ui_helpers_is_demo_mode() == false)
-			{
-				saej1979_current_data_set_getter(i);
-			}
+			active_param = x;
+			saej1979_current_data_set_getter(i);
 			return;
 		}
 	}
@@ -155,7 +153,7 @@ static void _gauge_select_btn_cb(lv_event_t* e)
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void app_gauges_run()
 {
-	xTaskCreate(_task_gauges, "APP_GAUGES", 800, NULL, 4, _gauges_task_handle);
+	xTaskCreate(_task_gauges, "APP_GAUGES", 800, NULL, 4, prv_gauges_task_handle);
 }
 
 void app_gauges_stop()

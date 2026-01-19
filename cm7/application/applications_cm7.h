@@ -10,7 +10,8 @@ extern "C" {
 #include "application/app_battery_monitor.h"
 //#include "application/app_can_sniffer_cm7.h"
 #include "application/app_gauges_cm7.h"
-
+#include "application/app_can_transmit.h"
+#include "application/app_can_controller.h"
 
 /**********     DEFINES      **********/
 

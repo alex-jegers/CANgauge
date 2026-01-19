@@ -19,7 +19,7 @@ extern "C" {
 
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_can_controller_run();
+void app_can_controller_run(uint8_t (*data_storage)[176][10]);
 void app_can_sniffer_stop();
 bool app_can_sniffer_running();
 

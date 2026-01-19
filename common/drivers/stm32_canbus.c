@@ -18,18 +18,6 @@ typedef enum
 	PLL2_Q		= 0x2 << RCC_D2CCIP1R_FDCANSEL_Pos,
 }canbus_kernel_clk_t;
 
-typedef enum
-{
-	CAN_ERROR_CODE_NO_ERROR,
-	CAN_ERROR_CODE_STUFF_ERROR,
-	CAN_ERROR_CODE_FORM_ERROR,
-	CAN_ERROR_CODE_ACK_ERROR,
-	CAN_ERROR_CODE_BIT1_ERROR,
-	CAN_ERROR_CODE_BIT0_ERROR,
-	CAN_ERROR_CODE_CRC_ERROR,
-	CAN_ERROR_CODE_NO_CHANGE,
-}can_error_code_t;
-
 /***********	DEFINES	************/
 #define CAN_BTP_TSEG2_1M		1
 #define CAN_BTP_TSEG1_1M		6
@@ -58,8 +46,6 @@ typedef enum
 /***********	STATIC VARIABLES DEFINITIONS	************/
 
 /***********	STATIC VARIABLES DECLARATIONS	************/
-static SemaphoreHandle_t _can1_mutex = NULL;
-static SemaphoreHandle_t _can2_mutex = NULL;
 
 static bool _initialized;
 
@@ -95,7 +81,6 @@ static void can_init_clk();																		//initialize the clocks.
 /*Status related functions.*/
 static uint32_t can_get_int_status(FDCAN_GlobalTypeDef* canbus);								//returns the interrupt register.
 static void can_clear_int_status(FDCAN_GlobalTypeDef* canbus, uint32_t mask);					//clears interrupt bits.
-static can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus);
 
 /*TX related functions.*/
 
@@ -142,11 +127,6 @@ static void can_init_clk()
 
 static void can_init_msg_ram(FDCAN_GlobalTypeDef* canbus)
 {
-	for (uint32_t i = CAN_MSG_RAM_BASE_ADDR; i < CAN_MSG_RAM_END_ADDR; i+=4)
-	{
-		*(uint32_t*)i = 0;
-	}
-
 	/*RX fifo0 start address, mode and size.*/
 	canbus->RXF0C = (uint32_t)can1_rx_fifo0 - CAN_MSG_RAM_BASE_ADDR;				//F0SA, FIFO 0 Start Address.
 	canbus->RXF0C |= CAN1_RX_FIFO0_ELEMENTS << FDCAN_RXF0C_F0S_Pos;
@@ -252,50 +232,22 @@ static can_ext_id_filter_t* can_get_ext_id_filter_addr(FDCAN_GlobalTypeDef* canb
 	return dest_addr;
 }
 
-static can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus)
-{
-	static can_error_code_t last_error_code = 0;
-	if (last_error_code == CAN_ERROR_CODE_NO_CHANGE)
-	{
-		return last_error_code;
-	}
-	last_error_code = canbus->PSR & FDCAN_PSR_LEC_Msk;
-
-	/*If it's still "no change" that means this is the first time reading the register
-	 * and there is no error.*/
-	if (last_error_code == CAN_ERROR_CODE_NO_CHANGE)
-	{
-		last_error_code = CAN_ERROR_CODE_NO_ERROR;
-		return last_error_code;
-	}
-
-	return last_error_code;
-}
-
 /***********	GLOBAL FUNCTION DEFINTIONS	************/
 void can_init(FDCAN_GlobalTypeDef* canbus)
 {
-	if (!_initialized) {
-		io_init();
 
-		can_init_clk();
+	io_init();
 
-		/*CAN1 multiplexing.*/
-		io_set_pin_mux(GPIOH, GPIO_PIN13_Msk, GPIO_AFR_AF9);
-		io_set_pin_mux(GPIOH, GPIO_PIN14_Msk, GPIO_AFR_AF9);
+	can_init_clk();
 
-		/*Create the mutexes.*/
-		_can1_mutex = xSemaphoreCreateMutex();
-		_can2_mutex = xSemaphoreCreateMutex();
-
-		_initialized = true;
-	}
-
-	/*Sets the message RAM to all 0s.*/
-	can_init_msg_ram(canbus);
+	/*CAN1 multiplexing.*/
+	io_set_pin_mux(GPIOH, GPIO_PIN13_Msk, GPIO_AFR_AF9);
+	io_set_pin_mux(GPIOH, GPIO_PIN14_Msk, GPIO_AFR_AF9);
 
 	/*Initialize the filter registers.*/
 	can_filter_init(canbus);
+
+	can_init_msg_ram(canbus);
 
 	/*Reset all interrupt flags.*/
 	can_clear_int_status(canbus, 0xFFFFFFFF);
@@ -303,25 +255,7 @@ void can_init(FDCAN_GlobalTypeDef* canbus)
 
 bool can_take(FDCAN_GlobalTypeDef* canbus)
 {
-	if (canbus == FDCAN1)
-	{
-		if(xSemaphoreTake(_can1_mutex, 0) == pdFAIL)
-		{
-			return false;
-		}
-		return true;
-	}
 
-	if (canbus == FDCAN2)
-	{
-		if(xSemaphoreTake(_can2_mutex, 0) == pdFAIL)
-		{
-			return false;
-		}
-		return true;
-	}
-
-	return false;
 }
 
 void can_deinit(FDCAN_GlobalTypeDef* canbus)
@@ -330,15 +264,15 @@ void can_deinit(FDCAN_GlobalTypeDef* canbus)
 	{
 		NVIC_DisableIRQ(FDCAN1_IT0_IRQn);				//Disable CAN1, line 0 IRQ.
 		NVIC_DisableIRQ(FDCAN1_IT1_IRQn);				//Disable CAN1, line 1 IRQ.
-		xSemaphoreGive(_can1_mutex);
 	}
 	if (canbus == FDCAN2)
 	{
 		NVIC_DisableIRQ(FDCAN2_IT0_IRQn);				//Disable CAN2, line 0 IRQ.
 		NVIC_DisableIRQ(FDCAN2_IT1_IRQn);				//Disable CAN2, line 1 IRQ.
-		xSemaphoreGive(_can2_mutex);
 	}
 
+	/*Turn off the clocks.*/
+	RCC->APB1HENR &= ~(RCC_APB1HENR_FDCANEN);
 }
 
 void can_filter_init(FDCAN_GlobalTypeDef* canbus)
@@ -728,6 +662,26 @@ uint8_t can_read_from_fifo1(FDCAN_GlobalTypeDef* canbus, can_rx_buffer_entry_t* 
 	canbus->RXF1A = get_index;
 	uint32_t fill_level = (canbus->RXF1S & FDCAN_RXF1S_F1FL) >> FDCAN_RXF1S_F1FL_Pos;
 	return fill_level;
+}
+
+can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus)
+{
+	static can_error_code_t last_error_code = CAN_ERROR_CODE_NO_ERROR;	
+	if (last_error_code == CAN_ERROR_CODE_NO_CHANGE)
+	{
+		return last_error_code;
+	}
+	last_error_code = canbus->PSR & FDCAN_PSR_LEC_Msk;
+
+	/*If it's still "no change" that means this is the first time reading the register
+	 * and there is no error.*/
+	if (last_error_code == CAN_ERROR_CODE_NO_CHANGE)
+	{
+		last_error_code = CAN_ERROR_CODE_NO_ERROR;
+		return last_error_code;
+	}
+
+	return last_error_code;
 }
 
 

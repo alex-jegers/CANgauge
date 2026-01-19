@@ -11,10 +11,8 @@
 #include "cangauge_common.h"
 #include "system_cm7.h"
 
-
 #include "drivers/drivers.h"
-
-#include "application/app_battery_monitor.h"
+#include "drivers/stm32_canbus.h"
 
 #include "lvgl_port/indev.h"
 #include "lvgl_port/disp.h"
@@ -36,6 +34,7 @@ SemaphoreHandle_t sys_mutex_lvgl = NULL;
 
 /**********     STATIC VARIABLES     **********/
 volatile UBaseType_t system_stack_watermark;
+
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void prv_init_fpu();
@@ -79,12 +78,12 @@ void system_task_init()
 	/*LCD and LVGL.*/
 	lcd_init();						//The LTDC.
 	disp_init();					//LVGL display bindings
-	indev_init(&p.p_touch_data);	//LVGL input device (touch screen).
+	indev_init(&common.p_touch_data);	//LVGL input device (touch screen).
 
 
 	/* LCD backlight power supply. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
-	io_pin_out_set(GPIOK, GPIO_PIN2_Msk);
+	io_pin_out_clr(GPIOK, GPIO_PIN2_Msk);
 
 	/*Enable the caches.*/
 	SCB_EnableDCache();
@@ -122,12 +121,13 @@ void system_task_init()
 	}
 	else
 	{
-		xTaskCreate(system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
+
+		xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
 		ui_car_load_menu_screen();
 		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
 		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
 		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
-		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, app_battery_monitor_task_handle);
+		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
 	}
 
 	vTaskDelete(NULL);

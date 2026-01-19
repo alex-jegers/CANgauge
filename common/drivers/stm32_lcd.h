@@ -11,7 +11,6 @@
 #define INC_STM32_LCD_H_
 
 #include "stm32h745xx.h"
-#include "lvgl/lvgl.h"
 
 #ifdef TARGET_HARDWARE_STM32H745DISCO
 

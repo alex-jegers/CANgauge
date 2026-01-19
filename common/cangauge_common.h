@@ -24,9 +24,15 @@ typedef struct
 	/* A pointer to the touch screen data. */
 	void* p_touch_data;
 
+	/* A pointer to the CAN transmit time period list. */
+	uint16_t* p_can_transmit_period_list;
+
+	/* A pointer to UDS current data. */
+	uint8_t (*p_can_controller_memory)[176][10];
+
 }common_mem_t;
 
-CG_MEMORY_REGION_COMMON extern volatile common_mem_t p;
+CG_MEMORY_REGION_COMMON extern volatile common_mem_t common;
 
 /**********     GLOBAL FUNCTION PROTOTYPES     **********/
 

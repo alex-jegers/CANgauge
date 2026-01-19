@@ -168,6 +168,14 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
 		number_of_ticks = max_val - min_val;
 	}
 
+	while (number_of_ticks > 500)
+	{
+		max_val /= 10;
+		min_val /= 10;
+		_gauge_scaling_factor /= 10;
+		number_of_ticks = max_val - min_val;
+	}
+
 	/* For values with decimal points or small range we need 2 gauges, one hidden that's scaled up and one visible
 	with the values that were given. */
 	if ((uint32_t)_gauge_scaling_factor > 1)

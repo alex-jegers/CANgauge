@@ -9,8 +9,7 @@
 #include "stm32_fmc.h"
 #include "stm32_io.h"
 #include "stm32_rcc.h"
-#include "stm32_timer.h"
-#include "string.h"			//TODO: for test, remove.
+#include <string.h>
 
 #define TEST_ADDR				*(uint32_t*)0xD0000000
 
@@ -123,6 +122,9 @@ void fmc_init_sdram()
 
 	/*Set the refresh rate counter. Tested.*/
 	FMC_Bank5_6_R->SDRTR = 156;
+
+	/* Set it all to zeros. */
+	memset(0xD0000000, 0, 16000000);
 
 }
 

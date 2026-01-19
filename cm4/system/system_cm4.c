@@ -69,12 +69,12 @@ void system_task_monitor()
 		if(hsem_get_status(HSEM_APP_CAN_CONTROLLER_START))
 		{
 			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_START);
-			app_can_controller_run();
+			//app_can_controller_run();
 		}
 		if (hsem_get_status(HSEM_APP_CAN_CONTROLLER_STOP))
 		{
 			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_STOP);
-			app_can_sniffer_stop();
+			//app_can_sniffer_stop();
 		}
 
 		vTaskDelay(100);

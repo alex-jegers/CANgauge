@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _SAEJ1979_H_
+#define _SAEJ1979_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +19,7 @@ typedef struct
     float scale;
     float offset;
     uint8_t data_bytes;     //How many bytes of data are valid (usually 1 or 2).
+    uint8_t first_byte;
     int32_t min;
     int32_t max;
     const char* units;
@@ -49,4 +50,4 @@ saej1979_current_data_t* saej1979_get_current_data_by_name(const char* name);
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_SAEJ1979_H_
