@@ -123,9 +123,9 @@ void system_task_init()
 	{
 
 		xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
-		ui_car_load_menu_screen();
-		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
-		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
+		ui_menu_load();
+		ui_menu_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
+		ui_menu_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
 		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
 		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
 	}

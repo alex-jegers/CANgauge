@@ -111,7 +111,7 @@ static void _back_btn_handler(lv_event_t* e)
 	lv_event_code_t event_code = lv_event_get_code(e);
 	if (event_code == LV_EVENT_CLICKED)
 	{
-		ui_car_load_menu_screen();
+		ui_menu_load();
 		lv_obj_clean(_main_scr);
 		_is_init = false;
 	}
