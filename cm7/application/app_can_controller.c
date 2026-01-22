@@ -25,8 +25,10 @@ TaskHandle_t prv_task_handle;
 
 SemaphoreHandle_t prv_rx_fifo1_counter = NULL;
 
-uint8_t (*prv_can_data)[176][10];
+static uint8_t (*prv_can_data)[176][10];
 
+static uint8_t prv_flow_ctrl_ptr = 0;
+static uint8_t prv_flow_ctrl_remaining_bytes = 0;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_can_controller();
 		
@@ -90,7 +92,23 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 				(*prv_can_data)[pid][2] = c;
 				(*prv_can_data)[pid][3] = d;
 				(*prv_can_data)[pid][4] = e;
-			}			
+			}
+
+			if (frame_type == PCI_FLOW_CTRL_FF)
+			{
+				uint32_t id = buf.R0.bit.ID;	//Check if i need to shift this.
+				prv_flow_ctrl_remaining_bytes = ((buf.data[0] & 0xFF) << 8) | buf.data[1];
+				prv_flow_ctrl_ptr = buf.data[2];
+				static can_tx_buffer_entry_t fc_continue_sending_frame =
+				{
+					.T0.bit.ID = 0x7E0 << 18, .T0.bit.XTD = CAN_ID_STD, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+					.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
+					.data[0] = 0x30, .data[1] = 0xFF, .data[2] = 0x00, .data[3] = 0xCC,
+					.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
+				};
+				can_add_tx_buffer(FDCAN1, &fc_continue_sending_frame, 31);
+				can_tx(FDCAN1, 31);
+			}
 		}
 	}
 
