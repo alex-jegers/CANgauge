@@ -38,23 +38,11 @@ volatile UBaseType_t system_stack_watermark;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void prv_init_fpu();
-static void _can_sniffer_btn_hanlder(lv_event_t* e);
-static void _gauges_btn_handler(lv_event_t* e);
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 static void prv_init_fpu()
 {
 	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
-}
-
-static void _can_sniffer_btn_hanlder(lv_event_t* e)
-{
-	//xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL);
-}
-
-static void _gauges_btn_handler(lv_event_t* e)
-{
-	app_gauges_run();
 }
 
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
@@ -123,9 +111,7 @@ void system_task_init()
 	{
 
 		xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
-		ui_menu_load();
-		ui_menu_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
-		ui_menu_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
+		app_menu_run();
 		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
 		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
 	}

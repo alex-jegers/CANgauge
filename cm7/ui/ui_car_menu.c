@@ -18,6 +18,7 @@ lv_event_cb_t ui_car_dtc_btn_clicked_cb = NULL;
 lv_event_cb_t ui_car_data_logger_btn_clicked_cb = NULL;
 lv_event_cb_t prv_other_btn_clicked_cb = NULL;
 lv_event_cb_t prv_slider_event_cb = NULL;
+lv_event_cb_t prv_settings_scr_load_event_cb = NULL;
 
 /* Panels and screens.*/
 static lv_obj_t* prv_main_scr;
@@ -31,6 +32,7 @@ static lv_obj_t* ui_car_dtc_btn;
 static lv_obj_t* ui_car_data_logger_btn;
 static lv_obj_t* ui_car_can_sniffer_load_btn;
 static lv_obj_t* prv_other_btn;
+static lv_obj_t* prv_settings_back_btn;
 
 /* Other objects. */
 static lv_obj_t* prv_brightness_slider;
@@ -48,6 +50,8 @@ static void ui_car_dtc_btn_clicked(lv_event_t* e);
 static void ui_car_data_logger_btn_clicked(lv_event_t* e);
 static void prv_other_btn_clicked(lv_event_t* e);
 static void prv_slider_event(lv_event_t* e);
+static void prv_settings_scr_load_event(lv_event_t* e);
+static void prv_settings_back_btn_event(lv_event_t* e);
 
 
 
@@ -98,6 +102,7 @@ static void prv_init_other_screen()
 	/* Init the screen. */
 	prv_other_scr = lv_obj_create(NULL);
 	lv_obj_set_style_bg_color(prv_other_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
+	lv_obj_add_event_cb(prv_other_scr, prv_settings_scr_load_event, LV_EVENT_SCREEN_LOADED, &prv_brightness_slider);
 
 	/* Create a container for the buttons. */
 	//prv_other_btn_container = lv_obj_create(prv_other_scr);
@@ -120,6 +125,10 @@ static void prv_init_other_screen()
 	lv_obj_set_style_text_font(settings_lbl, &lv_font_montserrat_28, LV_PART_MAIN);
 
 	prv_create_brightness_slider();
+
+	/* Make a button to go back. */
+	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_other_scr, "Back", LV_FONT_DEFAULT);
+	lv_obj_add_event_cb(prv_settings_back_btn, prv_settings_back_btn_event, LV_EVENT_PRESSED, NULL);
 }
 
 void prv_load_other_screen()
@@ -180,6 +189,19 @@ static void prv_slider_event(lv_event_t* e)
 	}
 }
 
+static void prv_settings_scr_load_event(lv_event_t* e)
+{
+	if (prv_settings_scr_load_event_cb)
+	{
+		prv_settings_scr_load_event_cb(e);
+	}
+}
+
+static void prv_settings_back_btn_event(lv_event_t* e)
+{
+	ui_menu_load();
+}
+
 static void prv_create_brightness_slider()
 {
 	/* Container to hold label and slider. */
@@ -205,7 +227,7 @@ static void prv_create_brightness_slider()
 	lv_label_set_text(lbl, "Brightness");
 
 	/* Bind the event callback. */
-	lv_obj_add_event_cb(prv_brightness_slider, prv_slider_event, LV_EVENT_VALUE_CHANGED | LV_EVENT_CREATE, NULL);
+	lv_obj_add_event_cb(prv_brightness_slider, prv_slider_event, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 
@@ -244,5 +266,10 @@ void ui_menu_set_data_logger_btn_clicked_cb(lv_event_cb_t func)
 void ui_menu_set_slider_event_cb(lv_event_cb_t func)
 {
 	prv_slider_event_cb = func;
+}
+
+void ui_menu_set_settings_scr_load_event_cb(lv_event_cb_t func)
+{
+	prv_settings_scr_load_event_cb = func;
 }
 
