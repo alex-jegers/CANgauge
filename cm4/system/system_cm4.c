@@ -44,9 +44,6 @@ void system_task_init()
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM7);
 	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM4);
 
-	can_init(FDCAN1);
-	can_init(FDCAN2);
-
 	/*Enable HSEM interrupts.*/
 	hsem2_assign_int_handler(system_hsem_handler);
 	//NVIC_EnableIRQ(HSEM2_IRQn);
