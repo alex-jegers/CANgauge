@@ -13,9 +13,6 @@
 #include "stdbool.h"
 #include "stddef.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 
 typedef enum 
 {
