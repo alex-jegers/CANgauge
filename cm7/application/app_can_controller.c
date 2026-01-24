@@ -18,7 +18,7 @@ typedef enum
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-bool prv_task_run = false;
+static bool prv_task_run = false;
 
 /* Task handle. */
 TaskHandle_t prv_task_handle;
@@ -32,9 +32,8 @@ static uint8_t prv_flow_ctrl_remaining_bytes = 0;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_can_controller();
 		
-static void _read_from_fifo(FDCAN_GlobalTypeDef* canbus, struct can_rx_raw_data* can_raw_rx);
 static void prv_fifo1_int_handler();
-static pci_flow_ctrl_t prv_get_flow_ctrl(can_rx_buffer_entry_t* buf);
+static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 
@@ -49,13 +48,14 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	can_set_std_id_filter(FDCAN1, 0, &_saej1979_filter);
 
 	/* Request PIDs 0x00, 0x20, 0x40. */
-	static can_tx_buffer_entry_t tx_buf =
+	can_tx_buffer_entry_t tx_buf =
 	{
 		.T0.bit.ID = 0x7DF << 18, .T0.bit.XTD = CAN_ID_STD, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
 		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
 		.data[0] = 0x02, .data[1] = 0x01, .data[2] = 0x00, .data[3] = 0xCC,
 		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
 	};
+	tx_buf.data[2] = 0x00;
 	can_add_tx_buffer(FDCAN1, &tx_buf, 31);
 	can_tx(FDCAN1, 31);
 	vTaskDelay(50);
@@ -71,7 +71,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 
 	while(prv_task_run == true)
 	{
-		if (xSemaphoreTake(prv_rx_fifo1_counter, portMAX_DELAY) == pdTRUE)
+		if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE)
 		{
 			can_rx_buffer_entry_t buf;
 			can_read_from_fifo1(FDCAN1, &buf);
@@ -120,7 +120,7 @@ static void prv_fifo1_int_handler()
 	xSemaphoreGiveFromISR(prv_rx_fifo1_counter, pdFALSE);
 }
 
-static pci_flow_ctrl_t prv_get_flow_ctrl(can_rx_buffer_entry_t* buf)
+static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf)
 {
 	return (buf->data[0] & 0xF0) >> 4;
 }
@@ -153,7 +153,7 @@ void app_can_controller_run(uint8_t (*data_storage)[176][10])
 	
 }
 
-void app_can_sniffer_stop()
+void app_can_controller_stop()
 {
 	prv_task_run = false;
 	while (prv_task_handle != NULL)

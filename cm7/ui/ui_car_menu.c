@@ -52,6 +52,7 @@ static void prv_other_btn_clicked(lv_event_t* e);
 static void prv_slider_event(lv_event_t* e);
 static void prv_settings_scr_load_event(lv_event_t* e);
 static void prv_settings_back_btn_event(lv_event_t* e);
+static void prv_settings_demo_mode_checkbox_event(lv_event_t* e);
 
 
 
@@ -104,16 +105,12 @@ static void prv_init_other_screen()
 	lv_obj_set_style_bg_color(prv_other_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_add_event_cb(prv_other_scr, prv_settings_scr_load_event, LV_EVENT_SCREEN_LOADED, &prv_brightness_slider);
 
-	/* Create a container for the buttons. */
-	//prv_other_btn_container = lv_obj_create(prv_other_scr);
-	//lv_obj_align(prv_other_scr, LV_ALIGN_CENTER, 0, BTNS_Y_POS);
-	//lv_obj_set_size(prv_other_scr, 300, 220);
-	//lv_obj_set_style_bg_color(prv_other_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
-	//lv_obj_set_style_border_width(prv_other_scr, 0, LV_STATE_DEFAULT);
+	/* Format the flex flow. */
 	lv_obj_set_layout(prv_other_scr, LV_LAYOUT_FLEX);
 	lv_obj_set_flex_flow(prv_other_scr, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(prv_other_scr, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 	lv_obj_set_style_pad_top(prv_other_scr, 50, LV_PART_MAIN);
+	lv_obj_set_style_pad_row(prv_other_scr, 30, LV_STATE_DEFAULT);
 
 	/*Add a button to launch the CAN sniffer.*/
 	ui_car_can_sniffer_load_btn = ui_helpers_create_btn_with_text(prv_other_btn_container, "CAN Sniffer", UI_BTN_FONT);
@@ -125,6 +122,19 @@ static void prv_init_other_screen()
 	lv_obj_set_style_text_font(settings_lbl, &lv_font_montserrat_28, LV_PART_MAIN);
 
 	prv_create_brightness_slider();
+
+	lv_obj_t* demo_mode_checkbox = lv_checkbox_create(prv_other_scr);
+	lv_checkbox_set_text(demo_mode_checkbox, "Demo Mode");
+	lv_obj_set_style_text_color(demo_mode_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
+	if (ui_helpers_is_demo_mode)
+	{
+		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, true);
+	}
+	else
+	{
+		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, false);
+	}
 
 	/* Make a button to go back. */
 	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_other_scr, "Back", LV_FONT_DEFAULT);
@@ -138,11 +148,12 @@ void prv_load_other_screen()
 
 static void ui_car_gauges_btn_clicked(lv_event_t* e)
 {
+	ui_gauges_load();
+
 	if (ui_car_gauges_btn_clicked_cb)
 	{
 		ui_car_gauges_btn_clicked_cb(e);
 	}
-	ui_gauges_load();
 }
 
 static void ui_car_can_sniffer_btn_clicked(lv_event_t* e)
@@ -200,6 +211,22 @@ static void prv_settings_scr_load_event(lv_event_t* e)
 static void prv_settings_back_btn_event(lv_event_t* e)
 {
 	ui_menu_load();
+}
+
+static void prv_settings_demo_mode_checkbox_event(lv_event_t* e)
+{
+	lv_event_code_t code = lv_event_get_code(e);
+	lv_obj_t* obj = lv_event_get_target_obj(e);
+	lv_state_t state = lv_obj_get_state(obj);
+
+	if (state & LV_STATE_CHECKED == LV_STATE_CHECKED)
+	{
+		ui_helpers_set_demo_mode(true);
+	}
+	else
+	{
+		ui_helpers_set_demo_mode(false);
+	}
 }
 
 static void prv_create_brightness_slider()

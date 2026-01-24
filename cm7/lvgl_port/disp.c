@@ -63,3 +63,6 @@ void disp_init()
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
 }
+
+
+

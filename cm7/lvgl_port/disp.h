@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-
+#include "lvgl_port_def.h"
 
 /**********     DEFINES      **********/
 

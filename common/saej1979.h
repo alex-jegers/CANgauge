@@ -23,7 +23,7 @@ typedef struct
     int32_t min;
     int32_t max;
     const char* units;
-    bool gauge;
+    bool available;
     int32_t (*processing_func)(uint32_t data);
 }saej1979_current_data_t;
 

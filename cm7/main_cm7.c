@@ -18,6 +18,7 @@
 
 #include "system/system_cm7.h"
 #include "drivers/drivers.h"
+#include "lvgl_port/lvgl_port_def.h"
 
 int main(void)
 {
@@ -30,6 +31,13 @@ int main(void)
 	/* Creates a task to finish the rest of the system initialization. */
    	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 0, NULL);
    	
+   	/* Set up the display and input device callbacks for LVGL. */
+   	static touch_info_t touch_data;						//Where the touch data will be stored.
+   	static touch_info_t* p_touch_data = &touch_data;
+	disp_init();										//LVGL display bindings
+	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
+	touch_scr_run(p_touch_data);						//Runs the touch screen task.
+
 	/* Starts the FreeRTOS scheduler. */
 	vTaskStartScheduler();
 

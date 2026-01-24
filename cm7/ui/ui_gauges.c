@@ -11,7 +11,7 @@
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-static bool _is_init = false;
+static bool prv_is_init = false;
 
 /*LVGL/UI variables.*/
 static lv_obj_t* _main_scr;
@@ -50,7 +50,7 @@ static void _gauge_hanlder(lv_event_t* e);
 static void _scr_load_handler(lv_event_t* e);
 static void _gauge_anim_map(void* obj, int32_t val);
 
-static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl);
+static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl);
 
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
@@ -87,16 +87,49 @@ static void _init()
 	/*BACK BUTTON EVENT.*/
 	lv_obj_add_event(_back_btn, _back_btn_handler, LV_EVENT_CLICKED, NULL);
 	lv_obj_add_event(_main_scr, _scr_load_handler, LV_EVENT_SCREEN_LOAD_START, NULL);
+
+	/* Check if were in demo mode and make some dummy buttons if we are. */
+	if (ui_helpers_is_demo_mode())
+	{
+		ui_gauges_create_gauge_btn("Air/Fuel Ratio");
+		ui_gauges_create_gauge_btn("Boost Pressure");
+		ui_gauges_create_gauge_btn("Ignition Timing Angle");
+	}
 }
 
 static void _gauge_select_btn_handler(lv_event_t* e)
 {	
-	/*Check if there's a function CB assign and call it if there is.*/
+	/*
+	* Check if there's a function CB assign and call it if there is.
+	* The external CB should be responsible for creating a gauge with
+	* ui_gauges_create_gauge.
+	* */
 	if (_gauge_select_btn_cb != NULL)
 	{
 		_gauge_select_btn_cb(e);
 	}
 	
+	/* Check to see if were in demo mode. */
+	if (ui_helpers_is_demo_mode())
+	{
+		/* Get the button text. */
+		lv_obj_t* btn = lv_event_get_target_obj(e);
+		lv_obj_t* lbl = lv_obj_get_child(btn, 0);
+		char* txt = lv_label_get_text(lbl);
+		if (strcmp(txt, "Boost Pressure") == 0)
+		{
+			ui_gauges_create_gauge(txt, "PSI", - 30, 30);
+		}
+		if (strcmp(txt, "Air/Fuel Ratio") == 0)
+		{
+			ui_gauges_create_gauge(txt, "Lambda", 0, 2);
+		}
+		if (strcmp(txt, "Ignition Timing Angle") == 0)
+		{
+			ui_gauges_create_gauge(txt, "Degrees", - 64, 64);
+		}
+	}
+
 	if (_gauge == NULL)
 	{
 		return;
@@ -112,8 +145,8 @@ static void _back_btn_handler(lv_event_t* e)
 	if (event_code == LV_EVENT_CLICKED)
 	{
 		ui_menu_load();
-		lv_obj_clean(_main_scr);
-		_is_init = false;
+		lv_obj_delete_async(_main_scr);
+		prv_is_init = false;
 	}
 
 	/*Check if there's a function CB assign and call it if there is.*/
@@ -132,6 +165,8 @@ static void _gauge_hanlder(lv_event_t* e)
 		lv_obj_clean(_gauge_scr);
 		_gauge_value_modifier = NULL;
 		_gauge = NULL;
+
+		lv_anim_delete_all();			//Delete all animations in case we're in demo mode.
 
 		/*Check if there's a function CB assign and call it if there is.*/
 		if (_gauge_cb != NULL)
@@ -154,7 +189,7 @@ static void _gauge_anim_map(void* obj, int32_t val)
 	ui_gauges_set_gauge_value((float)val / _gauge_scaling_factor);
 }
 
-static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
+static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl)
 {
 	uint32_t number_of_ticks = max_val - min_val;
 	uint32_t og_max = max_val;
@@ -196,33 +231,48 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* lbl)
 		_gauge_info_lbl = lv_label_create(_gauge);
 	}
 
-
+	/* Make the label that shows the data. */
 	lv_obj_align(_gauge_data_lbl, LV_ALIGN_CENTER, 0, 90);
-	lv_obj_align(_gauge_info_lbl, LV_ALIGN_CENTER, 0, 150);
 	lv_label_set_text(_gauge_data_lbl, "");
-	lv_obj_set_style_text_font(_gauge_data_lbl, &lv_font_montserrat_26, LV_PART_MAIN);
-	lv_label_set_text(_gauge_info_lbl, lbl);
+	lv_obj_set_style_text_font(_gauge_data_lbl, &lv_font_montserrat_34, LV_PART_MAIN);
 	lv_obj_set_style_text_color(_gauge_data_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
-	lv_obj_set_style_text_color(_gauge_info_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
 	lv_obj_set_style_text_align(_gauge_data_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+	
+	/* Make the label that says what is being displayed. */
+	lv_obj_align(_gauge_info_lbl, LV_ALIGN_CENTER, 0, 140);
+	lv_label_set_text(_gauge_info_lbl, primary_lbl);
+	lv_label_set_long_mode(_gauge_info_lbl, LV_LABEL_LONG_MODE_SCROLL);
+	lv_obj_set_width(_gauge_info_lbl, 200);
+	lv_obj_set_style_text_font(_gauge_info_lbl, &lv_font_montserrat_24, LV_PART_MAIN);
+	lv_obj_set_style_text_color(_gauge_info_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
 	lv_obj_set_style_text_align(_gauge_info_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 	
+	/* Make the label that displays the units. */
+	lv_obj_t* units_lbl = lv_label_create(_gauge);
+	lv_label_set_text(units_lbl, secondary_lbl);
+	lv_obj_set_style_text_font(units_lbl, &lv_font_montserrat_20, LV_PART_MAIN);
+	lv_obj_set_style_text_color(units_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
+	lv_obj_set_style_text_align(units_lbl, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+	lv_obj_align(units_lbl, LV_ALIGN_CENTER, 0, 180);
+
 	if (ui_helpers_is_demo_mode())
 	{
-		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 5000, min_val, max_val + 1);
+		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 2500, min_val, max_val + 1);
 	}
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void ui_gauges_load()
 {
-	if (_is_init == false)
+	if (prv_is_init == false)
 	{
 		_init();
-		_is_init = true;
+		prv_is_init = true;
 	}
 	lv_scr_load(_main_scr);
 	lv_obj_remove_event(_main_scr, 0);
+
+
 }
 
 void ui_gauges_set_gauge_value(float val)
@@ -250,9 +300,9 @@ void ui_gauges_create_gauge_btn(const char* name)
 	lv_obj_add_event(btn, _gauge_select_btn_handler, LV_EVENT_CLICKED, NULL);
 }
 
-void ui_gauges_create_gauge(const char* name, uint32_t min, uint32_t max)
+void ui_gauges_create_gauge(const char* name, const char* units, uint32_t min, uint32_t max)
 {
-	_load_gauge(min, max, name);
+	_load_gauge(min, max, name, units);
 }
 
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e))

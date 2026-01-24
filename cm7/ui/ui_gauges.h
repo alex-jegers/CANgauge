@@ -20,11 +20,11 @@ void ui_gauges_load();
 /**
 * ui_gauge_set_gauge_value
 * params:
-* val: must be the actual value times 10. This is to account for params which have decimals.
+* val:
 */
 void ui_gauges_set_gauge_value(float val);
 void ui_gauges_create_gauge_btn(const char* name);
-void ui_gauges_create_gauge(const char* name, uint32_t min, uint32_t max);
+void ui_gauges_create_gauge(const char* name, const char* units, uint32_t min, uint32_t max);
 
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_back_btn_cb(void (*func)(lv_event_t* e));

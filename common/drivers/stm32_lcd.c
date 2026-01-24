@@ -537,7 +537,7 @@ void lcd_init()
 	timer_init(TIM12);
 	timer_enable_pwm_output(TIM12, 1);
 	timer_set_pwm_freq(TIM12, 100);
-	timer_set_pwm_duty_cycle(TIM12, 65000, 1);
+	timer_set_pwm_duty_cycle(TIM12, 45000, 1);
 	timer_enable(TIM12);
 
 

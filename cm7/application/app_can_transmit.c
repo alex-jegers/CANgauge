@@ -99,6 +99,11 @@ void app_can_transmit_run(uint16_t* transmit_period_list, uint8_t length)
     xTaskCreate(prv_task_can_transmit, "CAN_TRANSMIT", 300, NULL, 3, &prv_task_handle);
 }
 
+void app_can_transmit_stop()
+{
+    prv_task_run = false;
+}
+
 TaskHandle_t* app_can_transmit_get_task_handle()
 {
     return &prv_task_handle;

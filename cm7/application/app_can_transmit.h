@@ -21,6 +21,7 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void app_can_transmit_run(uint16_t* transmit_period_list, uint8_t length);
+void app_can_transmit_stop();
 TaskHandle_t* app_can_transmit_get_task_handle();
 
 

@@ -65,11 +65,8 @@ void system_task_init()
 
 	/*LCD and LVGL.*/
 	lcd_init();						//The LTDC.
-	disp_init();					//LVGL display bindings
-	indev_init(&common.p_touch_data);	//LVGL input device (touch screen).
 
-
-	/* LCD backlight power supply. */
+	/* LCD backlight power supply and CAN transceivers enable pin. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
 	io_pin_out_clr(GPIOK, GPIO_PIN2_Msk);
 
