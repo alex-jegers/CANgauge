@@ -25,11 +25,9 @@
 #define SYS_LVGL_TASK_HANDLER_TASK_CODE			"LV_TASK_HANDLER"
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
-extern SemaphoreHandle_t sys_mutex_lvgl;
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void system_task_init();
-void system_task_lvgl_timer_update();	                //Task to run LVGL renderer.
 void system_task_blink(const uint32_t delay_time_ms);	//Task to blink the test LED.
 
 

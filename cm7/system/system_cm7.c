@@ -14,8 +14,7 @@
 #include "drivers/drivers.h"
 #include "drivers/stm32_canbus.h"
 
-#include "lvgl_port/indev.h"
-#include "lvgl_port/disp.h"
+#include "lvgl_port/lvgl_port_def.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
@@ -30,7 +29,6 @@
 #define SYS_GET_WATERMARK					system_stack_watermark = uxTaskGetStackHighWaterMark(NULL);
 
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
-SemaphoreHandle_t sys_mutex_lvgl = NULL;
 
 /**********     STATIC VARIABLES     **********/
 volatile UBaseType_t system_stack_watermark;
@@ -48,6 +46,7 @@ static void prv_init_fpu()
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
+	vTaskSuspendAll();
 	/*Set up and enable all the clocks.*/
 	hsem_init_clk();
 	/*Taking HSEM 1 to hold CM4 in place.*/
@@ -64,7 +63,7 @@ void system_task_init()
 	prv_init_fpu();
 
 	/*LCD and LVGL.*/
-	lcd_init();						//The LTDC.
+	//lcd_init();						//The LTDC.
 
 	/* LCD backlight power supply and CAN transceivers enable pin. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
@@ -99,35 +98,17 @@ void system_task_init()
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
 	hsem_clear_int(1);
 
-	sys_mutex_lvgl = xSemaphoreCreateMutex();
-	if (sys_mutex_lvgl == NULL)
-	{
-		xTaskCreate(system_task_blink, "SYS_BLINK", 50, 100, 4, NULL);
-	}
-	else
-	{
 
-		xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
-		app_menu_run();
-		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
-		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
-	}
+	xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
 
+	xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
+
+	xTaskResumeAll();
+	
 	vTaskDelete(NULL);
 }
 
-void system_task_lvgl_timer_update()
-{
-	while (1)
-	{
-		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
-		{
-			uint32_t time_till_next = lv_task_handler();
-			xSemaphoreGive(sys_mutex_lvgl);
-			vTaskDelay(pdMS_TO_TICKS(time_till_next));
-		}
-	}
-}
+
 
 void system_task_blink(const uint32_t delay_time_ms)
 {

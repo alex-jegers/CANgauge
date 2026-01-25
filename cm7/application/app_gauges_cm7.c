@@ -12,6 +12,8 @@
 
 #include "lvgl.h"
 
+#include "lvgl_port/lvgl_port_def.h"
+
 #include "common/saej1979.h"
 
 #include "FreeRTOS.h"
@@ -104,10 +106,10 @@ static void prv_task_gauges()
 		float offset = active_param->offset;
 		float processed_val = ((float)raw_value * scale) + offset;
 
-		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
+		if (lv_port_take_lvgl_mutex(portMAX_DELAY))
 		{
 			ui_gauges_set_gauge_value(processed_val);
-			xSemaphoreGive(sys_mutex_lvgl);
+			lv_port_give_lvgl_mutex();
 		}
 		vTaskDelay(25);
 	}

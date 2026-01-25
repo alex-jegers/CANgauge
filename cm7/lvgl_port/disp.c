@@ -52,8 +52,6 @@ static void disp_clean_dcache(lv_display_t* drv)
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void disp_init()
 {
-    lv_init();
-
     /*Create the display object.*/
 	disp = lv_display_create(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
 

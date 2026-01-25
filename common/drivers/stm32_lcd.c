@@ -5,8 +5,6 @@
  *      Author: awjpp
  */
 
-#ifdef CORE_CM7
-
 #include "stm32_lcd.h"
 #include "stm32_rcc.h"		//For enabling PLL clock.
 #include "stm32_io.h"		//For controlling IO related to the lcd.
@@ -794,4 +792,4 @@ void LTDC_IRQHandler()
 
 }
 
-#endif //CORE_CM7
+
