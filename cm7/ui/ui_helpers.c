@@ -99,7 +99,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 	lv_obj_set_style_line_width(temp_gauge, 5, LV_PART_INDICATOR);
 	lv_obj_set_style_line_rounded(temp_gauge, true, LV_PART_INDICATOR);
 	lv_obj_set_style_translate_x(temp_gauge, -20, LV_PART_INDICATOR);
-	lv_obj_set_style_text_font(temp_gauge, &lv_font_montserrat_22, LV_PART_INDICATOR);
+	lv_obj_set_style_text_font(temp_gauge, &lv_font_montserrat_24, LV_PART_INDICATOR);
 
 	/*Minor tick marks (just invisible).*/
 	lv_obj_set_style_opa(temp_gauge, 0, LV_PART_ITEMS);
@@ -132,7 +132,6 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 		*needle = lv_line_create(temp_gauge);
 		lv_obj_set_style_line_width(*needle, 8, LV_PART_MAIN);
 		lv_obj_set_style_line_color(*needle, UI_COLOR_RED, LV_PART_MAIN);
-		lv_obj_set_style_line_opa(*needle, 185, LV_PART_MAIN);
 		lv_scale_set_line_needle_value(temp_gauge, *needle, 160, min_val);
 	}
 	return temp_gauge;

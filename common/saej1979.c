@@ -18,12 +18,13 @@ static int32_t convert_fuel_rail_pressure(uint32_t val);
 static int32_t convert_air_fuel_ratio(uint32_t val);
 
 /**********		STATIC VARIABLES		**********/
-const char* celsius = "C";
-const char* kpa = "kPa";
-const char* lambda = "Eqiv. Ratio";
-const char* rpm = "RPM";
-const char* degrees = "Degrees";
-const char* percent = "%";
+const char celsius[] = "C";
+const char kpa[] = "kPa";
+const char lambda[] = "Equiv. Ratio";
+const char rpm[] = "RPM";
+const char degrees[] = "Degrees";
+const char percent[] = "%";
+const char psi[] = "PSI";
 
 static saej1979_current_data_t saej1979_available_pids_1 									= {.name = "Available PIDs 1",     				.pid_code = 0x00, 	.scale = 0, 		.offset = 0, 	.data_bytes = 4,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_monitor_status 										= {.name = "Monitor Status",     				.pid_code = 0x01, 	.scale = 0, 		.offset = 0, 	.data_bytes = 4,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
@@ -44,15 +45,15 @@ static saej1979_current_data_t saej1979_intake_air_temp 									= {.name = "Int
 static saej1979_current_data_t saej1979_maf_flow_rate 										= {.name = "MAF Flow Rate",       				.pid_code = 0x10,   .scale = 0, 		.offset = 0, 	.data_bytes = 2,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_throttle_position 									= {.name = "Throttle Position",       			.pid_code = 0x11,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_secondary_air_status								= {.name = "Secondary Air Status",       		.pid_code = 0x12,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensors_present									= {.name = "Oxygen Sensors Present 2 Banks",    .pid_code = 0x13,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_1 										= {.name = "O2 Sensor B1 S1",       			.pid_code = 0x14,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_2										= {.name = "O2 Sensor B1 S2",       			.pid_code = 0x15,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_3 										= {.name = "O2 Sensor B1 S3",       			.pid_code = 0x16,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_4 										= {.name = "O2 Sensor B1 S4",       			.pid_code = 0x17,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_5 										= {.name = "O2 Sensor B2 S1",       			.pid_code = 0x18,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_6 										= {.name = "O2 Sensor B2 S2",       			.pid_code = 0x19,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_7 										= {.name = "O2 Sensor B2 S3",       			.pid_code = 0x1A,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_oxy_sensor_8 										= {.name = "O2 Sensor B2 S4",       			.pid_code = 0x1B,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensors_present									= {.name = "Oxygen Sensors Present 2 Banks",    .pid_code = 0x13,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b1_s1 									= {.name = "O2 Sensor B1 S1",       			.pid_code = 0x14,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b1_s2										= {.name = "O2 Sensor B1 S2",       			.pid_code = 0x15,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b1_s3 									= {.name = "O2 Sensor B1 S3",       			.pid_code = 0x16,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b1_s4 									= {.name = "O2 Sensor B1 S4",       			.pid_code = 0x17,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b2_s1 									= {.name = "O2 Sensor B2 S1",       			.pid_code = 0x18,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b2_s2 									= {.name = "O2 Sensor B2 S2",       			.pid_code = 0x19,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b2_s3 									= {.name = "O2 Sensor B2 S3",       			.pid_code = 0x1A,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_o2_sensor_b2_s4 									= {.name = "O2 Sensor B2 S4",       			.pid_code = 0x1B,   .scale = .78125,	.offset = -100,	.data_bytes = 1,	.first_byte = 1,	.min = -100,.max = 100,		.units = &percent,	.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_obd_standards 										= {.name = "OBD Standards",       				.pid_code = 0x1C,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_oxy_sensors_present_2								= {.name = "Oxygen Sensors Present 4 Banks",    .pid_code = 0x1D,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_aux_input_stats										= {.name = "Auxiliary Input Status",       		.pid_code = 0x1E,   .scale = 0, 		.offset = 0, 	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
@@ -121,6 +122,7 @@ static saej1979_current_data_t saej1979_engine_oil_temp 									= {.name = "", 
 static saej1979_current_data_t saej1979_fuel_injection_timing 								= {.name = "",       							.pid_code = 0x5d,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_fuel_rate 									= {.name = "",       							.pid_code = 0x5e,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_emission_requirements 								= {.name = "",       							.pid_code = 0x5f,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_available_pids_3									= {.name = "",       							.pid_code = 0x60,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_driver_commanded_engine_tq_percentage 				= {.name = "",       							.pid_code = 0x61,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_actual_engine_tq_percentage 						= {.name = "",       							.pid_code = 0x62,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_ref_tq 										= {.name = "",       							.pid_code = 0x63,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
@@ -136,7 +138,7 @@ static saej1979_current_data_t saej1979_throttle_ctrl_and_pos 								= {.name =
 static saej1979_current_data_t saej1979_fuel_pres_ctrl_sys 									= {.name = "",       							.pid_code = 0x6d,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_injection_pres_ctrl_sys 							= {.name = "",       							.pid_code = 0x6e,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_turbo_inlet_pressure 								= {.name = "",       							.pid_code = 0x6f,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_boost_pressure_control 								= {.name = "",       							.pid_code = 0x70,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_boost_pressure_control 								= {.name = "Boost Pressure",					.pid_code = 0x70,   .scale = .0045324,	.offset = 0,	.data_bytes = 2,	.first_byte = 7,	.min = 0,	.max = 30,		.units = &psi,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_variable_geometry_turbo_control 					= {.name = "",       							.pid_code = 0x71,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_wastegate_control 									= {.name = "",       							.pid_code = 0x72,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_exhaust_pressure 									= {.name = "",       							.pid_code = 0x73,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
@@ -152,7 +154,7 @@ static saej1979_current_data_t saej1979_particulate_filter_temp 							= {.name 
 static saej1979_current_data_t saej1979_nox_nte_control_status								= {.name = "",       							.pid_code = 0x7d,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_pm_nte_control_status 								= {.name = "",       							.pid_code = 0x7e,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_runtime 										= {.name = "",       							.pid_code = 0x7f,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_available_pids_3 									= {.name = "",       							.pid_code = 0x80,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_available_pids_4 									= {.name = "",       							.pid_code = 0x80,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_runtime_aecd_1_5 							= {.name = "",       							.pid_code = 0x81,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_runtime_aecd_6_10 							= {.name = "",       							.pid_code = 0x82,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_nox_sensor 											= {.name = "",       							.pid_code = 0x83,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
@@ -184,7 +186,7 @@ static saej1979_current_data_t saej1979_o2_sensor_2 										= {.name = "",    
 static saej1979_current_data_t saej1979_fuel_rate 											= {.name = "",       							.pid_code = 0x9d,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_engine_exhaust_flow_rate 							= {.name = "",       							.pid_code = 0x9e,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_fuel_system_percentage_use 							= {.name = "",       							.pid_code = 0x9f,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_available_pids_4 									= {.name = "",       							.pid_code = 0xa0,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_available_pids_5 									= {.name = "",       							.pid_code = 0xa0,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_nox_sensor_corrected 								= {.name = "",       							.pid_code = 0xa1,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_cylinder_fuel_rate 									= {.name = "",       							.pid_code = 0xa2,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_evap_system_vapor_pressure_2 						= {.name = "",       							.pid_code = 0xa3,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	}; //Dupe
@@ -216,7 +218,7 @@ static saej1979_current_data_t saej1979_energy_from_hv_storage 								= {.name 
 static saej1979_current_data_t saej1979_hvess_energy_throughput 							= {.name = "",       							.pid_code = 0xbd,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_hvess_state_of_health  								= {.name = "",       							.pid_code = 0xbe,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_hvess_min_state_of_charge 							= {.name = "",       							.pid_code = 0xbf,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
-static saej1979_current_data_t saej1979_available_pids_5 									= {.name = "",       							.pid_code = 0xc0,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_available_pids_6 									= {.name = "",       							.pid_code = 0xc0,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_hvess_max_state_of_charge 							= {.name = "",       							.pid_code = 0xc1,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_hvess_discharge_energy_capacity 					= {.name = "",       							.pid_code = 0xc2,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_fuel_level_input_2 									= {.name = "",       							.pid_code = 0xc3,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};	//Dupe
@@ -233,6 +235,13 @@ static saej1979_current_data_t saej1979_electric_motor_tq 									= {.name = ""
 static saej1979_current_data_t saej1979_evap_sys_pressure_2 								= {.name = "",       							.pid_code = 0xce,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 static saej1979_current_data_t saej1979_catalyst_temp 										= {.name = "",       							.pid_code = 0xcf,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
 
+
+/* Expanded data. */
+static saej1979_current_data_t saej1979_boost_pressure_ctrl_support							= {.name = "Boost Pressure Ctrl Support",		.pid_code = 0x70,   .scale = 0,			.offset = 0,	.data_bytes = 0,	.first_byte = 0,	.min = 0,	.max = 0,		.units = NULL,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_commanded_boost_pressure_a 							= {.name = "Cmd Boost Pressure A",   			.pid_code = 0x70,   .scale = .03125,	.offset = 0,	.data_bytes = 2,	.first_byte = 1,	.min = 0,	.max = 2048,	.units = &kpa,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_boost_pressure_sensor_a								= {.name = "Boost Pressure Sensor A",			.pid_code = 0x70,   .scale = .03125,	.offset = 0,	.data_bytes = 2,	.first_byte = 3,	.min = 0,	.max = 2048,	.units = &kpa,		.available = false,		.processing_func = NULL	};
+static saej1979_current_data_t saej1979_commanded_boost_pressure_b 							= {.name = "Cmd Boost Pressure B",   			.pid_code = 0x70,   .scale = .03125,	.offset = 0,	.data_bytes = 2,	.first_byte = 5,	.min = 0,	.max = 2048,	.units = &kpa,		.available = false,		.processing_func = NULL	};	//TODO: this one
+static saej1979_current_data_t saej1979_boost_pressure_sensor_b		 						= {.name = "Boost Pressure Sensor B",			.pid_code = 0x70,   .scale = .03125,	.offset = 0,	.data_bytes = 2,	.first_byte = 7,	.min = 0,	.max = 2048,	.units = &kpa,		.available = false,		.processing_func = NULL	};
 
 
 saej1979_current_data_t* saej1979_current_data_arr[] = {
@@ -255,15 +264,15 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_maf_flow_rate 										,
 &saej1979_throttle_position 									,
 &saej1979_secondary_air_status								,
-&saej1979_oxy_sensors_present								,	
-&saej1979_oxy_sensor_1 										,
-&saej1979_oxy_sensor_2										,
-&saej1979_oxy_sensor_3 										,
-&saej1979_oxy_sensor_4 										,
-&saej1979_oxy_sensor_5 										,
-&saej1979_oxy_sensor_6 										,
-&saej1979_oxy_sensor_7 										,
-&saej1979_oxy_sensor_8 										,
+&saej1979_o2_sensors_present									,
+&saej1979_o2_sensor_b1_s1 									,
+&saej1979_o2_sensor_b1_s2									,	
+&saej1979_o2_sensor_b1_s3 									,
+&saej1979_o2_sensor_b1_s4 									,
+&saej1979_o2_sensor_b2_s1 									,
+&saej1979_o2_sensor_b2_s2 									,
+&saej1979_o2_sensor_b2_s3 									,
+&saej1979_o2_sensor_b2_s4 									,
 &saej1979_obd_standards 										,
 &saej1979_oxy_sensors_present_2								,
 &saej1979_aux_input_stats									,	
@@ -332,6 +341,7 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_fuel_injection_timing 								,
 &saej1979_engine_fuel_rate 									,
 &saej1979_emission_requirements 								,
+&saej1979_available_pids_3									,
 &saej1979_driver_commanded_engine_tq_percentage 				,
 &saej1979_actual_engine_tq_percentage 						,
 &saej1979_engine_ref_tq 										,
@@ -363,7 +373,7 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_nox_nte_control_status								,
 &saej1979_pm_nte_control_status 								,
 &saej1979_engine_runtime 									,	
-&saej1979_available_pids_3 									,
+&saej1979_available_pids_4 									,
 &saej1979_engine_runtime_aecd_1_5 							,
 &saej1979_engine_runtime_aecd_6_10 							,
 &saej1979_nox_sensor 										,	
@@ -395,7 +405,7 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_fuel_rate 											,
 &saej1979_engine_exhaust_flow_rate 							,
 &saej1979_fuel_system_percentage_use 						,	
-&saej1979_available_pids_4 									,
+&saej1979_available_pids_5 									,
 &saej1979_nox_sensor_corrected 								,
 &saej1979_cylinder_fuel_rate 								,	
 &saej1979_evap_system_vapor_pressure_2 						,
@@ -427,7 +437,7 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_hvess_energy_throughput 							,
 &saej1979_hvess_state_of_health  							,	
 &saej1979_hvess_min_state_of_charge 							,
-&saej1979_available_pids_5 									,
+&saej1979_available_pids_6 									,
 &saej1979_hvess_max_state_of_charge 							,
 &saej1979_hvess_discharge_energy_capacity 					,
 &saej1979_fuel_level_input_2 								,	
@@ -445,7 +455,13 @@ saej1979_current_data_t* saej1979_current_data_arr[] = {
 &saej1979_catalyst_temp 										,
 };
 
-
+saej1979_current_data_t* saej1979_boost_pressure_ctrl_arr[] = {
+&saej1979_boost_pressure_ctrl_support							,
+&saej1979_commanded_boost_pressure_a 							,
+&saej1979_boost_pressure_sensor_a								,
+&saej1979_commanded_boost_pressure_b 							,
+&saej1979_boost_pressure_sensor_b		 						,
+};
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static int32_t convert_fuel_rail_pressure(uint32_t val)

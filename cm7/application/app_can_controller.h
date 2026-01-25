@@ -35,6 +35,7 @@ extern "C" {
 void app_can_controller_run(uint8_t (*data_storage)[176][10]);
 void app_can_controller_stop();
 bool app_can_sniffer_running();
+bool app_can_controller_is_init();
 
 
 

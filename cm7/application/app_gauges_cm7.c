@@ -70,6 +70,11 @@ static void prv_task_gauges()
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
 
+	while (app_can_controller_is_init() == false)
+	{
+		vTaskDelay(100);
+	}
+
 	uint8_t retries = 0;
 	while (retries++ < 5)
 	{
@@ -119,6 +124,7 @@ static bool prv_update_available_uds_data()
 {
 	uint8_t num_params = 0;
 
+	/* Check the generic parameters. */
 	for (uint8_t x = 0; x < 0x80; x += 0x20)
 	{
 		uint32_t available_pids_1 = can_control_memory[x][0] << 24;
@@ -139,6 +145,7 @@ static bool prv_update_available_uds_data()
 			}
 		}
 	}
+	
 
 	return num_params;
 }
