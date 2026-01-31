@@ -127,7 +127,7 @@ static void prv_init_other_screen()
 	lv_checkbox_set_text(demo_mode_checkbox, "Demo Mode");
 	lv_obj_set_style_text_color(demo_mode_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
 	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
-	if (ui_helpers_is_demo_mode)
+	if (ui_helpers_is_demo_mode())
 	{
 		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, true);
 	}

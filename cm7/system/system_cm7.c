@@ -94,9 +94,9 @@ void system_task_init()
 	 * Signal to CM4 that were done with system init.
 	 * Then wait for CM4 to be done initializing.
 	 */
-	hsem_signal(HSEM_INIT, HSEM_ID_INIT_CM7);
-	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
-	hsem_clear_int(1);
+	//hsem_signal(HSEM_INIT, HSEM_ID_INIT_CM7);
+	//hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
+	//hsem_clear_int(1);
 
 
 	xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);

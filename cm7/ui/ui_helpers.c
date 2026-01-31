@@ -3,7 +3,7 @@
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
-static bool ui_demo_mode = false;
+static bool ui_demo_mode = true;
 /**********		STATIC VARIABLES		**********/
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -121,6 +121,8 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 		lv_obj_set_style_border_width(center_circle, 0, LV_PART_MAIN);
 		lv_obj_set_style_border_color(center_circle, UI_COLOR_BLACK, LV_PART_MAIN);
 		lv_obj_set_scrollbar_mode(center_circle, LV_SCROLLBAR_MODE_OFF);
+
+
 
 		/* Add shadow to center circle. */
 		lv_obj_set_style_shadow_color(center_circle, UI_COLOR_RED, LV_PART_MAIN);
