@@ -1,7 +1,6 @@
 /**********     INCLUDES        **********/
 #include "cangauge_common.h"
 #include "app_gauges_cm7.h"
-#include "system/system_cm7.h"
 
 #include "applications_cm7.h"
 
@@ -16,9 +15,6 @@
 
 #include "common/saej1979.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
 
 /**********		DEFINES		**********/
 
