@@ -21,15 +21,14 @@
 #include "semphr.h"
 
 /**********		DEFINES		**********/
-#define SYS_LVGL_TICK_INC_TASK_CODE				"LV_TICK_INC"
-#define SYS_LVGL_TASK_HANDLER_TASK_CODE			"LV_TASK_HANDLER"
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void system_task_init();
-void system_task_blink(const uint32_t delay_time_ms);	//Task to blink the test LED.
-
+void system_blink_run(const uint32_t delay_time_ms);
+void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms);
+void system_blink_stop();
 
 
 #endif /* CORE_SYSTEM_CM7_SYSTEM_H_ */

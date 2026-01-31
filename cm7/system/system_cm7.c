@@ -8,13 +8,9 @@
 
 /**********		INCLUDES		**********/
 #include "application/applications_cm7.h"
-#include "cangauge_common.h"
 #include "system_cm7.h"
 
 #include "drivers/drivers.h"
-#include "drivers/stm32_canbus.h"
-
-#include "lvgl_port/lvgl_port_def.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
@@ -31,11 +27,14 @@
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
 
 /**********     STATIC VARIABLES     **********/
-volatile UBaseType_t system_stack_watermark;
-
+volatile UBaseType_t prv_system_stack_watermark;
+static TaskHandle_t prv_task_handle_blink = NULL;
+static uint32_t prv_blink_delay_on = 0;
+static uint32_t prv_blink_delay_off = 0;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void prv_init_fpu();
+static void prv_task_blink();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 static void prv_init_fpu()
@@ -43,14 +42,29 @@ static void prv_init_fpu()
 	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
 }
 
+void prv_task_blink(const uint32_t delay_time_ms)
+{
+	TickType_t last_run_time;
+	last_run_time = xTaskGetTickCount();
+	prv_blink_delay_off = delay_time_ms;
+	prv_blink_delay_on = delay_time_ms;
+	while(1)
+	{
+		io_test_led_on();
+		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_on));
+		io_test_led_off();
+		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_off));
+	}
+}
+
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
+	/* Stop the scheduler. */
 	vTaskSuspendAll();
+
 	/*Set up and enable all the clocks.*/
 	hsem_init_clk();
-	/*Taking HSEM 1 to hold CM4 in place.*/
-	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM7);
 
 	/*Enable all the IO clocks.*/
 	io_init();
@@ -61,9 +75,6 @@ void system_task_init()
 	
 	/*Initialize the FPU.*/
 	prv_init_fpu();
-
-	/*LCD and LVGL.*/
-	//lcd_init();						//The LTDC.
 
 	/* LCD backlight power supply and CAN transceivers enable pin. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
@@ -89,37 +100,44 @@ void system_task_init()
 
 	/***********************************/
 
+	system_blink_run(1000);
 
-	/*
-	 * Signal to CM4 that were done with system init.
-	 * Then wait for CM4 to be done initializing.
-	 */
-	//hsem_signal(HSEM_INIT, HSEM_ID_INIT_CM7);
-	//hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
-	//hsem_clear_int(1);
-
-
-	xTaskCreate((TaskFunction_t)system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
-
-	xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, &app_battery_monitor_task_handle);
+	app_battery_monitor_run(4);
 
 	xTaskResumeAll();
 	
 	vTaskDelete(NULL);
 }
 
-
-
-void system_task_blink(const uint32_t delay_time_ms)
+void system_blink_run(const uint32_t delay_time_ms)
 {
-	TickType_t last_run_time;
-	last_run_time = xTaskGetTickCount();
-	while(1)
+	if (prv_task_handle_blink != NULL)
 	{
-		io_test_led_tgl();
-		vTaskDelayUntil(&last_run_time, delay_time_ms);
+		vTaskResume(prv_task_handle_blink);
+		return;
+	}
+	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 50, delay_time_ms, 4, &prv_task_handle_blink);
+
+}
+
+void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms)
+{
+	if (on_ms > 0)
+	{
+		prv_blink_delay_on = on_ms;
+	}
+	if (off_ms > 0)
+	{
+		prv_blink_delay_off = off_ms;
 	}
 }
+
+void system_blink_stop()
+{
+	vTaskSuspend(prv_task_handle_blink);
+}
+
+
 
 void vApplicationTickHook()
 {
