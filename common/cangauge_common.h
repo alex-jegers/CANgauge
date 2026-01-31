@@ -16,7 +16,6 @@
 #include "stm32h745xx.h"
 
 /**********		DEFINES		**********/
-#define CG_MEMORY_REGION_COMMON 		__attribute__((__section__(".shared_data")))
 #define CG_MEMORY_REGION_EXT			__attribute__((__section__(".ext_mem_ram")))
 
 typedef struct
@@ -32,7 +31,7 @@ typedef struct
 
 }common_mem_t;
 
-CG_MEMORY_REGION_COMMON extern volatile common_mem_t common;
+CG_MEMORY_REGION_EXT extern volatile common_mem_t common;
 
 /**********     GLOBAL FUNCTION PROTOTYPES     **********/
 

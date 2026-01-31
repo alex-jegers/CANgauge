@@ -16,7 +16,7 @@
 
 /**********		STATIC VARIABLE DEFINITIONS		**********/
 
-CG_MEMORY_REGION_COMMON volatile common_mem_t common;
+CG_MEMORY_REGION_EXT volatile common_mem_t common;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
