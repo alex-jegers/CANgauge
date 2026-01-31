@@ -58,20 +58,20 @@ Reset_Handler:
 
 
 /* Copy the data segment initializers from flash to SRAM */
-  ldr r0, =_sdata
-  ldr r1, =_edata
-  ldr r2, =_sidata
+  ldr r0, =_sdata	//Start of the .data section (RAM_D2).
+  ldr r1, =_edata	//End of .data section (RAM_D2).
+  ldr r2, =_sidata	//Start of the initialized data section in Flash.
   movs r3, #0
   b LoopCopyDataInit
 
 CopyDataInit:
-  ldr r4, [r2, r3]
-  str r4, [r0, r3]
-  adds r3, r3, #4
+  ldr r4, [r2, r3]	//Load R4 with data at sidata offset by R3 (starts at 0).
+  str r4, [r0, r3]	//Store R4 at .data + R3.
+  adds r3, r3, #4	//Increment R3 by 4.
 
 LoopCopyDataInit:
-  adds r4, r0, r3
-  cmp r4, r1
+  adds r4, r0, r3	//Add the start of the data section with R3 into R4.
+  cmp r4, r1		//Compare R4 to the end of the data section.
   bcc CopyDataInit
 
 /* Zero fill the bss segment. */

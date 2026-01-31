@@ -44,40 +44,25 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM_D1 (xrw)   : ORIGIN = 0x24000000, LENGTH =  512K		/*Frame buffer.*/
-  FLASH  (rx)    : ORIGIN = 0x08000000, LENGTH = 1024K    /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
-  DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K		/*Stack.*/
-  RAM_D2 (xrw)   : ORIGIN = 0x30000000, LENGTH = 288K		/*CM7 heap and data.*/
-  RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
-  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K		/*Not used.*/
-  EXT_RAM_SHARED (xrw)	: ORIGIN = 0xD0000000, LENGTH = 1M
-  EXT_RAM_CM4 (xrw)		: ORIGIN = 0xD00F4240, LENGTH = 1M
-  EXT_RAM_CM7 (xrw)		: ORIGIN = 0xD01E8480, LENGTH = 1M
-  EXT_RAM (xrw) 		: ORIGIN = 0xD02DC6C0, LENGTH = 29M
+  RAM_D1 (xrw)   	: ORIGIN = 0x24000000, LENGTH =  512K	/*Frame buffer.*/
+  FLASH  (rx)    	: ORIGIN = 0x08000000, LENGTH = 1024K   /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
+  DTCMRAM (xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K	/*Stack.*/
+  RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K	/*CM7 heap and data.*/
+  RAM_D3 (xrw)   	: ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
+  ITCMRAM (xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K		/*Not used.*/
+  EXT_RAM (xrw) 	: ORIGIN = 0xD0000000, LENGTH = 29M
 }
 
 /* Sections */
 SECTIONS
 {
-	.shared_data (NOLOAD):
-	{
-		. = ALIGN(4);
-		KEEP(*(.shared_data));		
-	} >EXT_RAM_SHARED
-	
 	.ext_mem_ram (NOLOAD):
 	{
 		. = ALIGN(4);
-		KEEP(*(.shared_data));		
-	} >EXT_RAM_CM7
+		KEEP(*(.ext_mem_ram));		
+	} >EXT_RAM
 	
-	.disp_buffer1 (NOLOAD):
-	{
-		. = ALIGN(4);
-		KEEP(*(.disp_buffer1));		
-	} >EXT_RAM	
-	
-	.disp_buffer2 (NOLOAD):
+	.ram_d1 (NOLOAD):
 	{
 		. = ALIGN(4);
 		KEEP(*(.disp_buffer2));		
