@@ -16,7 +16,7 @@
 /**********		STATIC VARIABLES		**********/
 static lv_display_t* disp;
 SYSTEM_MEM_REGION_EXTERN_RAM static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
-__attribute__((__section__(".ram_d1"))) static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
+SYSTEM_MEM_REGION_RAM_D1 static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map);
