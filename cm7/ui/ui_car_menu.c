@@ -19,6 +19,8 @@ lv_event_cb_t ui_car_data_logger_btn_clicked_cb = NULL;
 lv_event_cb_t prv_other_btn_clicked_cb = NULL;
 lv_event_cb_t prv_slider_event_cb = NULL;
 lv_event_cb_t prv_settings_scr_load_event_cb = NULL;
+lv_event_cb_t prv_demo_mode_checkbox_event_cb = NULL;
+lv_event_cb_t prv_settings_back_btn_event_cb = NULL;
 
 /* Panels and screens.*/
 static lv_obj_t* prv_main_scr;
@@ -114,7 +116,7 @@ static void prv_init_other_screen()
 
 	/*Add a button to launch the CAN sniffer.*/
 	ui_car_can_sniffer_load_btn = ui_helpers_create_btn_with_text(prv_other_btn_container, "CAN Sniffer", UI_BTN_FONT);
-	lv_obj_add_event_cb(ui_car_can_sniffer_load_btn, ui_car_can_sniffer_btn_clicked, LV_EVENT_PRESSED, NULL);
+	lv_obj_add_event_cb(ui_car_can_sniffer_load_btn, ui_car_can_sniffer_btn_clicked, LV_EVENT_RELEASED, NULL);
 
 	lv_obj_t* settings_lbl = lv_label_create(prv_other_scr);
 	lv_label_set_text(settings_lbl, "Settings");
@@ -126,7 +128,6 @@ static void prv_init_other_screen()
 	lv_obj_t* demo_mode_checkbox = lv_checkbox_create(prv_other_scr);
 	lv_checkbox_set_text(demo_mode_checkbox, "Demo Mode");
 	lv_obj_set_style_text_color(demo_mode_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
 	if (ui_helpers_is_demo_mode())
 	{
 		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, true);
@@ -135,10 +136,12 @@ static void prv_init_other_screen()
 	{
 		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, false);
 	}
+	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
+
 
 	/* Make a button to go back. */
 	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_other_scr, "Back", LV_FONT_DEFAULT);
-	lv_obj_add_event_cb(prv_settings_back_btn, prv_settings_back_btn_event, LV_EVENT_PRESSED, NULL);
+	lv_obj_add_event_cb(prv_settings_back_btn, prv_settings_back_btn_event, LV_EVENT_RELEASED, NULL);
 }
 
 void prv_load_other_screen()
@@ -211,6 +214,10 @@ static void prv_settings_scr_load_event(lv_event_t* e)
 static void prv_settings_back_btn_event(lv_event_t* e)
 {
 	ui_menu_load();
+	if (prv_settings_back_btn_event_cb != NULL)
+	{
+		prv_settings_back_btn_event_cb(e);
+	}
 }
 
 static void prv_settings_demo_mode_checkbox_event(lv_event_t* e)
@@ -226,6 +233,11 @@ static void prv_settings_demo_mode_checkbox_event(lv_event_t* e)
 	else
 	{
 		ui_helpers_set_demo_mode(false);
+	}
+
+	if (prv_demo_mode_checkbox_event_cb != NULL)
+	{
+		prv_demo_mode_checkbox_event_cb(e);
 	}
 }
 
@@ -300,3 +312,12 @@ void ui_menu_set_settings_scr_load_event_cb(lv_event_cb_t func)
 	prv_settings_scr_load_event_cb = func;
 }
 
+void ui_menu_set_demo_mode_checkbox_event_cb(lv_event_cb_t func)
+{
+	prv_demo_mode_checkbox_event_cb = func;
+}
+
+void ui_menu_set_settings_back_btn_event_cb(lv_event_cb_t func)
+{
+	prv_settings_back_btn_event_cb = func;
+}
