@@ -59,6 +59,21 @@ void prv_task_blink(const uint32_t delay_time_ms)
 }
 
 static void prv_lcd_bl_init()
+{
+	io_init();
+	//io_set_pin_dir_out(GPIOB, GPIO_PIN14_Msk);
+	//io_pin_out_set(GPIOB, GPIO_PIN14_Msk);
+	//TODO: Double check this PWM code.
+	io_set_pin_mux(GPIOB, GPIO_PIN14_Msk, GPIO_AFR_AF2);
+	timer_init(TIM12);
+	timer_enable_pwm_output(TIM12, 1);
+	timer_set_pwm_freq(TIM12, 100);
+	timer_set_pwm_duty_cycle(TIM12, 45000, 1);
+	timer_enable(TIM12);
+	system_set_lcd_backlight_pw(system_get_lcd_backlight_pw());
+
+}
+
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
