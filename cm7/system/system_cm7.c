@@ -35,6 +35,7 @@ static uint32_t prv_blink_delay_off = 0;
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 static void prv_init_fpu();
 static void prv_task_blink();
+static void prv_lcd_bl_init();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 static void prv_init_fpu()
@@ -57,6 +58,7 @@ void prv_task_blink(const uint32_t delay_time_ms)
 	}
 }
 
+static void prv_lcd_bl_init()
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
@@ -79,6 +81,7 @@ void system_task_init()
 	/* LCD backlight power supply and CAN transceivers enable pin. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
 	io_pin_out_clr(GPIOK, GPIO_PIN2_Msk);
+	prv_lcd_bl_init();
 
 	/*Enable the caches.*/
 	SCB_EnableDCache();

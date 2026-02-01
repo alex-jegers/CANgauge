@@ -13,12 +13,15 @@
 
 /**********		INCLUDES		**********/
 #include "stm32h745xx.h"
+#include <stdbool.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "list.h"
 #include "semphr.h"
+
+#include "system_mem.h"
 
 /**********		DEFINES		**********/
 
