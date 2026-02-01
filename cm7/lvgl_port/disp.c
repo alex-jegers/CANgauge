@@ -4,8 +4,11 @@
 #include "lvgl/lvgl.h"
 
 #include "ui/ui_helpers.h"
+#include "ui/ui_helpers.h"
 
 #include "common/drivers/drivers.h"
+
+#include "system/system_mem.h"
 
 #include "system/system_mem.h"
 
@@ -62,6 +65,7 @@ void disp_init()
 
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
+
 
 }
 
