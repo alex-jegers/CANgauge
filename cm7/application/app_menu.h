@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "stm32h745xx.h"
+#include "system/system_cm7.h"
 
 /**********     DEFINES      **********/
 

@@ -3,9 +3,11 @@
 
 #include "lvgl/lvgl.h"
 
-#include "common/cangauge_common.h"
+#include "ui/ui_helpers.h"
 
 #include "common/drivers/drivers.h"
+
+#include "system/system_mem.h"
 
 /**********		DEFINES		**********/
 
@@ -13,7 +15,7 @@
 
 /**********		STATIC VARIABLES		**********/
 static lv_display_t* disp;
-__attribute__((__section__(".ext_mem_ram"))) static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
+SYSTEM_MEM_REGION_EXTERN_RAM static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
 __attribute__((__section__(".ram_d1"))) static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -60,6 +62,7 @@ void disp_init()
 
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
+
 }
 
 
