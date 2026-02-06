@@ -30,8 +30,10 @@ int main(void)
 	/* Initializes the external SDRAM. */
 	fmc_init_sdram();
 
+	system_init_fpu();
+
 	/* Creates a task to finish the rest of the system initialization. */
-   	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 4, NULL);
+   	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 5, NULL);
 
 	/* Set up the display and input device callbacks for LVGL. */
    	static touch_info_t touch_data;						//Where the touch data will be stored.

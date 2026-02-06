@@ -33,16 +33,11 @@ static uint32_t prv_blink_delay_on = 0;
 static uint32_t prv_blink_delay_off = 0;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
-static void prv_init_fpu();
+
 static void prv_task_blink();
 static void prv_lcd_bl_init();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
-static void prv_init_fpu()
-{
-	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
-}
-
 void prv_task_blink(const uint32_t delay_time_ms)
 {
 	TickType_t last_run_time;
@@ -88,9 +83,6 @@ void system_task_init()
 	/*Turn on the test LED.*/
 	io_init_test_led(TEST_LED_PORT, TEST_LED_PIN);
 	io_test_led_on();
-	
-	/*Initialize the FPU.*/
-	prv_init_fpu();
 
 	/* LCD backlight power supply and CAN transceivers enable pin. */
 	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
@@ -100,6 +92,7 @@ void system_task_init()
 	/*Enable the caches.*/
 	SCB_EnableDCache();
 	SCB_EnableICache();
+
 
 	/**** TESTING USB CONFIGURATION *****/
 	io_set_pin_mux(GPIOA, GPIO_PIN10_Msk, GPIO_AFR_AF10);
@@ -124,6 +117,11 @@ void system_task_init()
 	xTaskResumeAll();
 	
 	vTaskDelete(NULL);
+}
+
+void system_init_fpu()
+{
+	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
 }
 
 void system_blink_run(const uint32_t delay_time_ms)
