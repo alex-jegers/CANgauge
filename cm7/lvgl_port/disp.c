@@ -33,7 +33,7 @@ static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, ui
 	uint32_t addr = (uint32_t)lv_display_get_buf_active(display)->data;
 	if (is_last == 1) {
 		LTDC->ICR = LTDC_ICR_CRRIF;
-		SCB_CleanInvalidateDCache();
+		SCB_CleanDCache();
 		// wait for VSYNC to avoid tearing
 		//while ((LTDC->CDSR & LTDC_CDSR_VSYNCS) == 0){}
 		// swap framebuffers (NOTE: LVGL will swap the buffers in the background, so here we can set the LCD framebuffer to the current LVGL buffer, which has been just completed)
