@@ -156,7 +156,7 @@ void lv_sysmon_show_memory(lv_display_t * disp)
             return;
         }
 
-        lv_obj_align(disp->mem_label, LV_USE_MEM_MONITOR_POS, 0, 0);
+        lv_obj_align(disp->mem_label, LV_USE_MEM_MONITOR_POS, 0, -20);
         lv_subject_add_observer_obj(&sysmon_mem.subject, mem_observer_cb, disp->mem_label, NULL);
     }
 
