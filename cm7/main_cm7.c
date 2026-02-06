@@ -44,8 +44,8 @@ int main(void)
 	touch_scr_run(p_touch_data);						//Runs the touch screen task.
 		
 	/* Load the menu screen. */
-	//app_menu_run();
-	lv_demo_benchmark();
+	app_menu_run();
+
 
 
 	/* Starts the FreeRTOS scheduler. */
