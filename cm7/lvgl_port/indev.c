@@ -3,7 +3,7 @@
 /**********     INCLUDES        **********/
 #include "indev.h"
 
-#include "shared_mem.h"
+#include <cangauge_common.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -51,4 +51,3 @@ void indev_init(touch_info_t** p_touch_data)
 	touch_info = p_touch_data;
 	touch_lvgl_add_indev();
 }
-

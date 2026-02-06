@@ -7,7 +7,10 @@
 
 
 #include "stm32_iic.h"
-#include <assert.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
 
 
 
@@ -22,8 +25,14 @@
 #define RCC_D3CCIPR_I2C4SEL_CSI							0x3
 
 
+static bool prv_timeout = false;
+static TimerHandle_t prv_timer_timeout = NULL;
+
 static uint8_t i2c_get_data(I2C_TypeDef* i2c);
 static void i2c_write_data(I2C_TypeDef* i2c, uint8_t data);
+static void prv_timer_cb_timeout(TimerHandle_t* timer);				//Callback for FreeRTOS timer.
+static int8_t prv_start_timer();
+static void prv_clear_timer();
 
 static uint8_t i2c_get_data(I2C_TypeDef* i2c)
 {
@@ -35,7 +44,38 @@ static void i2c_write_data(I2C_TypeDef* i2c, uint8_t data)
 	i2c->TXDR = data;
 }
 
+static void prv_timer_cb_timeout(TimerHandle_t* timer)
+{
+	prv_timeout = true;
+}
 
+static int8_t prv_start_timer()
+{
+	if (prv_timer_timeout == NULL)
+	{
+		return 0;
+	}
+
+	if (xTimerStart(prv_timer_timeout, 0) == pdFAIL)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+static void prv_clear_timer()
+{
+	if (prv_timer_timeout == NULL)
+	{
+		return;
+	}
+	else
+	{
+		xTimerReset(prv_timer_timeout, 0);
+		xTimerStop(prv_timer_timeout, 0);
+	}
+}
 
 void i2c_init_clk(I2C_TypeDef* i2c)
 {
@@ -115,7 +155,7 @@ void i2c_disable_clk_stretch(I2C_TypeDef* i2c)
 
 void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
 {
-	i2c->TIMEOUTR = (uint32_t)(2 | (1 << I2C_TIMEOUTR_TIMOUTEN));
+	prv_timer_timeout = xTimerCreate("I2C_TIMER", pdMS_TO_TICKS(5), pdFALSE, NULL, prv_timer_cb_timeout);
 }
 
 int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes)
@@ -131,6 +171,13 @@ int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uin
 	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
 	i2c->CR2 |= I2C_CR2_AUTOEND;					//enable auto stop.
 	i2c_clear_status(i2c);
+
+	/* Start the timeout timer. */
+	if (prv_start_timer() != 0)
+	{
+		return -1;
+	}
+
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
 	uint8_t x = 0;
@@ -163,7 +210,15 @@ int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uin
 			return -1;
 		}
 
+		if (prv_timeout)
+		{
+			return -1;
+		}
+
 	}
+
+	prv_clear_timer();
+
 	return 0;
 }
 
@@ -176,6 +231,13 @@ int8_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, ui
 	i2c->TXDR = internal_addr;						//send the internal address first.
 	//i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
 	i2c_clear_status(i2c);
+
+	/* Start the timeout timer. */
+	if (prv_start_timer() != 0)
+	{
+		return -1;
+	}
+
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
 	uint8_t bytes_transferred = 0;
@@ -206,11 +268,20 @@ int8_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, ui
 		{
 			return 0;
 		}
+
 		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
 		{
 			return -1;
 		}
+
+		if (prv_timeout)
+		{
+			return -1;
+		}
 	}
+
+	prv_clear_timer();
+
 	return 0;
 }
 
@@ -234,5 +305,6 @@ uint32_t i2c_status(I2C_TypeDef* i2c)
 
 void i2c_clear_status(I2C_TypeDef* i2c)
 {
+	prv_timeout = false;
 	i2c->ICR = 0xFFFFFFFF;
 }

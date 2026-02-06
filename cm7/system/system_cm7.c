@@ -7,27 +7,14 @@
 
 
 /**********		INCLUDES		**********/
+#include "application/applications_cm7.h"
 #include "system_cm7.h"
-#include "assert.h"
 
-#include "drivers/stm32_io.h"
-#include "drivers/stm32_lcd.h"
-#include "drivers/stm32_fmc.h"
-#include "drivers/stm32_rcc.h"
-#include "drivers/stm32_hsem.h"
-
-#include "application/app_ui_test_cm7.h"
-#include "application/app_can_sniffer_cm7.h"
-#include "application/app_battery_monitor.h"
-
-#include "touch_screen/iic_touch.h"
-#include "touch_screen/indev.h"
-#include "lvgl/lvgl.h"
+#include "drivers/drivers.h"
 
 #include "ui/ui_helpers.h"
 #include "ui/ui_car_menu.h"
 
-#include "shared_mem.h"
 
 
 /**********		DEFINES		**********/
@@ -38,102 +25,134 @@
 #define SYS_GET_WATERMARK					system_stack_watermark = uxTaskGetStackHighWaterMark(NULL);
 
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
-SemaphoreHandle_t sys_mutex_lvgl = NULL;
 
 /**********     STATIC VARIABLES     **********/
-volatile UBaseType_t system_stack_watermark;
+volatile UBaseType_t prv_system_stack_watermark;
+static TaskHandle_t prv_task_handle_blink = NULL;
+static uint32_t prv_blink_delay_on = 0;
+static uint32_t prv_blink_delay_off = 0;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
-static void _init_fpu();
-static void _can_sniffer_btn_hanlder(lv_event_t* e);
-static void _gauges_btn_handler(lv_event_t* e);
+
+static void prv_task_blink();
+static void prv_lcd_bl_init();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
-static void _init_fpu()
+void prv_task_blink(const uint32_t delay_time_ms)
 {
-	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
+	TickType_t last_run_time;
+	last_run_time = xTaskGetTickCount();
+	prv_blink_delay_off = delay_time_ms;
+	prv_blink_delay_on = delay_time_ms;
+	while(1)
+	{
+		io_test_led_on();
+		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_on));
+		io_test_led_off();
+		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_off));
+	}
 }
 
-static void _can_sniffer_btn_hanlder(lv_event_t* e)
+static void prv_lcd_bl_init()
 {
-	assert(xTaskCreate(app_can_sniffer_cm7, "CAN_SNIFFER", 500, NULL, 0, NULL));
-}
+	io_init();
+	//io_set_pin_dir_out(GPIOB, GPIO_PIN14_Msk);
+	//io_pin_out_set(GPIOB, GPIO_PIN14_Msk);
+	//TODO: Double check this PWM code.
+	io_set_pin_mux(GPIOB, GPIO_PIN14_Msk, GPIO_AFR_AF2);
+	timer_init(TIM12);
+	timer_enable_pwm_output(TIM12, 1);
+	timer_set_pwm_freq(TIM12, 100);
+	timer_set_pwm_duty_cycle(TIM12, 0xFFFF, 1);
+	timer_enable(TIM12);
 
-static void _gauges_btn_handler(lv_event_t* e)
-{
-	app_gauges_run();
 }
 
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
+	/* Stop the scheduler. */
+	vTaskSuspendAll();
+
 	/*Set up and enable all the clocks.*/
 	hsem_init_clk();
-	/*Taking HSEM 1 to hold CM4 in place.*/
-	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM7);
+
+	/*Enable all the IO clocks.*/
 	io_init();
+
+	/*Turn on the test LED.*/
 	io_init_test_led(TEST_LED_PORT, TEST_LED_PIN);
 	io_test_led_on();
-	_init_fpu();
 
-	system_init_shared_mem();
+	/* LCD backlight power supply and CAN transceivers enable pin. */
+	io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
+	io_pin_out_clr(GPIOK, GPIO_PIN2_Msk);
+	prv_lcd_bl_init();
 
-	/*Time dependent initializations.*/
-	lcd_init();
-	indev_init(&p.p_touch_data);
-
+	/*Enable the caches.*/
 	SCB_EnableDCache();
 	SCB_EnableICache();
 
-	/*
-	 * Signal to CM4 that were done with system init.
-	 * Then wait for CM4 to be done initializing.
-	 */
-	hsem_signal(HSEM_INIT, HSEM_ID_INIT_CM7);
-	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM4);
-	hsem_clear_int(1);
 
-	sys_mutex_lvgl = xSemaphoreCreateMutex();
-	if (sys_mutex_lvgl == NULL)
-	{
-		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, NULL, 4, NULL);
-	}
-	else
-	{
-		//xTaskCreate(system_task_blink, "SYS_BLINK", 50, 1000, 4, NULL);
-		ui_car_load_menu_screen();
-		ui_car_set_can_sniffer_btn_clicked_cb(_can_sniffer_btn_hanlder);
-		ui_car_set_gauges_load_btn_clicked_cb(_gauges_btn_handler);
-		xTaskCreate(system_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, NULL);
-		xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, 4, app_battery_monitor_task_handle);
-	}
+	/**** TESTING USB CONFIGURATION *****/
+	io_set_pin_mux(GPIOA, GPIO_PIN10_Msk, GPIO_AFR_AF10);
+	io_set_pin_mux(GPIOA, GPIO_PIN11_Msk, GPIO_AFR_AF10);
+	io_set_pin_mux(GPIOA, GPIO_PIN12_Msk, GPIO_AFR_AF10);
 
+	RCC->CR |= RCC_CR_HSI48ON;
+	while ((RCC->CR & RCC_CR_HSI48RDY) == 0) {}
+
+	RCC->D2CCIP2R |= 0x3 << RCC_D2CCIP2R_USBSEL_Pos;	//Enable kernel clock.
+	RCC->AHB1ENR |= RCC_AHB1ENR_USB2OTGFSEN | RCC_AHB1ENR_USB2OTGFSULPIEN;	//Enable PHY and peripheral clocks.
+
+	USB2_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
+
+
+	/***********************************/
+
+	system_blink_run(1000);
+
+	app_battery_monitor_run(4);
+
+	xTaskResumeAll();
+	
 	vTaskDelete(NULL);
 }
 
-void system_task_lvgl_timer_update()
+void system_init_fpu()
 {
-	while (1)
+	SCB->CPACR = SCB_CPACR_CP10_FULL_ACCESS | SCB_CPACR_CP11_FULL_ACCESS;		//enables the FPU.
+}
+
+void system_blink_run(const uint32_t delay_time_ms)
+{
+	if (prv_task_handle_blink != NULL)
 	{
-		if (xSemaphoreTake(sys_mutex_lvgl, portMAX_DELAY) == pdPASS)
-		{
-			uint32_t time_till_next = lv_task_handler();
-			xSemaphoreGive(sys_mutex_lvgl);
-			vTaskDelay(pdMS_TO_TICKS(time_till_next));
-		}
+		vTaskResume(prv_task_handle_blink);
+		return;
+	}
+	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 50, delay_time_ms, 4, &prv_task_handle_blink);
+
+}
+
+void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms)
+{
+	if (on_ms > 0)
+	{
+		prv_blink_delay_on = on_ms;
+	}
+	if (off_ms > 0)
+	{
+		prv_blink_delay_off = off_ms;
 	}
 }
 
-void system_task_blink(const uint32_t delay_time_ms)
+void system_blink_stop()
 {
-	TickType_t last_run_time;
-	last_run_time = xTaskGetTickCount();
-	while(1)
-	{
-		io_test_led_tgl();
-		vTaskDelayUntil(&last_run_time, delay_time_ms);
-	}
+	vTaskSuspend(prv_task_handle_blink);
 }
+
+
 
 void vApplicationTickHook()
 {

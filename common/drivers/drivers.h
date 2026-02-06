@@ -22,6 +22,7 @@ extern "C" {
 #include "stm32_spi.h"
 #include "stm32_sys_timer.h"
 #include "stm32_timer.h"
+#include "stm32_flash.h"
 
 /**********     DEFINES      **********/
 

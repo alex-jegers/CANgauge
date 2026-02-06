@@ -1,32 +1,32 @@
 
-#ifndef _APP_CAN_SNIFFER_H_
-#define _APP_CAN_SNIFFER_H_
+#ifndef _APP_CAN_TRANSMIT_H_
+#define _APP_CAN_TRANSMIT_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "drivers/stm32_canbus.h"
+#include "stm32h745xx.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "list.h"
 #include "semphr.h"
+
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
-
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_can_controller_run();
-void app_can_sniffer_stop();
-bool app_can_sniffer_running();
-
+void app_can_transmit_run(uint16_t* transmit_period_list, uint8_t length);
+void app_can_transmit_stop();
+TaskHandle_t* app_can_transmit_get_task_handle();
 
 
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif
 
-#endif  //_APP_CAN_SNIFFER_H_
+#endif  //_APP_CAN_TRANSMIT_H_

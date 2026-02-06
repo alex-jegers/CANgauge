@@ -105,4 +105,16 @@ void timer_set_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t duty_cycle, uint32_t 
 	}
 }
 
+uint32_t timer_get_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t channel)
+{
+	uint32_t auto_reload = timer->ARR;
+	if (channel == 1)
+	{
+		return (0x0000FFFF) & ((timer->CCR1 * 65535) / auto_reload);
+	}
+	if (channel == 2)
+	{
+		return (0x0000FFFF) & ((timer->CCR2 * 65535) / auto_reload);
+	}
+}
 

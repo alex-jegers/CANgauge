@@ -4,13 +4,12 @@
  *  Created on: Feb 27, 2024
  *      Author: awjpp
  */
-#ifdef CORE_CM7
+
 
 #include "stm32_fmc.h"
 #include "stm32_io.h"
 #include "stm32_rcc.h"
-#include "stm32_timer.h"
-#include "string.h"			//TODO: for test, remove.
+#include <string.h>
 
 #define TEST_ADDR				*(uint32_t*)0xD0000000
 
@@ -29,6 +28,7 @@ void fmc_init_sdram()
 	/*Select and enable the kernel clock.*/
 	RCC->D1CCIPR |= RCC_D1CCIPR_FMCSEL_PLL2R;
 	rcc_enable_pll2r();
+
 
 #ifdef TARGET_HARDWARE_STM32H745DISCO
 
@@ -91,6 +91,9 @@ void fmc_init_sdram()
 #endif //TARGET_HARDWARE == CANGAUGE
 
 	FMC_Bank1_R->BTCR[0] |= FMC_BCR1_FMCEN;
+	FMC_Bank1_R->BTCR[0] |= 0x1 << FMC_BCR1_BMAP_Pos;	//Remap to put SDRAM2 into memory space, not device space.
+
+	MPU->CTRL = MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
 
 	FMC_Bank5_6_R->SDCR[0] = fmc_sdcr1_msk;
 	FMC_Bank5_6_R->SDCR[1] = fmc_sdcr2_msk;
@@ -123,6 +126,9 @@ void fmc_init_sdram()
 
 	/*Set the refresh rate counter. Tested.*/
 	FMC_Bank5_6_R->SDRTR = 156;
+
+	/* Set it all to zeros. */
+	memset(0xD0000000, 0, 16000000);
 
 }
 
@@ -350,4 +356,4 @@ void fmc_init_io_test()
 	io_pin_out_clr(SDRAM_CKE1);
 }
 
-#endif //CORE_CM7
+

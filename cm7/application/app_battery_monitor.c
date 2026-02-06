@@ -1,7 +1,7 @@
 /**********     INCLUDES        **********/
 #include "app_battery_monitor.h"
-#include "common/drivers/stm32_adc.h"
-#include "common/drivers/stm32_io.h"
+#include "common/drivers/drivers.h"
+#include <assert.h>
 
 /**********		DEFINES		**********/
 /*This is GPIOB, GPIO_PIN5_Msk for prod hw.*/
@@ -9,15 +9,16 @@
 #define ADC_CHANNEL_NUMBER		5
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
-TaskHandle_t app_battery_monitor_task_handle = NULL;
 
 /**********		STATIC VARIABLES		**********/
+TaskHandle_t task_handle_battery_monitor = NULL;
 static uint32_t prv_measurement = 0;
 static uint32_t prv_low_threshold = 0x7A2A;
 static uint32_t prv_high_threshold = 0xA1A8;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_adc_interrupt_handler();
+static void app_battery_monitor_task();
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_adc_interrupt_handler()
@@ -27,8 +28,8 @@ static void prv_adc_interrupt_handler()
         prv_measurement = adc_get_conversion(ADC1);
     }
 }
-/**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void app_battery_monitor_task()
+
+static void app_battery_monitor_task()
 {
     io_set_pin_analog(BATT_MON_io);
     adc_init_clk(ADC1);
@@ -58,4 +59,15 @@ void app_battery_monitor_task()
         vTaskDelay(1000);
     }
     
+}
+
+/**********		GLOBAL FUNCTION DEFINITIONS		**********/
+void app_battery_monitor_run(uint8_t priority)
+{
+	if (task_handle_battery_monitor != NULL)
+	{
+		/* Trying to start the task but it's already running. */
+		assert(0);
+	}
+	xTaskCreate(app_battery_monitor_task, "BATT_MON", 32, NULL, priority, &task_handle_battery_monitor);
 }

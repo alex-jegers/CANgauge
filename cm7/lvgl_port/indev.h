@@ -15,19 +15,23 @@ extern "C" {
 
 /**********     INCLUDES        **********/
 #include "stm32h745xx.h"
-#include "stdbool.h"
+#include "lvgl_port/lvgl_port_def.h"
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
-typedef struct
-{
-	uint8_t touch_num;
-	uint16_t touch1_x;
-	uint16_t touch1_y;
-}touch_info_t;
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
+/*
+ * indev_init:
+ * params:
+ * p_touch_data: a pointer to a pointer where the touch data is located.
+ *		The double pointer is used in case the pointer hasn't been assigned
+ * 		at the time this function is called.
+ *
+ * desc: binds the input device callback to LVGL.
+ *
+ * */
 void indev_init(touch_info_t** p_touch_data);
 
 

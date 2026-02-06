@@ -3,7 +3,7 @@
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
-static bool ui_demo_mode = true;
+static bool ui_demo_mode = false;
 /**********		STATIC VARIABLES		**********/
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -27,28 +27,28 @@ void ui_helpers_set_demo_mode(bool demo_mode)
 
 lv_obj_t* ui_helpers_create_btn_with_text(lv_obj_t* parent, char* text, lv_font_t* font)
 {
-	lv_obj_t* _temp_btn;
-	lv_obj_t* _temp_lbl;
-	_temp_btn = lv_button_create(parent);
-	_temp_lbl = lv_label_create(_temp_btn);
-	lv_label_set_text(_temp_lbl, text);
-	lv_obj_align(_temp_lbl, LV_ALIGN_CENTER, 0, 0);
-	lv_obj_set_style_text_font(_temp_lbl, font, LV_STATE_DEFAULT);
-	lv_obj_set_style_bg_color(_temp_btn, UI_COLOR_RED, LV_STATE_DEFAULT);
-	lv_obj_set_style_bg_color(_temp_btn, UI_COLOR_GRAY, LV_STATE_PRESSED | LV_STATE_CHECKED | LV_STATE_FOCUSED);
-	lv_obj_set_style_shadow_width(_temp_btn, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_left(_temp_btn, 12, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_right(_temp_btn, 12, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_top(_temp_btn, 16, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_bottom(_temp_btn, 16, LV_STATE_DEFAULT);
+	lv_obj_t* temp_btn;
+	lv_obj_t* temp_lbl;
+	temp_btn = lv_button_create(parent);
+	temp_lbl = lv_label_create(temp_btn);
+	lv_label_set_text(temp_lbl, text);
+	lv_obj_align(temp_lbl, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_set_style_text_font(temp_lbl, font, LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(temp_btn, UI_COLOR_RED, LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(temp_btn, UI_COLOR_GRAY, LV_STATE_PRESSED | LV_STATE_CHECKED | LV_STATE_FOCUSED);
+	lv_obj_set_style_shadow_width(temp_btn, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(temp_btn, 12, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(temp_btn, 12, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(temp_btn, 16, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(temp_btn, 16, LV_STATE_DEFAULT);
 
-	return _temp_btn;
+	return temp_btn;
 }
 
 lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle)
 {
 	uint32_t total_tick_count = max_val - min_val;						
-	uint32_t major_tick_increment = 128;
+	uint32_t major_tick_increment = 1000;
 
 	while (1)
 	{
@@ -99,7 +99,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 	lv_obj_set_style_line_width(temp_gauge, 5, LV_PART_INDICATOR);
 	lv_obj_set_style_line_rounded(temp_gauge, true, LV_PART_INDICATOR);
 	lv_obj_set_style_translate_x(temp_gauge, -20, LV_PART_INDICATOR);
-	lv_obj_set_style_text_font(temp_gauge, &lv_font_montserrat_16, LV_PART_INDICATOR);
+	lv_obj_set_style_text_font(temp_gauge, &lv_font_montserrat_24, LV_PART_INDICATOR);
 
 	/*Minor tick marks (just invisible).*/
 	lv_obj_set_style_opa(temp_gauge, 0, LV_PART_ITEMS);
@@ -112,14 +112,25 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 	/*Needle, if were using one.*/
 	if (needle != NULL)
 	{
+		/* Make the center circle. */
 		lv_obj_t* center_circle = lv_obj_create(temp_gauge);
 		lv_obj_set_size(center_circle, 50, 50);
 		lv_obj_set_style_radius(center_circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
 		lv_obj_center(center_circle);
-		lv_obj_set_style_bg_color(center_circle, UI_COLOR_GRAY, LV_PART_MAIN);
+		lv_obj_set_style_bg_color(center_circle, UI_COLOR_DARK_GRAY, LV_PART_MAIN);
 		lv_obj_set_style_border_width(center_circle, 0, LV_PART_MAIN);
+		lv_obj_set_style_border_color(center_circle, UI_COLOR_BLACK, LV_PART_MAIN);
 		lv_obj_set_scrollbar_mode(center_circle, LV_SCROLLBAR_MODE_OFF);
 
+
+
+		/* Add shadow to center circle. */
+		lv_obj_set_style_shadow_color(center_circle, UI_COLOR_RED, LV_PART_MAIN);
+		lv_obj_set_style_shadow_width(center_circle, 25, LV_PART_MAIN);
+		lv_obj_set_style_shadow_opa(center_circle, 175, LV_PART_MAIN);
+		lv_obj_set_style_shadow_spread(center_circle, 10, LV_PART_MAIN);
+
+		/* Create the needle. */
 		*needle = lv_line_create(temp_gauge);
 		lv_obj_set_style_line_width(*needle, 8, LV_PART_MAIN);
 		lv_obj_set_style_line_color(*needle, UI_COLOR_RED, LV_PART_MAIN);

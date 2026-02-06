@@ -32,6 +32,7 @@
 /**
   * @brief This function handles Non maskable interrupt.
   */
+
 void NMI_Handler(void)
 {
 

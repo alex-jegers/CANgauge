@@ -292,7 +292,7 @@ static void _back_to_main_btn_handler()
     {
         _back_to_main_btn_cb();
     }
-    ui_car_load_menu_screen();
+    ui_menu_load();
 }
 
 static void _text_box_handler(lv_event_t* e)

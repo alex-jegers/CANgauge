@@ -215,15 +215,17 @@ typedef struct
 
 }can_ext_id_filter_t;
 
-/*CAN Message, used for abstraction.*/
-typedef struct
+typedef enum
 {
-	uint32_t        id;   /* Message identifier */
-	uint8_t			type; /* Message Type, 0 for data frame, 1 for RTR */
-	uint8_t *       data; /* Pointer to Message Data */
-	uint8_t         len;  /* Message Length */
-	uint8_t			fmt;  /* Identifier format, CAN_STD, CAN_EXT */
-}can_message_t;
+	CAN_ERROR_CODE_NO_ERROR,
+	CAN_ERROR_CODE_STUFF_ERROR,
+	CAN_ERROR_CODE_FORM_ERROR,
+	CAN_ERROR_CODE_ACK_ERROR,
+	CAN_ERROR_CODE_BIT1_ERROR,
+	CAN_ERROR_CODE_BIT0_ERROR,
+	CAN_ERROR_CODE_CRC_ERROR,
+	CAN_ERROR_CODE_NO_CHANGE,
+}can_error_code_t;
 
 
 /***********	GLOBAL FUNCTION DECLARATIONS	************/
@@ -236,7 +238,7 @@ void can_run(FDCAN_GlobalTypeDef* canbus);
 void can_set_baud_rate(FDCAN_GlobalTypeDef* canbus, can_baud_rate_t baud_rate);
 can_baud_rate_t can_get_baud_rate(FDCAN_GlobalTypeDef* canbus);
 void can_filter_init(FDCAN_GlobalTypeDef* canbus);
-
+can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus);
 
 /*TX control.*/
 

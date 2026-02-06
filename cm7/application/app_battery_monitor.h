@@ -21,10 +21,9 @@ extern "C" {
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
-extern TaskHandle_t app_battery_monitor_task_handle;
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_battery_monitor_task();
+void app_battery_monitor_run(uint8_t priority);
 
 
 

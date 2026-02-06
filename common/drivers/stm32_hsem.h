@@ -11,7 +11,7 @@
 #define DRIVERS_STM32_HSEM_H_
 
 /**********     INCLUDES     **********/
-#include "stm32h7xx.h"
+#include "stm32h745xx.h"
 #include "stdbool.h"
 #include "stddef.h"
 
@@ -49,11 +49,11 @@
 
 /**********     GLOBAL FUNCTION DELCRATIONS     **********/
 void hsem_init_clk();									//initializes the bus clock.
-bool hsem_signal(uint32_t hsem, uint8_t proc_id);		//signals a semaphore.
+bool hsem_signal(uint32_t hsem, uint8_t proc_id);		//Signals/gives a semaphore.
 void hsem_wait_void(uint32_t hsem, uint8_t proc_id);	//waits for a signal, sits in a loop does not return anything.
 bool hsem_wait_bool(uint32_t hsem, uint8_t proc_id);	//returns false while waiting.
 bool hsem_fast_lock(uint32_t id);						//performs the 1 step lock procedure.
-bool hsem_lock(uint32_t hsem, uint8_t proc_id);			//performs the 2 step lock procedure.
+bool hsem_lock(uint32_t hsem, uint8_t proc_id);			//Locks/takes a semaphore with the 2 step lock procedure.
 bool hsem_unlock(uint32_t hsem, uint8_t proc_id);		//unlocks the semaphore.
 uint32_t hsem_get_ir();									//returns the interrupt status register.
 bool hsem_get_status(uint32_t hsem);					//Check interrupt status for 1 hsem.

@@ -11,17 +11,17 @@ void app_can_baud_rate_run()
 {
 	while(1)
 	{
-		FDCAN_GlobalTypeDef* canbus = shared_get_target_can();
+		//FDCAN_GlobalTypeDef* canbus = shared_get_target_can();
 
 		/*Take the HSEM.*/
 		hsem_lock(HSEM_CAN_BAUD_RATE, 0);
 
 		/*Initialize the msg ram so the device is capable of receiving data.*/
-		can_take(canbus);
-		can_init(canbus);
+		//can_take(canbus);
+		//can_init(canbus);
 
 		/*Get the baud rates and write to shared memory.*/
-		shared_set_can_baud(canbus, can_get_baud_rate(canbus));
+		//shared_set_can_baud(canbus, can_get_baud_rate(canbus));
 
 		app_can_baud_rate_stop();
 
@@ -34,10 +34,10 @@ void app_can_baud_rate_run()
 
 void app_can_baud_rate_stop()
 {
-	can_stop(HS_CAN);
-	can_stop(LS_CAN);
-	can_deinit(HS_CAN);
-	can_deinit(LS_CAN);
+	can_stop(FDCAN1);
+	can_stop(FDCAN2);
+	can_deinit(FDCAN1);
+	can_deinit(FDCAN2);
 }
 
 

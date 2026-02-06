@@ -5,8 +5,6 @@
  *      Author: awjpp
  */
 
-#ifdef CORE_CM7
-
 #include "stm32_lcd.h"
 #include "stm32_rcc.h"		//For enabling PLL clock.
 #include "stm32_io.h"		//For controlling IO related to the lcd.
@@ -16,13 +14,8 @@
 #include <assert.h>
 
 /*******STATIC VARIABLES************/
-static lv_display_t* disp;
-__attribute__((__section__(".disp_buffer1"))) static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
-__attribute__((__section__(".disp_buffer2"))) static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /*******	STATIC FUNCTION DECLARATIONS	************/
-static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map);
-static void disp_clean_dcache(lv_display_t* drv);
 static void lcd_st7701_init();
 static void lcd_st7701_send_cmd(uint8_t cmd, bool hold_ss_low);
 static void lcd_st7701_send_param(uint8_t param, bool hold_ss_low);
@@ -34,34 +27,6 @@ static uint8_t lcd_st7701_self_diag();
 static void lcd_st7701_adafruit_spi_config();
 
 /*******		STATIC FUNCTION DEFINITIONS		********/
-static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map)
-{
-	/*Swap the active display pointer in the LTDC.*/
-	volatile int32_t is_last = lv_display_flush_is_last(display);
-	uint32_t addr = (uint32_t)lv_display_get_buf_active(display)->data;
-	if (is_last == 1) {
-		LTDC->ICR = LTDC_ICR_CRRIF;
-		SCB_CleanInvalidateDCache();
-		// wait for VSYNC to avoid tearing
-		//while ((LTDC->CDSR & LTDC_CDSR_VSYNCS) == 0){}
-		// swap framebuffers (NOTE: LVGL will swap the buffers in the background, so here we can set the LCD framebuffer to the current LVGL buffer, which has been just completed)
-		LTDC_Layer1->CFBAR = addr;
-		LTDC->SRCR = LTDC_SRCR_VBR;
-		/*Tell LVGL the display flush is done.*/
-		while ((LTDC->ISR & LTDC_ISR_RRIF) == 0)
-		{
-
-		}
-	}
-
-	lv_display_flush_ready(display);
-}
-
-static void disp_clean_dcache(lv_display_t* drv)
-{
-	SCB_CleanInvalidateDCache();
-}
-
 static void lcd_st7701_init()
 {
 #ifdef TARGET_HARDWARE_CANGAUGE
@@ -82,6 +47,8 @@ static void lcd_st7701_init()
 	spi_enable(SPI4);
 
 	lcd_st7701_adafruit_spi_config();
+
+	spi_deinit(SPI4);
 
 #endif //TARGET_HARDWARE_CANGAUGE
 }
@@ -473,7 +440,7 @@ void lcd_init()
 						| (LTDC_LxBFCR_BF2_PXxCONST << LTDC_LxBFCR_BF2_Pos);
 
 	/*Set the buffer address.*/
-	LTDC_Layer1->CFBAR = (uint32_t)LTDC_DISP_BUFFER_ADDR;
+	//LTDC_Layer1->CFBAR = (uint32_t)LTDC_DISP_BUFFER_ADDR;
 
 	/*Set the buffer size registers.*/
 	LTDC_Layer1->CFBLR = (LTDC_LxCFBLR_BUFFER_PITCH_Val << LTDC_LxCFBLR_CFBP_Pos)
@@ -561,25 +528,9 @@ void lcd_init()
 	io_set_pin_dir_out(LTDC_DISP_io);
 #endif	//TARGET_HARDWARE_STM32H745DISCO
 
-	/*LCD backlight pin config.*/
-	io_init();
-	//io_set_pin_dir_out(GPIOB, GPIO_PIN14_Msk);
-	//io_pin_out_set(GPIOB, GPIO_PIN14_Msk);
-	//TODO: Double check this PWM code.
-	io_set_pin_mux(GPIOB, GPIO_PIN14_Msk, GPIO_AFR_AF2);
-	timer_init(TIM12);
-	timer_enable_pwm_output(TIM12, 1);
-	timer_set_pwm_freq(TIM12, 5000);
-	timer_set_pwm_duty_cycle(TIM12, 16000, 1);
-	timer_enable(TIM12);
-
-
 	/*Enable the LCD.*/
 	lcd_enable();
 
-	/*Initialize LVGL and the configure it to work with the LCD. lv_init must be called first.*/
-	lv_init();
-	lcd_lvgl_init();
 }
 
 /*Enables the LTDC module and the LCD screen itself.*/
@@ -590,22 +541,6 @@ void lcd_enable()
 #endif //TARGET_HARDWARE_STM32H745DISCO
 
 	LTDC->GCR |= LTDC_GCR_LTDCEN;
-}
-
-void lcd_lvgl_init()
-{
-	/*Create the display object.*/
-	disp = lv_display_create(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
-
-	/*Set up the buffers.*/
-	lv_display_set_buffers(disp, (void*)LTDC_DISP_BUFFER_ADDR, (void*)LTDC_LVGL_BUFFER1_ADDR, LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px * LTDC_BYTES_PER_PIXEL, LV_DISPLAY_RENDER_MODE_FULL);
-
-	/*Set the display flush callback.*/
-	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);
-
-	/*Set the DMA2D interrupt handler per instructions in lv_conf.h LV_USE_DRAW_DMA2D.*/
-	//dma2d_set_transfer_complete_handler(lv_draw_dma2d_transfer_complete_interrupt_handler);
-
 }
 
 void lcd_solid_color_test_red()
@@ -843,9 +778,7 @@ void lcd_solid_color_test_inputs()
 
 void LTDC_IRQHandler()
 {
-	lv_display_flush_ready(disp);
-	LTDC->ICR = LTDC_ICR_CRRIF;
-	LTDC->IER = 0;
+
 }
 
-#endif //CORE_CM7
+

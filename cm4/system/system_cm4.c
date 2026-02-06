@@ -8,15 +8,7 @@
 
 #include "system/system_cm4.h"
 
-#include "application/applications_cm4.h"
-
 #include "drivers/drivers.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "list.h"
-#include "semphr.h"
 
 /**********     TYPEDEFS     **********/
 
@@ -52,9 +44,6 @@ void system_task_init()
 	hsem_wait_void(HSEM_INIT, HSEM_ID_INIT_CM7);
 	hsem_lock(HSEM_INIT, HSEM_ID_INIT_CM4);
 
-	can_init(FDCAN1);
-	can_init(FDCAN2);
-
 	/*Enable HSEM interrupts.*/
 	hsem2_assign_int_handler(system_hsem_handler);
 	//NVIC_EnableIRQ(HSEM2_IRQn);
@@ -77,12 +66,12 @@ void system_task_monitor()
 		if(hsem_get_status(HSEM_APP_CAN_CONTROLLER_START))
 		{
 			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_START);
-			app_can_controller_run();
+			//app_can_controller_run();
 		}
 		if (hsem_get_status(HSEM_APP_CAN_CONTROLLER_STOP))
 		{
 			hsem_clear_int(HSEM_APP_CAN_CONTROLLER_STOP);
-			app_can_sniffer_stop();
+			//app_can_sniffer_stop();
 		}
 
 		vTaskDelay(100);

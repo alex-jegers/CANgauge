@@ -1,19 +1,20 @@
 
-#ifndef _APP_UI_TEST_CM7_H_
-#define _APP_UI_TEST_CM7_H_
+#ifndef _DISP_H_
+#define _DISP_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
+#include "lvgl_port_def.h"
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void app_ui_test_run();
+void disp_init();
 
 
 
@@ -21,4 +22,4 @@ void app_ui_test_run();
 } /*extern "C"*/
 #endif
 
-#endif  //_APP_UI_TEST_CM7_H_
+#endif  //_DISP_H_

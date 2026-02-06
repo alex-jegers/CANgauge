@@ -1,17 +1,57 @@
 
 
 /**********     INCLUDES        **********/
-#include <shared_mem.h>
-#include "cst830_touch_cm4.h"
+#include "drivers/drivers.h"
 
-#include "drivers/stm32_io.h"
+#include <stdbool.h>
+#include "touch_scr.h"
 
 #include "FreeRTOS.h"
 #include "queue.h"
-
-#include <assert.h>
+#include "task.h"
 
 /**********		DEFINES		**********/
+
+#define TOUCH_SWAP_XY				0
+
+#define I2C_INST					I2C4
+#define I2C_SCL_PORT				GPIOD
+#define I2C_SCL_PIN					GPIO_PIN12_Msk
+#define I2C_SCL_ALT_FUNC			GPIO_AFR_AF4
+
+#define I2C_SDA_PORT				GPIOD
+#define I2C_SDA_PIN					GPIO_PIN13_Msk
+#define I2C_SDA_ALT_FUNC			GPIO_AFR_AF4
+
+#define TOUCH_RESET_PORT			GPIOI
+#define TOUCH_RESET_PIN				GPIO_PIN7_Msk
+
+#define TOUCH_INT_PORT				GPIOI
+#define TOUCH_INT_PIN				GPIO_PIN6_Msk
+
+#define CST830_SLAVE_ADDR           0x15
+
+#define CST830_FW_VER_H             0xA7
+#define CST830_FW_VER_L             0xA8
+#define CST830_WORK_MODE			0x00
+#define CST830_WORK_MODE_NORMAL		0x00
+#define CST830_WORK_MODE_IDAC		0x04
+#define CST830_WORK_MODE_POS		0xE0
+#define CST830_WORK_MODE_RAW		0x06
+#define CST830_WORK_MODE_SIG		0x07
+
+#define CST830_TOUCH_NUM			0x02
+
+#define CST830_TOUCH1_XH			0x03
+#define CST830_TOUCH1_XL			0x04
+#define CST830_TOUCH1_XH_PTS_Msk	0x0F
+#define CST830_TOUCH1_XL_PTS_Msk	0xFF
+
+#define CST820_DISAUTOSLEEP			0xFE
+#define CST820_DISAUTOSLEEP_ON		0x01	//Disables auto sleep.
+#define CST820_DISAUTOSLEEP_OFF		0x00	//Enables auto sleep.
+
+#define CST830_REFRESH_PERIOD_MS			30
 
 /**********		VARIABLE DEFINITIONS		**********/
 typedef struct
@@ -24,12 +64,19 @@ typedef struct
 }touch_info_raw_t;
 
 /**********		STATIC VARIABLES		**********/
-touch_info_t touch_info;
-static uint32_t time_since_last_update_ms = 0;
-static uint8_t iic_addr = 0;
+static touch_info_t touch_info;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_init();
+static int8_t prv_read_data();								//performs transaction with screen to get most recent touch data.
+
+/*
+ * prv_task_update:
+ *
+ * desc: takes a pointer to a touch_info_t struct where it writes touch data to
+ * every so often as specified by CST830_REFRESH_RATE.
+ * */
+static void prv_task_update(touch_info_t* p_touch_data);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_init()
@@ -38,12 +85,11 @@ static void prv_init()
 	io_init();
 
 	/*Configure reset pin and perform reset.*/
-	//TODO: Make sure the delays are happening.
 	io_set_pin_dir_out(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
 	io_pin_out_clr(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
-	vTaskDelay(1000);
+	vTaskDelay(500);
 	io_pin_out_set(TOUCH_RESET_PORT, TOUCH_RESET_PIN);
-	vTaskDelay(1000);
+	vTaskDelay(500);
 
 	/*Set the interrupt pin as input.*/
 	io_set_pin_dir_in(TOUCH_INT_PORT, TOUCH_INT_PIN);
@@ -69,12 +115,15 @@ static void prv_init()
 	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
 }
 
-/**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void cst830_read_data()
+static int8_t prv_read_data()
 {
 	touch_info_raw_t data;
-	i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, (uint8_t*)&data, 5);
+	int8_t status = i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, (uint8_t*)&data, 5);
 
+	if (status == -1)
+	{
+		return status;
+	}
 
 	touch_info.touch_num = data.touch_num & 0x0F;
 
@@ -85,17 +134,31 @@ void cst830_read_data()
 	/*Calculate the y position. */
 	touch_info.touch1_y = (data.touch1_yh & 0x0F) << 8;
 	touch_info.touch1_y = touch_info.touch1_y | data.touch1_yl;
+
+	return status;
 }
 
-void cst830_task_update(touch_info_t* p_touch_data)
+static void prv_task_update(touch_info_t* p_touch_data)
 {
 	/* Initialize the LCD screen. */
 	prv_init();
 	while (p_touch_data == NULL) {}
 	while (1)
 	{
-		cst830_read_data();
+		if (prv_read_data() == -1)
+		{
+			//TODO: RESET IIC here.
+		}
 		*p_touch_data = touch_info;
-		vTaskDelay(CST830_REFRESH_RATE);
+		vTaskDelay(CST830_REFRESH_PERIOD_MS);
+
 	}
 }
+
+/**********		GLOBAL FUNCTION DEFINITIONS		**********/
+void touch_scr_run(touch_info_t* p_touch_data)
+{
+	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 200, p_touch_data, 4, NULL);
+}
+
+

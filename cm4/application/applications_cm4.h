@@ -7,9 +7,8 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "application/app_can_controller_cm4.h"
+//#include <application/app_can_controller.h>
 #include "application/app_can_get_baud_rate_cm4.h"
-#include "touch_screen/cst830_touch_cm4.h"
 
 /**********     DEFINES      **********/
 
