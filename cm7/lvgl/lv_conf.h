@@ -386,7 +386,7 @@
      *  - LV_LOG_LEVEL_ERROR    Log only critical issues, when system may fail.
      *  - LV_LOG_LEVEL_USER     Log only custom log messages added by the user.
      *  - LV_LOG_LEVEL_NONE     Do not log anything. */
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_WARN
+    #define LV_LOG_LEVEL LV_LOG_LEVEL_INFO
 
     /** - 1: Print log with 'printf';
      *  - 0: User needs to register a callback with `lv_log_register_print_cb()`. */
@@ -567,7 +567,7 @@
 #define LV_ATTRIBUTE_LARGE_RAM_ARRAY
 
 /** Place performance critical functions into a faster memory (e.g RAM) */
-#define LV_ATTRIBUTE_FAST_MEM
+#define LV_ATTRIBUTE_FAST_MEM		//__attribute__((__section__(".itcm")))
 
 /** Export integer constant to binding. This macro is used with constants in the form of LV_<CONST> that
  *  should also appear on LVGL binding API such as MicroPython. */
@@ -1025,12 +1025,12 @@
 
     /** 1: Show CPU usage and FPS count.
      *  - Requires `LV_USE_SYSMON = 1` */
-    #define LV_USE_PERF_MONITOR 0
+    #define LV_USE_PERF_MONITOR 1
     #if LV_USE_PERF_MONITOR
         #define LV_USE_PERF_MONITOR_POS LV_ALIGN_TOP_MID
 
         /** 0: Displays performance data on the screen; 1: Prints performance data using log. */
-        #define LV_USE_PERF_MONITOR_LOG_MODE 0
+        #define LV_USE_PERF_MONITOR_LOG_MODE 1
     #endif
 
     /** 1: Show used memory and memory fragmentation.
