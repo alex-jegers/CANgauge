@@ -13,6 +13,7 @@ extern "C" {
 #define SYSTEM_MEM_REGION_EXTERN_RAM			__attribute__((__section__(".ext_mem_ram")))
 #define SYSTEM_MEM_REGION_NVM                   __attribute__((__section__(".config")))
 #define SYSTEM_MEM_REGION_RAM_D1				__attribute__((__section__(".ram_d1")))
+#define SYSTEM_MEM_REGION_RAM_EXE				__attribute__((__section__(".itcm")))
 
 #define SYSTEM_MEM_CONFIG_LENGTH_BYTES			0x100
 

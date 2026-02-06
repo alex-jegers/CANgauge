@@ -34,6 +34,11 @@ defined in linker script */
 /* end address for the .bss section. defined in linker script */
 .word _ebss
 
+/* Variables for initializing ITCM RAM. */
+.word _siitcm
+.word _sitcm
+.word _eitcm
+
 /**
  * @brief  This is the code that gets called when the processor first
  *          starts execution following a reset event. Only the absolutely
@@ -73,6 +78,25 @@ LoopCopyDataInit:
   adds r4, r0, r3	//Add the start of the data section with R3 into R4.
   cmp r4, r1		//Compare R4 to the end of the data section.
   bcc CopyDataInit
+
+
+/* Copy the itcm segment initializers from flash to ITCMRAM */
+  ldr r0, =_sitcm	//Start of the .itcm section (ITCMRAM).
+  ldr r1, =_eitcm	//End of .itcm section (ITCMRAM).
+  ldr r2, =_siitcm	//Start of the initialized ITCM section in Flash.
+  movs r3, #0
+  b LoopCopyItcmInit
+
+CopyItcmInit:
+  ldr r4, [r2, r3]
+  str r4, [r0, r3]
+  adds r3, r3, #4
+
+LoopCopyItcmInit:
+  adds r4, r0, r3
+  cmp r4, r1
+  bcc CopyItcmInit
+
 
 /* Zero fill the bss segment. */
   ldr r2, =_sbss
