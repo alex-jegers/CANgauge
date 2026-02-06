@@ -48,6 +48,8 @@ static void lcd_st7701_init()
 
 	lcd_st7701_adafruit_spi_config();
 
+	spi_deinit(SPI4);
+
 #endif //TARGET_HARDWARE_CANGAUGE
 }
 

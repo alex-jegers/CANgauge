@@ -28,6 +28,7 @@ typedef enum
 
 /***********	GLOBAL FUNCTION DECLARATIONS	************/
 void spi_init(SPI_TypeDef* spi);
+void spi_deinit(SPI_TypeDef* spi);      //Resets peripheral and disables NVIC interrupts.
 void spi_enable(SPI_TypeDef* spi);		//Call last, enables SPI and write locks a bunch of registers.
 void spi_disable(SPI_TypeDef* spi);		//Disables SPI and write unlocks the registers that are locked when enabled.
 void spi4_enable_clocks();				//Enables the peripheral clock and sets the kernel clock to PLL3Q.

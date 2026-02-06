@@ -56,6 +56,15 @@ void spi_init(SPI_TypeDef* spi)
 
 }
 
+void spi_deinit(SPI_TypeDef* spi)
+{
+	if (spi == SPI4)
+	{
+		NVIC_DisableIRQ(SPI4_IRQn);
+		RCC->APB2RSTR = RCC_APB2RSTR_SPI4RST;	//TODO: RCC function for this.
+	}
+}
+
 void spi_enable(SPI_TypeDef* spi)
 {
 	spi->CR1 |= SPI_CR1_SPE;				//Enable SPI.
