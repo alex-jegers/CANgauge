@@ -29,6 +29,7 @@ void fmc_init_sdram()
 	RCC->D1CCIPR |= RCC_D1CCIPR_FMCSEL_PLL2R;
 	rcc_enable_pll2r();
 
+
 #ifdef TARGET_HARDWARE_STM32H745DISCO
 
 	const uint32_t fmc_sdcr1_msk = (FMC_SDCRx_RBURST_Msk)
@@ -90,6 +91,9 @@ void fmc_init_sdram()
 #endif //TARGET_HARDWARE == CANGAUGE
 
 	FMC_Bank1_R->BTCR[0] |= FMC_BCR1_FMCEN;
+	FMC_Bank1_R->BTCR[0] |= 0x1 << FMC_BCR1_BMAP_Pos;	//Remap to put SDRAM2 into memory space, not device space.
+
+	MPU->CTRL = MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
 
 	FMC_Bank5_6_R->SDCR[0] = fmc_sdcr1_msk;
 	FMC_Bank5_6_R->SDCR[1] = fmc_sdcr2_msk;
