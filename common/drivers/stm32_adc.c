@@ -14,10 +14,11 @@ void (*adc3_interrupt_cb)();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void adc_init_clk(ADC_TypeDef* adc)
+void adc_init_clk(ADC_TypeDef* adc, adc_ck_src_t ck_src)
 {
 	/*Set the kernel clock selection.*/
-	RCC->D3CCIPR &= ~(RCC_D3CCIPR_ADCSEL_Msk);	//Clear both bits to selected PLL2_P.
+	RCC->D3CCIPR &= ~(RCC_D3CCIPR_ADCSEL_Msk);	//Clear both bits.
+	RCC->D3CCIPR |= ck_src << RCC_D3CCIPR_ADCSEL_Pos;
 	RCC->AHB1ENR |= RCC_AHB1ENR_ADC12EN;		//Enable the bus clock.
 }
 

@@ -14,15 +14,15 @@
 
 
 
-#define RCC_D2CCIP2R_I2C123SEL_PCLK1					0x0
-#define RCC_D2CCIP2R_I2C123SEL_PLLR3					0x1
-#define RCC_D2CCIP2R_I2C123SEL_HSI						0x2
-#define RCC_D2CCIP2R_I2C123SEL_CSI						0x3
+#define RCC_D2CCIP2R_I2C123SEL_PCLK1					0x0 << RCC_D2CCIP2R_I2C123SEL_Pos
+#define RCC_D2CCIP2R_I2C123SEL_PLLR3					0x1 << RCC_D2CCIP2R_I2C123SEL_Pos
+#define RCC_D2CCIP2R_I2C123SEL_HSI						0x2 << RCC_D2CCIP2R_I2C123SEL_Pos
+#define RCC_D2CCIP2R_I2C123SEL_CSI						0x3 << RCC_D2CCIP2R_I2C123SEL_Pos
 
-#define RCC_D3CCIPR_I2C4SEL_PCLK1						0x0
-#define RCC_D3CCIPR_I2C4SEL_PLLR3						0x1
-#define RCC_D3CCIPR_I2C4SEL_HSI							0x2
-#define RCC_D3CCIPR_I2C4SEL_CSI							0x3
+#define RCC_D3CCIPR_I2C4SEL_PCLK1						0x0 << RCC_D3CCIPR_I2C4SEL_Pos
+#define RCC_D3CCIPR_I2C4SEL_PLLR3						0x1 << RCC_D3CCIPR_I2C4SEL_Pos
+#define RCC_D3CCIPR_I2C4SEL_HSI							0x2 << RCC_D3CCIPR_I2C4SEL_Pos
+#define RCC_D3CCIPR_I2C4SEL_CSI							0x3 << RCC_D3CCIPR_I2C4SEL_Pos
 
 
 static bool prv_timeout = false;
@@ -83,7 +83,7 @@ void i2c_init_clk(I2C_TypeDef* i2c)
 	if (i2c == I2C4)
 	{
 		RCC->APB4ENR |= RCC_APB4ENR_I2C4EN;					//enable APB clock.
-		RCC->D3CCIPR &= (0x3 << RCC_D3CCIPR_I2C4SEL_Pos);	//clear the bits.
+		RCC->D3CCIPR &= ~(0x3 << RCC_D3CCIPR_I2C4SEL_Pos);	//clear the bits.
 		RCC->D3CCIPR |= RCC_D3CCIPR_I2C4SEL_HSI;			//select the HSI as the kernel clock
 		return;
 	}
@@ -113,25 +113,25 @@ void i2c_set_clk_speed(I2C_TypeDef* i2c, i2c_clk_speed_t i2c_clk)
 	switch (i2c_clk)
 	{
 	case I2C_CLK_100K:
-		i2c->TIMINGR = (15 << I2C_TIMINGR_PRESC_Pos)
+		i2c->TIMINGR = (0 << I2C_TIMINGR_PRESC_Pos)
 						| (37 << I2C_TIMINGR_SCLH_Pos)
 						| (37 << I2C_TIMINGR_SCLL_Pos)
-						| (4 << I2C_TIMINGR_SDADEL_Pos)
-						| (4 << I2C_TIMINGR_SCLDEL_Pos);
+						| (0 << I2C_TIMINGR_SDADEL_Pos)
+						| (0 << I2C_TIMINGR_SCLDEL_Pos);
 		break;
 	
 	case I2C_CLK_400K:
-		i2c->TIMINGR = (8 << I2C_TIMINGR_PRESC_Pos)
-						| (15 << I2C_TIMINGR_SCLH_Pos)
-						| (15 << I2C_TIMINGR_SCLL_Pos)
-						| (2 << I2C_TIMINGR_SDADEL_Pos)
-						| (2 << I2C_TIMINGR_SCLDEL_Pos);
+		i2c->TIMINGR = (0 << I2C_TIMINGR_PRESC_Pos)
+						| (6 << I2C_TIMINGR_SCLH_Pos)
+						| (6 << I2C_TIMINGR_SCLL_Pos)
+						| (0 << I2C_TIMINGR_SDADEL_Pos)
+						| (0 << I2C_TIMINGR_SCLDEL_Pos);
 		break;
 
 	case I2C_CLK_1M:
-		i2c->TIMINGR = (7 << I2C_TIMINGR_PRESC_Pos) |
-						(7 << I2C_TIMINGR_SCLH_Pos) |
-						(7 << I2C_TIMINGR_SCLL_Pos);
+		i2c->TIMINGR = (0 << I2C_TIMINGR_PRESC_Pos) |
+						(1 << I2C_TIMINGR_SCLH_Pos) |
+						(1 << I2C_TIMINGR_SCLL_Pos);
 		break;
 	default:
 		break;

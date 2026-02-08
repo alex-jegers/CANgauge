@@ -204,17 +204,19 @@ void app_can_controller_run(uint8_t (*data_storage)[176][10])
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(CAN1_RX_FIFO1_ELEMENTS, 0);
 
+
+
+	/* Check if something already started CAN, and start it if not. */
+	can_init(FDCAN1);
+
 	/*Assign interrupt handler and enable new RX interrupt.*/
 	can_assign_rx_rf1n_cb(FDCAN1, prv_fifo1_int_handler);
 	can_enable_rx_rf1n_interrupt(FDCAN1);
 
-	/* Check if something already started CAN, and start it if not. */
-	if(hsem_lock(31,0) == true)
-	{
-        can_init(FDCAN1);
-        can_set_baud_rate(FDCAN1, CAN_BAUD_500K);
-        can_run(FDCAN1);
-	}
+	can_set_baud_rate(FDCAN1, CAN_BAUD_500K);
+	can_run(FDCAN1);
+
+
 
 	/* Create the task. */
 	xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 3, prv_task_handle);

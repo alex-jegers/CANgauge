@@ -83,7 +83,7 @@ static void prv_task_gauges()
 			break;
 		}
 		prv_task_run = false;
-		vTaskDelay(pdMS_TO_TICKS(200));
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
 	/* While _run is set to true. */

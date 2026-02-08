@@ -65,6 +65,7 @@ typedef struct
 
 /**********		STATIC VARIABLES		**********/
 static touch_info_t touch_info;
+static bool prv_run = false;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_init();
@@ -142,8 +143,9 @@ static void prv_task_update(touch_info_t* p_touch_data)
 {
 	/* Initialize the LCD screen. */
 	prv_init();
+	prv_run = true;
 	while (p_touch_data == NULL) {}
-	while (1)
+	while (prv_run)
 	{
 		if (prv_read_data() == -1)
 		{
@@ -153,12 +155,21 @@ static void prv_task_update(touch_info_t* p_touch_data)
 		vTaskDelay(CST830_REFRESH_PERIOD_MS);
 
 	}
+	/* Enable autosleep. */
+	const uint8_t auto_sleep_val = CST820_DISAUTOSLEEP_OFF;
+	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
+	vTaskDelete(NULL);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void touch_scr_run(touch_info_t* p_touch_data)
 {
 	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 200, p_touch_data, 4, NULL);
+}
+
+void touch_scr_stop()
+{
+	prv_run = false;
 }
 
 

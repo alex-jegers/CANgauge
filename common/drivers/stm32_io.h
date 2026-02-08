@@ -8,26 +8,11 @@
 #ifndef INC_STM32_IO_H_
 #define INC_STM32_IO_H_
 
+/**********		INCLUDES		 **********/
 #include "stm32h745xx.h"
 #include <stdbool.h>
 
-
-typedef enum
-{
-	IO_OUTPUT_TYPE_PUSH_PULL,
-	IO_OUTPUT_TYPE_OPEN_DRAIN,
-}io_output_type_t;
-
-typedef enum
-{
-	GPIO_OSPEEDR_LOW        = 0x0,
-	GPIO_OSPEEDR_MED        = 0x1,
-	GPIO_OSPEEDR_HIGH       = 0x2,
-	GPIO_OSPEEDR_VERY_HIGH  = 0x3,
-	GPIO_OSPEEDR_Msk        = 0x3,	
-}io_output_speed_t;
-
-
+/**********		DEFINES		 **********/
 #define GPIO_MODER_INPUT		0x0
 #define GPIO_MODER_OUTPUT		0x1
 #define GPIO_MODER_ALT_FUNC		0x2
@@ -67,6 +52,50 @@ typedef enum
 #define GPIO_PIN13_Msk         1 << 13
 #define GPIO_PIN14_Msk         1 << 14
 #define GPIO_PIN15_Msk         1 << 15
+
+
+#define io_deinit_gpioa()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOAEN)
+#define io_deinit_gpiob()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOBEN)
+#define io_deinit_gpioc()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOCEN)
+#define io_deinit_gpiod()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIODEN)
+#define io_deinit_gpioe()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOEEN)
+#define io_deinit_gpiof()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOFEN)
+#define io_deinit_gpiog()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOGEN)
+#define io_deinit_gpioh()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOHEN)
+#define io_deinit_gpioi()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOIEN)
+#define io_deinit_gpioj()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOJEN)
+#define io_deinit_gpiok()		RCC->AHB4ENR &= ~(RCC_AHB4ENR_GPIOKEN)
+
+#define io_init_gpioa()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOAEN)
+#define io_init_gpiob()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOBEN)
+#define io_init_gpioc()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOCEN)
+#define io_init_gpiod()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIODEN)
+#define io_init_gpioe()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOEEN)
+#define io_init_gpiof()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOFEN)
+#define io_init_gpiog()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOGEN)
+#define io_init_gpioh()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOHEN)
+#define io_init_gpioi()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOIEN)
+#define io_init_gpioj()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOJEN)
+#define io_init_gpiok()		RCC->AHB4ENR |= (RCC_AHB4ENR_GPIOKEN)
+
+/**********		TYPEDEFS 		**********/
+typedef enum
+{
+	IO_OUTPUT_TYPE_PUSH_PULL,
+	IO_OUTPUT_TYPE_OPEN_DRAIN,
+}io_output_type_t;
+
+typedef enum
+{
+	GPIO_OSPEEDR_LOW        = 0x0,
+	GPIO_OSPEEDR_MED        = 0x1,
+	GPIO_OSPEEDR_HIGH       = 0x2,
+	GPIO_OSPEEDR_VERY_HIGH  = 0x3,
+	GPIO_OSPEEDR_Msk        = 0x3,	
+}io_output_speed_t;
+
+
+
 
 
 

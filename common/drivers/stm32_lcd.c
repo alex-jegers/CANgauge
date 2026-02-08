@@ -388,7 +388,7 @@ void lcd_init()
 #endif	//TARGET_HARDWARE_CANGAUGE
 
 	/*Enable pixel clock.*/
-	rcc_enable_pll3r();
+	rcc_enable_pll_3r();
 
 	/*Enable clock in the RCC.*/
 	RCC->APB3ENR |= RCC_APB3ENR_LTDCEN;

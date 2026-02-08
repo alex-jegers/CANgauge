@@ -65,10 +65,21 @@ typedef enum
 	ADC_INT_FLAG_ALL					= 0x17FF,
 }adc_int_flag_t;
 
+typedef enum
+{
+	ADC_CK_SRC_PLL2_P,
+	ADC_CK_SRC_PLL3_R,
+	ADC_CK_SRC_PER_CK,
+}adc_ck_src_t;
+
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void adc_init_clk(ADC_TypeDef* adc);
+/**
+ * adc_init_clk:
+ * desc: select the kernel clock source and enable the AHB clock.
+ */
+void adc_init_clk(ADC_TypeDef* adc, adc_ck_src_t ck_src);
 void adc_enable(ADC_TypeDef* adc);
 void adc_disable(ADC_TypeDef* adc);
 /**

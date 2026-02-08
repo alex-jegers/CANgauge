@@ -27,6 +27,8 @@ extern "C" {
  * */
 void touch_scr_run(touch_info_t* p_touch_data);
 
+void touch_scr_stop();
+
 
 
 

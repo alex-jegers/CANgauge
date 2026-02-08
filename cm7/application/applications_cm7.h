@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "application/app_battery_monitor.h"
+#include "application/pwr_monitor.h"
 //#include "application/app_can_sniffer_cm7.h"
 #include "application/app_gauges_cm7.h"
 #include "application/app_can_transmit.h"

@@ -74,9 +74,6 @@ void system_task_init()
 	/* Stop the scheduler. */
 	vTaskSuspendAll();
 
-	/*Set up and enable all the clocks.*/
-	hsem_init_clk();
-
 	/*Enable all the IO clocks.*/
 	io_init();
 
@@ -95,6 +92,7 @@ void system_task_init()
 
 
 	/**** TESTING USB CONFIGURATION *****/
+	/*
 	io_set_pin_mux(GPIOA, GPIO_PIN10_Msk, GPIO_AFR_AF10);
 	io_set_pin_mux(GPIOA, GPIO_PIN11_Msk, GPIO_AFR_AF10);
 	io_set_pin_mux(GPIOA, GPIO_PIN12_Msk, GPIO_AFR_AF10);
@@ -107,12 +105,12 @@ void system_task_init()
 
 	USB2_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
 
-
+*/
 	/***********************************/
 
 	system_blink_run(1000);
 
-	app_battery_monitor_run(4);
+	pwr_monitor_run(4);
 
 	xTaskResumeAll();
 	
@@ -159,3 +157,29 @@ void vApplicationTickHook()
 	lv_tick_inc(pdTICKS_TO_MS(1));
 }
 
+void system_set_lcd_backlight(bool on)
+{
+	if (on)
+	{
+		io_set_pin_mux(GPIOB, GPIO_PIN14_Msk, GPIO_AFR_AF2);
+	}
+	else
+	{
+		io_set_pin_dir_out(GPIOB, GPIO_PIN14_Msk);
+		io_pin_out_clr(GPIOB, GPIO_PIN14_Msk);
+	}
+}
+
+void system_set_can_transc(bool on)
+{
+	if (on)
+	{
+		io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
+		io_pin_out_clr(GPIOK, GPIO_PIN2_Msk);
+	}
+	else
+	{
+		io_set_pin_dir_out(GPIOK, GPIO_PIN2_Msk);
+		io_pin_out_set(GPIOK, GPIO_PIN2_Msk);
+	}
+}

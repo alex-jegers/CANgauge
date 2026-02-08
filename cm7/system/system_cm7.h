@@ -33,6 +33,18 @@ void system_init_fpu();
 void system_blink_run(const uint32_t delay_time_ms);
 void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms);
 void system_blink_stop();
+/**
+ * system_set_lcd_backlight:
+ * params: 
+ *      on: true for on, false for off.
+ */
+void system_set_lcd_backlight(bool on);
+/**
+ * system_set_can_transc:
+ * params: 
+ *      on: true for on, false for off.
+ */
+void system_set_can_transc(bool on);
 
 
 #endif /* CORE_SYSTEM_CM7_SYSTEM_H_ */

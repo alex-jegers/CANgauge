@@ -27,7 +27,7 @@ void fmc_init_sdram()
 
 	/*Select and enable the kernel clock.*/
 	RCC->D1CCIPR |= RCC_D1CCIPR_FMCSEL_PLL2R;
-	rcc_enable_pll2r();
+	rcc_enable_pll_2r();
 
 
 #ifdef TARGET_HARDWARE_STM32H745DISCO

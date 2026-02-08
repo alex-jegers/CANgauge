@@ -12,6 +12,7 @@
 /**********		STATIC VARIABLES		**********/
 static SemaphoreHandle_t prv_lv_mutex = NULL;
 static TaskHandle_t prv_task_handle = NULL;
+static bool prv_run = false;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_lvgl_timer_update();
 
@@ -19,7 +20,7 @@ static void prv_task_lvgl_timer_update();
 static void prv_task_lvgl_timer_update()
 {
     lcd_init();
-    while (1)
+    while (prv_run)
 	{
 		if (xSemaphoreTake(prv_lv_mutex, portMAX_DELAY) == pdPASS)
 		{
@@ -28,11 +29,13 @@ static void prv_task_lvgl_timer_update()
 			vTaskDelay(pdMS_TO_TICKS(time_till_next));
 		}
 	}
+    vTaskDelete(NULL);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void lv_port_run()
 {
+    prv_run = true;
     prv_lv_mutex = xSemaphoreCreateMutex();
     lv_init();
     xTaskCreate(prv_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, &prv_task_handle);              
@@ -57,4 +60,9 @@ bool lv_port_take_lvgl_mutex(uint32_t block_time_ms)
 void lv_port_give_lvgl_mutex()
 {
     xSemaphoreGive(prv_lv_mutex);
+}
+
+void lv_port_stop()
+{
+    prv_run = false;
 }

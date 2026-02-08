@@ -17,7 +17,7 @@ static uint32_t test_led_mask = GPIO_PIN15_Msk;
 /*Maps PLLQ1 to GPIOA Pin 8.*/
 void io_route_clock_to_pin()
 {
-	rcc_enable_pll1q();
+	rcc_enable_pll_1q();
 	RCC->CFGR |= (0x3 << RCC_CFGR_MCO1_Pos) | (15 << RCC_CFGR_MCO1PRE_Pos);
 	io_set_pin_mux(GPIOA, GPIO_PIN8_Msk, GPIO_AFR_AF0);
 }
