@@ -10,45 +10,10 @@
 #include "task.h"
 #include "semphr.h"
 
-/***********	TYPEDEFS	************/
-typedef enum
-{
-	HSE_CLK		= 0x0 << RCC_D2CCIP1R_FDCANSEL_Pos,
-	PLL1_Q		= 0x1 << RCC_D2CCIP1R_FDCANSEL_Pos,
-	PLL2_Q		= 0x2 << RCC_D2CCIP1R_FDCANSEL_Pos,
-}canbus_kernel_clk_t;
-
-/***********	DEFINES	************/
-#define CAN_BTP_TSEG2_1M		1
-#define CAN_BTP_TSEG1_1M		6
-#define CAN_BTP_BRP_1M			6
-#define CAN_BTP_SJW_1M			3
-
-#define CAN_BTP_TSEG2_500K		2
-#define CAN_BTP_TSEG1_500K		13
-#define CAN_BTP_BRP_500K		6
-#define CAN_BTP_SJW_500K		3
-
-#define CAN_BTP_TSEG2_250K		9
-#define CAN_BTP_TSEG1_250K		22
-#define CAN_BTP_BRP_250K		6
-#define CAN_BTP_SJW_250K		3
-
-#define CAN_BTP_TSEG2_125K		15
-#define CAN_BTP_TSEG1_125K		48
-#define CAN_BTP_BRP_125K		6
-#define CAN_BTP_SJW_125K		3
-
-
-
-#define CAN_CCU_CDIV_Val		0x5 << FDCANCCU_CCFG_CDIV_Pos
 
 /***********	STATIC VARIABLES DEFINITIONS	************/
 
 /***********	STATIC VARIABLES DECLARATIONS	************/
-
-static bool _initialized;
-
 static can_rx_buffer_entry_t (*can1_rx_buffer)[CAN1_RX_BUFFER_ELEMENTS] = (can_rx_buffer_entry_t(*)[CAN1_RX_BUFFER_ELEMENTS])CAN1_RX_BUFFER_ADDR;
 static can_rx_buffer_entry_t (*can1_rx_fifo0)[CAN1_RX_FIFO0_ELEMENTS] = (can_rx_buffer_entry_t(*)[CAN1_RX_FIFO0_ELEMENTS])CAN1_RX_FIFO0_ADDR;
 static can_rx_buffer_entry_t (*can1_rx_fifo1)[CAN1_RX_FIFO1_ELEMENTS] = (can_rx_buffer_entry_t(*)[CAN1_RX_FIFO1_ELEMENTS])CAN1_RX_FIFO1_ADDR;
@@ -60,9 +25,6 @@ static can_tx_buffer_entry_t (*can2_tx_buffer)[CAN2_TX_BUFFER_ELEMENTS] = (can_t
 static can_std_id_filter_t (*can2_std_id_filter)[CAN2_STD_ID_FILTER_ELEMENTS] = (can_std_id_filter_t(*)[CAN2_STD_ID_FILTER_ELEMENTS])CAN2_STD_ID_FILTER_ADDR;
 static can_ext_id_filter_t (*can2_ext_id_filter)[CAN2_EXT_ID_FILTER_ELEMENTS] = (can_ext_id_filter_t(*)[CAN2_EXT_ID_FILTER_ELEMENTS])CAN2_EXT_ID_FILTER_ADDR;
 
-static uint32_t can1_ext_id_filter_list[CAN1_EXT_ID_FILTER_ELEMENTS * 2];
-static uint32_t can2_ext_id_filter_list[CAN2_EXT_ID_FILTER_ELEMENTS * 2];
-
 static void (*can1_rx_rf0n_ir_cb)();
 static void (*can2_rx_rf0n_ir_cb)();
 static void (*can1_rx_rf1n_ir_cb)();
@@ -71,24 +33,27 @@ static void (*can1_rx_rf0f_ir_cb)();
 static void (*can2_rx_rf0f_ir_cb)();
 
 /***********	STATIC FUNCTION DECLARATIONS	************/
-/*Control and initialization functions.*/
-static void canbus_kernel_clk_select(canbus_kernel_clk_t clk);									//selects a kernel clock to run off of.
+/* Enables the bus clock and sets the kernel clock. */
+static void can_init_clk();		
+/* Fills in the addresses for the filter buffers. Helper for can_init. */
+static void can_filter_init(FDCAN_GlobalTypeDef* canbus);
+/* Selects a kernel clock for FDCAN. */
+static void canbus_kernel_clk_select(canbus_kernel_clk_t clk);
+/* Sets the start addresses for the RX and TX FIFOs/buffers. */
 static void can_init_msg_ram(FDCAN_GlobalTypeDef* canbus);
-static void can_set_listen_only(FDCAN_GlobalTypeDef* canbus);									//puts the device in listen only mode.
-static void can_clear_listen_only(FDCAN_GlobalTypeDef* canbus);									//takes the device out of listen only mode.
-static void can_init_clk();																		//initialize the clocks.
+/* Sets listen only mode bit. */
+static void can_set_listen_only(FDCAN_GlobalTypeDef* canbus);	
+/* Clears listen only mode bit. */							
+static void can_clear_listen_only(FDCAN_GlobalTypeDef* canbus);															
+/* Returns the interrupt status register. TODO: Can be macro. */
+static uint32_t can_get_int_status(FDCAN_GlobalTypeDef* canbus);								
+/* Clears the bits specified by mask in the interrupt register. */
+static void can_clear_int_status(FDCAN_GlobalTypeDef* canbus, uint32_t mask);					
 
-/*Status related functions.*/
-static uint32_t can_get_int_status(FDCAN_GlobalTypeDef* canbus);								//returns the interrupt register.
-static void can_clear_int_status(FDCAN_GlobalTypeDef* canbus, uint32_t mask);					//clears interrupt bits.
-
-/*TX related functions.*/
 
 /*RX related functions.*/
 static uint32_t can_get_fifo0_fill_level(FDCAN_GlobalTypeDef* canbus);							//returns the fill level of FIFO0.
 static uint32_t can_get_fifo1_fill_level(FDCAN_GlobalTypeDef* canbus);							//returns the fill level of FIFO1.
-static can_rx_buffer_entry_t* can_get_rx_fifo0_entry(FDCAN_GlobalTypeDef* canbus, uint32_t index);	//returns rx_buffer_entry from specified index of fifo0.
-
 
 /*Filter related functions.*/
 static can_std_id_filter_t* can_get_std_id_filter_addr(FDCAN_GlobalTypeDef* canbus, uint8_t index);
@@ -148,6 +113,22 @@ static void can_init_msg_ram(FDCAN_GlobalTypeDef* canbus)
 	canbus->TXBC |= CAN1_TX_BUFFER_ELEMENTS << FDCAN_TXBC_NDTB_Pos;
 }
 
+static void can_filter_init(FDCAN_GlobalTypeDef* canbus)
+{
+	/*Configure global filter to reject all non-matching frames.*/
+	FDCAN1->GFC = 0;
+	FDCAN1->GFC |= 0x0 << FDCAN_GFC_ANFS_Pos;								//Non-matching standard frames store in FIFO 0.
+	FDCAN1->GFC |= 0x0 << FDCAN_GFC_ANFE_Pos;								//Non-matching extended frames store in FIFO 0.
+	FDCAN1->GFC |= FDCAN_GFC_RRFS;											//Standard remote frames (reject).
+	FDCAN1->GFC |= FDCAN_GFC_RRFE;											//Extended remote frames (reject).
+
+	/* Write the filter lists addresses. */
+	FDCAN1->SIDFC = (uint32_t)CAN1_STD_ID_FILTER_ADDR - CAN_MSG_RAM_BASE_ADDR;
+	FDCAN1->SIDFC |= CAN1_STD_ID_FILTER_ELEMENTS << FDCAN_SIDFC_LSS_Pos;
+	FDCAN1->XIDFC = (uint32_t)CAN1_EXT_ID_FILTER_ADDR - CAN_MSG_RAM_BASE_ADDR;
+	FDCAN1->XIDFC |= CAN1_EXT_ID_FILTER_ELEMENTS << FDCAN_XIDFC_LSE_Pos;
+}
+
 static uint32_t can_get_int_status(FDCAN_GlobalTypeDef* canbus)
 {
 	return canbus->IR;
@@ -166,22 +147,6 @@ static uint32_t can_get_fifo0_fill_level(FDCAN_GlobalTypeDef* canbus)
 static uint32_t can_get_fifo1_fill_level(FDCAN_GlobalTypeDef* canbus)
 {
 	return (canbus->RXF1S & FDCAN_RXF1S_F1FL) >> FDCAN_RXF1S_F1FL_Pos;
-}
-
-static can_rx_buffer_entry_t* can_get_rx_fifo0_entry(FDCAN_GlobalTypeDef* canbus, uint32_t index)
-{
-	can_rx_buffer_entry_t* dest_addr = NULL;
-	if (canbus == FDCAN1)
-	{
-		dest_addr = (can_rx_buffer_entry_t*)((uint8_t*)CAN1_RX_BUFFER_ADDR + (index * sizeof(can_rx_buffer_entry_t)));
-	}
-
-	if (canbus == FDCAN2)
-	{
-		dest_addr = (can_rx_buffer_entry_t*)((uint8_t*)CAN2_RX_BUFFER_ADDR + (index * sizeof(can_rx_buffer_entry_t)));
-	}
-
-	return dest_addr;
 }
 
 static can_std_id_filter_t* can_get_std_id_filter_addr(FDCAN_GlobalTypeDef* canbus, uint8_t index)
@@ -253,42 +218,24 @@ void can_init(FDCAN_GlobalTypeDef* canbus)
 	can_clear_int_status(canbus, 0xFFFFFFFF);
 }
 
-bool can_take(FDCAN_GlobalTypeDef* canbus)
+
+
+void can_deinit()
 {
 
-}
+	NVIC_DisableIRQ(FDCAN1_IT0_IRQn);				//Disable CAN1, line 0 IRQ.
+	NVIC_DisableIRQ(FDCAN1_IT1_IRQn);				//Disable CAN1, line 1 IRQ.
 
-void can_deinit(FDCAN_GlobalTypeDef* canbus)
-{
-	if (canbus == FDCAN1)
-	{
-		NVIC_DisableIRQ(FDCAN1_IT0_IRQn);				//Disable CAN1, line 0 IRQ.
-		NVIC_DisableIRQ(FDCAN1_IT1_IRQn);				//Disable CAN1, line 1 IRQ.
-	}
-	if (canbus == FDCAN2)
-	{
-		NVIC_DisableIRQ(FDCAN2_IT0_IRQn);				//Disable CAN2, line 0 IRQ.
-		NVIC_DisableIRQ(FDCAN2_IT1_IRQn);				//Disable CAN2, line 1 IRQ.
-	}
+	NVIC_DisableIRQ(FDCAN2_IT0_IRQn);				//Disable CAN2, line 0 IRQ.
+	NVIC_DisableIRQ(FDCAN2_IT1_IRQn);				//Disable CAN2, line 1 IRQ.
+
 
 	/*Turn off the clocks.*/
 	RCC->APB1HENR &= ~(RCC_APB1HENR_FDCANEN);
-}
 
-void can_filter_init(FDCAN_GlobalTypeDef* canbus)
-{
-	/*Configure global filter to reject all non-matching frames.*/
-	FDCAN1->GFC = 0;
-	FDCAN1->GFC |= 0x0 << FDCAN_GFC_ANFS_Pos;								//Non-matching standard frames store in FIFO 0.
-	FDCAN1->GFC |= 0x0 << FDCAN_GFC_ANFE_Pos;								//Non-matching extended frames store in FIFO 0.
-	FDCAN1->GFC |= FDCAN_GFC_RRFS;											//Standard remote frames (reject).
-	FDCAN1->GFC |= FDCAN_GFC_RRFE;											//Extended remote frames (reject).
-
-	FDCAN1->SIDFC = (uint32_t)CAN1_STD_ID_FILTER_ADDR - CAN_MSG_RAM_BASE_ADDR;
-	FDCAN1->SIDFC |= CAN1_STD_ID_FILTER_ELEMENTS << FDCAN_SIDFC_LSS_Pos;
-	FDCAN1->XIDFC = (uint32_t)CAN1_EXT_ID_FILTER_ADDR - CAN_MSG_RAM_BASE_ADDR;
-	FDCAN1->XIDFC |= CAN1_EXT_ID_FILTER_ELEMENTS << FDCAN_XIDFC_LSE_Pos;
-
+	/* Reset the block. */
+	RCC->APB1HRSTR |= RCC_APB1HRSTR_FDCANRST;
+	RCC->APB1HRSTR &= ~(RCC_APB1HRSTR_FDCANRST);
 }
 
 void can_stop(FDCAN_GlobalTypeDef* canbus)
@@ -513,11 +460,13 @@ can_tx_buffer_entry_t* can_get_tx_buffer(FDCAN_GlobalTypeDef* canbus, uint8_t in
 }
 
 
-int32_t can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index)
+void can_tx(FDCAN_GlobalTypeDef* canbus, uint8_t index)
 {
+	if (index > 31)
+	{
+		return;
+	}
 	canbus->TXBAR = 1 << index;		//Request next transfer.
-	//TODO: Check for successful transmission or change to void.
-	return 1;
 }
 
 void can_set_std_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_std_id_filter_t* filter)
@@ -525,113 +474,9 @@ void can_set_std_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_std_i
 	*can_get_std_id_filter_addr(canbus, index) = *filter;
 }
 
-int8_t can_add_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id, bool overwrite)
+void can_set_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_ext_id_filter_t* filter)
 {
-	/*Find a slot that isn't being used in the buffer.*/
-	int8_t unused_index = -1;
-
-	if (canbus == FDCAN1)
-	{
-		for (int8_t i = 0; i < CAN1_EXT_ID_FILTER_ADDR; i++)
-		{
-			if (can1_ext_id_filter_list[i] == false)
-			{
-				unused_index = i;
-				break;
-			}
-		}
-	}
-
-	if (canbus == FDCAN2)
-	{
-		for (int8_t i = 0; i < CAN2_EXT_ID_FILTER_ADDR; i++)
-		{
-			if (can2_ext_id_filter_list[i] == false)
-			{
-				unused_index = i;
-				break;
-			}
-		}
-	}
-
-
-	/*Couldn't find an open slot, return if overwrite is false.*/
-	if (unused_index == -1)
-	{
-		if (overwrite)
-		{
-			unused_index = 0;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-
-	uint8_t remainder = unused_index % 2;
-	if (canbus == FDCAN1)
-	{
-		can_ext_id_filter_t* filter = can_get_ext_id_filter_addr(FDCAN1, unused_index / 2);
-		if (remainder == 0)
-		{
-			filter->F0.bit.EFID1 = id;
-
-		}
-
-		if (remainder == 1)
-		{
-			filter->F1.bit.EFID2 = id;
-		}
-		filter->F0.reg &= ~(0x7 << FDCAN_XIDFE_EFEC_Pos);
-		filter->F0.reg |= FDCAN_XIDFE_EFEC_STF0M_Msk;
-		filter->F1.reg &= ~(0x3 << FDCAN_XIDFE_EFT_Pos);
-		filter->F1.reg |= FDCAN_XIDFE_EFT_DUAL_ID_Msk;
-		can1_ext_id_filter_list[unused_index] = true;
-	}
-
-	if (canbus == FDCAN2)
-	{
-
-	}
-
-	return unused_index;
-}
-
-
-int8_t can_remove_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint32_t id)
-{
-	if (canbus == FDCAN1)
-	{
-		for (uint8_t i = 0; i < CAN1_EXT_ID_FILTER_ADDR; i++)
-		{
-			uint32_t filter_id1 = can_get_ext_id_filter_addr(canbus, i)->F0.bit.EFID1;
-			uint32_t filter_id2 = can_get_ext_id_filter_addr(canbus, i)->F1.bit.EFID2;
-			if (filter_id1 == id)
-			{
-				can1_ext_id_filter_list[i * 2] = false;
-				can_get_ext_id_filter_addr(canbus, i)->F0.bit.EFID1 = 0;
-				return 1;
-			}
-			if (filter_id2 == id)
-			{
-				can1_ext_id_filter_list[(i * 2) + 1] = false;
-				can_get_ext_id_filter_addr(canbus, i)->F1.bit.EFID2 = 0;
-				return 1;
-			}
-		}
-		return -1;
-	}
-
-	if (canbus == FDCAN2)
-	{
-		//TODO:
-		return -1;
-	}
-}
-
-void can_remove_all_ext_id_filters(FDCAN_GlobalTypeDef* canbus)
-{
-
+	*can_get_ext_id_filter_addr(canbus, index) = *filter;
 }
 
 bool can_check_for_rx_fifo0(FDCAN_GlobalTypeDef* canbus)

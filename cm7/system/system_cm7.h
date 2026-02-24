@@ -20,6 +20,7 @@
 #include "queue.h"
 #include "list.h"
 #include "semphr.h"
+#include "event_groups.h"
 
 #include "system_mem.h"
 
@@ -32,7 +33,17 @@ void system_task_init();
 void system_init_fpu();
 void system_blink_run(const uint32_t delay_time_ms);
 void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms);
-void system_blink_stop();
+
+/**
+ * system_blink_stop:
+ * desc:
+ *      requests for the blink task to be deleted. will block the calling task for
+ *      block_time_ms until the task is deleted.
+ * returns:
+ *      true if the task is deleted/not running.   
+ *      false if the task is still active.
+ */
+bool system_blink_stop(uint32_t block_time_ms);
 /**
  * system_set_lcd_backlight:
  * params: 

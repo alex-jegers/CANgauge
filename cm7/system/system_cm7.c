@@ -24,6 +24,8 @@
 #define TEST_LED_PIN						GPIO_PIN15_Msk
 #define SYS_GET_WATERMARK					system_stack_watermark = uxTaskGetStackHighWaterMark(NULL);
 
+#define EVENT_BITS_BLINK_TASK_STOPPED		(EventBits_t)0x01	//Bit is set when blink is stopped, clear when task is created.
+
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
 
 /**********     STATIC VARIABLES     **********/
@@ -31,6 +33,8 @@ volatile UBaseType_t prv_system_stack_watermark;
 static TaskHandle_t prv_task_handle_blink = NULL;
 static uint32_t prv_blink_delay_on = 0;
 static uint32_t prv_blink_delay_off = 0;
+static bool prv_run_blink = false;
+static EventGroupHandle_t prv_event_group = NULL;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 
@@ -44,13 +48,18 @@ void prv_task_blink(const uint32_t delay_time_ms)
 	last_run_time = xTaskGetTickCount();
 	prv_blink_delay_off = delay_time_ms;
 	prv_blink_delay_on = delay_time_ms;
-	while(1)
+
+	xEventGroupClearBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
+	prv_run_blink = true;
+	while(prv_run_blink)
 	{
 		io_test_led_on();
 		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_on));
 		io_test_led_off();
 		vTaskDelayUntil(&last_run_time, pdMS_TO_TICKS(prv_blink_delay_off));
 	}
+	xEventGroupSetBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
+	vTaskDelete(NULL);
 }
 
 static void prv_lcd_bl_init()
@@ -90,6 +99,9 @@ void system_task_init()
 	SCB_EnableDCache();
 	SCB_EnableICache();
 
+	/* Create the private event group. */
+	prv_event_group = xEventGroupCreate();
+	xEventGroupSetBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
 
 	/**** TESTING USB CONFIGURATION *****/
 	/*
@@ -145,9 +157,12 @@ void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms)
 	}
 }
 
-void system_blink_stop()
+bool system_blink_stop(uint32_t block_time_ms)
 {
-	vTaskSuspend(prv_task_handle_blink);
+	prv_run_blink = false;
+	uint32_t rtn = xEventGroupWaitBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED,
+										pdFALSE, pdTRUE, block_time_ms);
+	return rtn & EVENT_BITS_BLINK_TASK_STOPPED;
 }
 
 

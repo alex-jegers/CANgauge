@@ -195,8 +195,8 @@
 #endif //TARGET_HARDWARE_CANGAUGE
 
 
-void lcd_init();														//Configures the LTDC Peripheral.
-void lcd_enable();														//Enables the LTDC.
+void lcd_init();				//Configures the LTDC Peripheral and LCD itself.
+void lcd_enable();				//Enables the LTDC.
 
 
 void lcd_solid_color_test_red();

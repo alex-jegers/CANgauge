@@ -50,7 +50,8 @@ bool lv_port_take_lvgl_mutex(uint32_t block_time_ms);
  */
 void lv_port_give_lvgl_mutex();
 
-void lv_port_stop();
+
+bool lv_port_stop(uint32_t block_time_ms);
 
 
 

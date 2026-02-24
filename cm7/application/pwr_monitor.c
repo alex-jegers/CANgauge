@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "pwr_monitor.h"
+#include "application/applications_cm7.h"
 #include "common/drivers/drivers.h"
 #include "lvgl_port/lvgl_port_def.h"
 #include <assert.h>
@@ -15,7 +16,7 @@
 TaskHandle_t task_handle_battery_monitor = NULL;
 static uint32_t prv_measurement = 0;
 static uint32_t prv_low_threshold = 0x9700;
-static uint32_t prv_high_threshold = 0xA8DC;
+static uint32_t prv_high_threshold = 0xA1BC;
 static uint32_t prv_rolling_avg = 0;
 static uint32_t prv_rolling_avg_buffer[20];
 
@@ -102,6 +103,15 @@ static void prv_pwr_monitor_task()
             /* Check if were in higher power mode, if yes, need to change. */
             if (pwr_get_current_vos_mode() == PWR_VOS_MODE_SCALE_0)
             {
+                /* Stop all other tasks. */
+                app_gauges_stop(portMAX_DELAY);
+                app_can_controller_stop(  pdMS_TO_TICKS(1000)  );
+                can_transmit_stop(  pdMS_TO_TICKS(1000)  );
+
+                lv_port_stop(  pdMS_TO_TICKS(1000)  );
+                assert(  touch_scr_stop(  pdMS_TO_TICKS(1000)  )  );
+                system_blink_stop(  portMAX_DELAY  );
+
             	taskENTER_CRITICAL();
 
                 /* Switch to the HSI to re-configure the PLLs. */
@@ -116,11 +126,11 @@ static void prv_pwr_monitor_task()
                 /* Adjust SysTick frequency. */
                 rcc_set_systick_reload(1000);
 
+
+
                 /* Turn off the backlight and CAN transcievers. */
                 system_set_lcd_backlight(false);
                 system_set_can_transc(false);
-
-                system_blink_stop();
 
                 /* Turn off the clocks to all the io ports that we're not using. */
                 io_deinit_gpioa();
@@ -130,9 +140,6 @@ static void prv_pwr_monitor_task()
                 io_deinit_gpiog();
                 io_deinit_gpioh();
                 io_deinit_gpioj();
-
-                lv_port_stop();
-                touch_scr_stop();
 
                 taskEXIT_CRITICAL();
             }
@@ -166,5 +173,5 @@ void pwr_monitor_run(uint8_t priority)
 		/* Trying to start the task but it's already running. */
 		assert(0);
 	}
-	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 32, NULL, priority, &task_handle_battery_monitor);
+	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 128, NULL, priority, &task_handle_battery_monitor);
 }

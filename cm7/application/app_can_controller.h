@@ -21,21 +21,15 @@ extern "C" {
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 /**
  * app_can_controller_run:
- * 
- * params: 
- * data_storage: a pointer to a 2D array were the first index is the 
- * SAE J1979 PID and the second index is the data byte for said
- * PID where 0 = A, 1 = B, and so on.
- * 
  * desc:
- * processes incoming CAN data looking for UDSonOBD current powertrain
- * data packets and stores them in the location pointed to by data storage
- * upon receipt.
+ * 
  */
-void app_can_controller_run(uint8_t (*data_storage)[176][10]);
-void app_can_controller_stop();
+void app_can_controller_run();
+bool app_can_controller_stop(uint32_t block_time_ms);
+uint32_t can_controller_get_data(uint8_t pid, uint8_t first_byte, uint8_t num_params);
 bool app_can_sniffer_running();
-bool app_can_controller_is_init();
+bool app_can_controller_is_init(uint32_t block_time_ms);
+uint32_t app_can_controller_get_can_id();
 
 
 

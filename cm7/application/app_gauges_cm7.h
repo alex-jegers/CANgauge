@@ -16,7 +16,7 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void app_gauges_run();
-void app_gauges_stop();
+bool app_gauges_stop(uint32_t block_time_ms);
 
 
 

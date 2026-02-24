@@ -9,6 +9,7 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "task.h"
+#include "event_groups.h"
 
 /**********		DEFINES		**********/
 
@@ -53,6 +54,8 @@
 
 #define CST830_REFRESH_PERIOD_MS			30
 
+#define EVENT_BITS_TASK_STOPPED				(EventBits_t)0x01
+
 /**********		VARIABLE DEFINITIONS		**********/
 typedef struct
 {
@@ -66,6 +69,7 @@ typedef struct
 /**********		STATIC VARIABLES		**********/
 static touch_info_t touch_info;
 static bool prv_run = false;
+static EventGroupHandle_t prv_event_group;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_init();
@@ -158,18 +162,31 @@ static void prv_task_update(touch_info_t* p_touch_data)
 	/* Enable autosleep. */
 	const uint8_t auto_sleep_val = CST820_DISAUTOSLEEP_OFF;
 	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
+	xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 	vTaskDelete(NULL);
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void touch_scr_run(touch_info_t* p_touch_data)
 {
+	prv_event_group = xEventGroupCreate();
+	xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 200, p_touch_data, 4, NULL);
 }
 
-void touch_scr_stop()
+bool touch_scr_stop(uint32_t block_time_ms)
 {
 	prv_run = false;
+    
+	/* If the event group is NULL, the task was never even created in the first place. */
+    if (prv_event_group == NULL)
+    {
+    	return pdTRUE;
+    }
+
+	uint32_t rtn = xEventGroupWaitBits(prv_event_group, EVENT_BITS_TASK_STOPPED,
+										pdFALSE, pdTRUE, block_time_ms);
+	return rtn & EVENT_BITS_TASK_STOPPED;
 }
 
 

@@ -27,7 +27,16 @@ extern "C" {
  * */
 void touch_scr_run(touch_info_t* p_touch_data);
 
-void touch_scr_stop();
+/**
+ * touch_scr_stop:
+ * desc:
+ *      requests for the touch screen task to be deleted. will block the calling task for
+ *      block_time_ms until the task is deleted.
+ * returns:
+ *      true if the task is deleted/not running.   
+ *      false if the task is still active.
+ */
+bool touch_scr_stop(uint32_t block_time_ms);
 
 
 
