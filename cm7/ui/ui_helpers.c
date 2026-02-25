@@ -150,3 +150,12 @@ void ui_helpers_create_gauge_animation(lv_anim_t* anim, lv_obj_t* obj, lv_anim_e
 	lv_anim_set_values(anim, min, max);
 	lv_anim_start(anim);
 }
+
+void ui_helpers_add_text_to_act_scr(char* text, lv_align_t alignment, uint32_t x, uint32_t y)
+{
+	lv_obj_t* lbl = lv_label_create(lv_screen_active());
+	lv_label_set_text(lbl, text);
+	lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, LV_STATE_DEFAULT);
+	lv_obj_align(lbl, alignment, x, y);
+	lv_obj_set_style_text_color(lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+}

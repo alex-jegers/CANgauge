@@ -72,7 +72,12 @@ static void prv_task_gauges()
 	vTaskPrioritySet(NULL, 2);
 
 	/* Wait for the CAN controller to initialize. */
-	bool found_car = app_can_controller_is_init(portMAX_DELAY);
+	if (!app_can_controller_is_init( pdMS_TO_TICKS(5000) ) )
+	{
+		/* Do something if it fails. */
+	}
+
+	bool found_car = app_can_controller_get_can_id();
 
 	if (found_car == true)
 	{
@@ -85,6 +90,28 @@ static void prv_task_gauges()
 	{
 		prv_task_run = false;
 	}
+
+	/* Print out bus info. */
+	uint32_t avail_pids_1 = can_controller_get_data(0x00, 0, 4);
+	uint32_t avail_pids_2 = can_controller_get_data(0x20, 0, 4);
+	uint32_t avail_pids_3 = can_controller_get_data(0x60, 0, 4);
+	uint32_t avail_pids_4 = can_controller_get_data(0x80, 0, 4);
+	uint32_t can_id = app_can_controller_get_can_id();
+	char* label = calloc(150, sizeof(uint8_t));
+	uint32_t str_size = sprintf(label, "PIDs 0x00: 0x%X\n \
+										PIDs 0x20: 0x%X\n \
+										PIDs 0x40: 0x%X\n \
+										PIDs 0x60: 0x%X\n \
+										CAN ID: 0x%X", 
+										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id);
+	if (str_size > 150)
+	{
+		assert(0);
+	}
+	lv_port_take_lvgl_mutex(portMAX_DELAY);
+	ui_helpers_add_text_to_act_scr(label, LV_ALIGN_CENTER, 0, 320);
+	lv_port_give_lvgl_mutex();
+	free(label);
 
 	/* While _run is set to true. */
 	while (prv_task_run)
