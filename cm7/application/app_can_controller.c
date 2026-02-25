@@ -44,7 +44,14 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf);
  * 		Querys for a car on CAN bus at the requested CAN ID. Returns true
  * 		if it got a response. False if there was no response.
  */
-static bool prv_get_available_pids(uint32_t can_id, can_id_t id_length);
+static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type);
+/** 
+ * prv_uds_ecu_present:
+ * desc:
+ * 		returns true if it found an uds session at the requested CAN ID.
+ * 		false if not.
+ */
+static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type);
 static void prv_get_extra_pids();
 static void prv_fifo1_int_handler();
 static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf);
@@ -68,14 +75,25 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	saej1979_ext_filter.F1.bit.EFID2 = 0x18DAF1FF;
 	can_set_ext_id_filter(FDCAN1, 0, &saej1979_ext_filter);
 
-	if (prv_get_available_pids(0x7DF, CAN_ID_STD) == false)
+
+	if (prv_uds_ecu_present(0x7DF, CAN_ID_STD))
 	{
-		prv_get_available_pids(0x18DB33F1, CAN_ID_XTD);
+		prv_can_id = 0x7DF;
+		
+	}
+	else if (prv_uds_ecu_present(0x18DB33F1, CAN_ID_XTD))
+	{
 		prv_can_id = 0x18DB33F1;
 	}
 	else
 	{
-		prv_can_id = 0x7DF;
+		prv_can_id = 0x00;
+		prv_task_run = false;
+	}
+
+	if (prv_can_id != 0x00)
+	{
+		prv_get_available_pids(prv_can_id, CAN_ID_XTD);
 	}
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_INIT_DONE);
 	//prv_get_extra_pids();
@@ -167,17 +185,17 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf)
 			}
 }
 
-static bool prv_get_available_pids(uint32_t can_id, can_id_t id_length)
+static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 {
 	can_tx_buffer_entry_t tx_buf =
 	{
-		.T0.bit.ID = can_id, .T0.bit.XTD = id_length, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+		.T0.bit.ID = can_id, .T0.bit.XTD = id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
 		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
 		.data[0] = 0x02, .data[1] = 0x01, .data[2] = 0x00, .data[3] = 0xCC,
 		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
 	};
 
-	/* Request PIDs 0x00, 0x20, 0x40. */
+	/* Request PIDs 0x00, 0x20, 0x40, 0x60. */
 	for (uint8_t i = 0; i < 0x80; i += 0x20)
 	{
 		tx_buf.data[2] = i;
@@ -204,6 +222,38 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_length)
 	return true;
 }
 
+static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
+{
+	can_tx_buffer_entry_t tx_buf =
+	{
+		.T0.bit.ID = can_id, .T0.bit.XTD = id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
+		.data[0] = 0x02, .data[1] = 0x01, .data[2] = 0x00, .data[3] = 0xCC,
+		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
+	};
+
+	/* Send a request for PID 0x00. */
+	tx_buf.data[2] = 0x00;
+	can_transmit_handle_t* avail_pids = can_transmit_create_msg();
+	can_transmit_set_msg_data(avail_pids, &tx_buf);
+	can_transmit_set_period(avail_pids, CAN_TRANSMIT_PERIOD_ONE_SHOT);
+	can_transmit_set_active(avail_pids);
+
+	/* Wait a second to see if we get a response.*/
+	if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE)
+	{
+		/* Response received. Process it and return true. */
+		can_rx_buffer_entry_t rx_buf;
+		can_read_from_fifo1(FDCAN1, &rx_buf);
+		prv_process_can_data(&rx_buf);
+		return true;
+	}
+	else
+	{
+		/* No response. Return false. */
+		return false;
+	}
+}
 static void prv_get_extra_pids()
 {
 	can_tx_buffer_entry_t tx_buf =
