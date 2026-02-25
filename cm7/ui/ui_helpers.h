@@ -22,13 +22,13 @@ extern "C" {
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-	void ui_helpers_init_styles();
-	bool ui_helpers_is_demo_mode();
-	void ui_helpers_set_demo_mode(bool demo_mode);
-	lv_obj_t* ui_helpers_create_btn_with_text(lv_obj_t* parent, char* text, lv_font_t* font);
-	lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle);
-	void ui_helpers_create_gauge_animation(lv_anim_t* anim, lv_obj_t* obj, lv_anim_exec_xcb_t func, uint32_t duration, uint32_t min, uint32_t max);
-
+void ui_helpers_init_styles();
+bool ui_helpers_is_demo_mode();
+void ui_helpers_set_demo_mode(bool demo_mode);
+lv_obj_t* ui_helpers_create_btn_with_text(lv_obj_t* parent, char* text, lv_font_t* font);
+lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle);
+void ui_helpers_create_gauge_animation(lv_anim_t* anim, lv_obj_t* obj, lv_anim_exec_xcb_t func, uint32_t duration, uint32_t min, uint32_t max);
+void ui_helpers_add_text_to_act_scr(char* text, lv_align_t alignment, uint32_t x, uint32_t y);
 
 
 
