@@ -122,7 +122,7 @@ void system_task_init()
 
 	system_blink_run(1000);
 
-	pwr_monitor_run(4);
+	//pwr_monitor_run(4);
 
 	xTaskResumeAll();
 	

@@ -75,12 +75,13 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	saej1979_ext_filter.F1.bit.EFID2 = 0x18DAF1FF;
 	can_set_ext_id_filter(FDCAN1, 0, &saej1979_ext_filter);
 
-
+	/* Check for an ECU at CAN ID 0x7DF. */
 	if (prv_uds_ecu_present(0x7DF, CAN_ID_STD))
 	{
 		prv_can_id = 0x7DF;
 		
 	}
+	/* Check for an ECU at CAN ID 0x18DB33F1. */
 	else if (prv_uds_ecu_present(0x18DB33F1, CAN_ID_XTD))
 	{
 		prv_can_id = 0x18DB33F1;
@@ -91,10 +92,14 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 		prv_task_run = false;
 	}
 
+	/* If the CAN ID isn't 0x00 (meaning it found an ECU, ask for all the other "available PIDs" PIDs.)*/
 	if (prv_can_id != 0x00)
 	{
-		prv_get_available_pids(prv_can_id, CAN_ID_XTD);
+		can_id_t can_id_type = (prv_can_id = 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
+		prv_get_available_pids(prv_can_id, can_id_type);
 	}
+
+	/* Set the event bits that initialization is done. */
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_INIT_DONE);
 	//prv_get_extra_pids();
 
