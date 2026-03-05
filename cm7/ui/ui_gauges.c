@@ -6,7 +6,7 @@
 
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
-#define BACK_BTN_Y_POS					320
+#define BACK_BTN_Y_POS					215
 #define HIDDEN_LABEL_Y_POS				600
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
