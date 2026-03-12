@@ -25,4 +25,13 @@ For a full list of potential data see here (TODO add link).\
 - Arduino IDE compatible (coming soon).
 - Software and hardware docs are released and free. Add custom features or use it as a starting point for your project.
 - Software built around LVGL and FreeRTOS.
+- Extra CAN port (2 in total), FS USB interface, and (optional) I2C port exposed on the connector for easy feature expansion.
+## Info for Developers
+### Processor
+- A dual core STM32H745 with an Arm Cortex M7 and Arm Cortex M4F core.
+- Clock speeds up to 480MHz.
+### Memory
+- 2MB of embedded flash, 864kB of embedded RAM (TODO check these numbers.)
+- 32MB of external SDRAM.
+- Optional 512kB of QSPI flash and/or 64kB of I2C EEPROM (accessible from the external connector).
 # Future Plans
