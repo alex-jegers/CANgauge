@@ -3,7 +3,7 @@
 - Read data directly from the ECU and other control modules through the OBD2 port over CANbus.
 - High resolution, touch screen display.
 ### Does it work on my car?
-CANgauge requires an ISO 15765 compliant CANbus network to communicate with your car...\
+CANgauge requires an OBD2 port and an ISO 15765 compliant CANbus network to communicate with your car...\
 \
 **Model year before 2005:** No. The Diagnostics on CAN standard was not yet released (ISO 15765)..\
 **Model year 2005 to 2007:** Maybe! CANbus was not yet required but many manufacturers used it anyways. See how to check your car here (TODO: add link)\
