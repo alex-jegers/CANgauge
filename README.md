@@ -1,5 +1,5 @@
 # Features Overview
-- Real time data logging and monitoring without the need for a computer or aftermarket sensor installation - read and display data directly from the ECU and control modules.
+- A robust and modern solution to automotive telemetry and data logging.
 - High resolution, touch screen display.
 ### Does it work on my car?
 CANgauge requires an ISO 15765 compliant CANbus network to communicate with your car...\
