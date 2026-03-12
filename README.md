@@ -1,5 +1,6 @@
 # Features Overview
-- A robust and modern solution to automotive telemetry and data logging.
+- A robust, modern, and universal approach to automotive telemetry and data logging.
+- Read data directly from the ECU and other control modules through the OBD2 port over CANbus.
 - High resolution, touch screen display.
 ### Does it work on my car?
 CANgauge requires an ISO 15765 compliant CANbus network to communicate with your car...\
