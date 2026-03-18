@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _DRIVERS_H_
+#define _DRIVERS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +23,7 @@ extern "C" {
 #include "stm32_sys_timer.h"
 #include "stm32_timer.h"
 #include "stm32_flash.h"
+#include "usb/stm32_usb.h"
 
 /**********     DEFINES      **********/
 
@@ -37,4 +38,4 @@ extern "C" {
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_DRIVERS_H__

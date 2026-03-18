@@ -27,6 +27,7 @@
 #define EVENT_BITS_BLINK_TASK_STOPPED		(EventBits_t)0x01	//Bit is set when blink is stopped, clear when task is created.
 
 #define USB_FS_DEVICE         ((USB_OTG_DeviceTypeDef *) 0x40080800)	//TODO: Move to USB source code when it's created.
+#define USB_OTG_DCFG_DESCDMA	(1 << 23)
 
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
 
@@ -83,7 +84,7 @@ static void prv_lcd_bl_init()
 void system_task_init()
 {
 	/* Stop the scheduler. */
-	vTaskSuspendAll();
+	portENTER_CRITICAL();	//Have to use this instead of vTaskSuspendAll because we need to use a delay after resetting USB.
 
 	/*Enable all the IO clocks.*/
 	io_init();
@@ -106,40 +107,17 @@ void system_task_init()
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
 
 	/**** TESTING USB CONFIGURATION *****/
-
-	io_set_pin_mux(GPIOA, GPIO_PIN10_Msk, GPIO_AFR_AF10);
-	io_set_pin_mux(GPIOA, GPIO_PIN11_Msk, GPIO_AFR_AF10);
-	io_set_pin_mux(GPIOA, GPIO_PIN12_Msk, GPIO_AFR_AF10);
-
-	RCC->CR |= RCC_CR_HSI48ON;
-	while ((RCC->CR & RCC_CR_HSI48RDY) == 0) {}
-
-	RCC->D2CCIP2R |= 0x3 << RCC_D2CCIP2R_USBSEL_Pos;	//Enable kernel clock.
-	RCC->AHB1ENR |= RCC_AHB1ENR_USB2OTGFSEN | RCC_AHB1ENR_USB2OTGFSULPIEN;	//Enable PHY and peripheral clocks.
-
-	USB2_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
-	USB2_OTG_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT			//Global interrupt mask bit.
-							| USB_OTG_GAHBCFG_PTXFELVL;		//Periodic TX FIFO empty level.
-	USB2_OTG_FS->GINTSTS |= USB_OTG_GINTSTS_RXFLVL;			//RX FIFO non-empty.
-	USB2_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_HNPCAP			//HNP capable bit.
-							| USB_OTG_GUSBCFG_SRPCAP		//SRP capable bit.
-							| USB_OTG_GUSBCFG_TOCAL_1		//OTG_HS timeout calibration field. - Guessing a value here.
-							| USB_OTG_GUSBCFG_TRDT_Msk;		//USB turnaround time field.		- Guessing a value here.
-	USB2_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_OTGINT			//OTG interrupt mask.
-							| USB_OTG_GINTMSK_MMISM;			//Mode mismatch interrupt mask.
-	uint32_t device_type = USB2_OTG_FS->GINTSTS & USB_OTG_GINTSTS_CMOD;
-
-	USB_FS_DEVICE->DCFG |= //DESCDMA.
-							//Device speed.
-							//Non-zero length status OUT handshake.
-							//Periodic frame interval.
+	usb_init();
+	usb_core_reset();
+	vTaskDelay(pdMS_TO_TICKS(10));
+	usb_init_core();
 	/***********************************/
 
 	system_blink_run(1000);
 
 	//pwr_monitor_run(4);
 
-	xTaskResumeAll();
+	portEXIT_CRITICAL();
 	
 	vTaskDelete(NULL);
 }

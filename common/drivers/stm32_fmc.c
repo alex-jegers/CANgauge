@@ -66,7 +66,7 @@ void fmc_init_sdram()
 #ifdef TARGET_HARDWARE_CANGAUGE
 
 	const uint32_t fmc_sdcr1_msk = (FMC_SDCRx_RBURST_Msk)
-								| (FMC_SDCR_SDCLK_DIV_3_Val << FMC_SDCRx_SDCLK_Pos)	//clock div 3. 232MHz in SDRAM_SDCLK is 77.33MHz.
+								| (FMC_SDCR_SDCLK_DIV_2_Val << FMC_SDCRx_SDCLK_Pos)	//clock div 2. 264MHz in SDRAM_SDCLK is 132MHz.
 								| (FMC_SDCRx_WP_Msk)
 								| (FMC_SDCR_NR_12_BITS_Val << FMC_SDCRx_NR_Pos)
 								| (FMC_SDCR_NC_9_BITS_Val << FMC_SDCRx_NC_Pos)

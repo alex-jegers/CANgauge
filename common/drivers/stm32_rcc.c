@@ -53,11 +53,11 @@ static void rcc_init_pll2()
 	/*Set the initial divider to 1.*/
 	RCC->PLLCKSELR |= 1 << RCC_PLLCKSELR_DIVM2_Pos;
 
-	/*Multiply by 28 + 1, so this gives 8 * 29  = 232.*/
-	RCC->PLL2DIVR = (28 << RCC_PLL2DIVR_N2_Pos) 	//Mult 29..
-				| (0 << RCC_PLL2DIVR_R2_Pos)		//No div,	R = 232MHz
-				| (0 << RCC_PLL2DIVR_Q2_Pos)		//No Div,	Q = 232MHz
-				| (6 << RCC_PLL2DIVR_P2_Pos);		//Div 7,	P = 33.143MHz
+	/*Multiply by 32 + 1, so this gives 8 * 33  = 264.*/
+	RCC->PLL2DIVR = (32 << RCC_PLL2DIVR_N2_Pos) 	//Mult 33..
+				| (0 << RCC_PLL2DIVR_R2_Pos)		//No div,	R = 264MHz
+				| (0 << RCC_PLL2DIVR_Q2_Pos)		//No Div,	Q = 264MHz
+				| (6 << RCC_PLL2DIVR_P2_Pos);		//Div 7,	P = 37.714MHz
 
 	/*Enable PLL1.*/
 	RCC->CR |= RCC_CR_PLL2ON;
