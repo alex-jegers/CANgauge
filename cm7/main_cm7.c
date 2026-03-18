@@ -45,7 +45,7 @@ int main(void)
 		
 	/* Load the menu screen. */
 	app_menu_run();
-
+	//lv_demo_benchmark();
 
 
 	/* Starts the FreeRTOS scheduler. */
