@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "stm32_usb.h"
+#include "string.h"
 #include "assert.h"
 
 /**********     TYPEDEFS         **********/
@@ -58,12 +59,31 @@ typedef struct
 			uint8_t endpoint_number : 4;
 			uint8_t : 3;	//Reserved.
 			uint8_t direction : 1;		//Zero indicated OUT endpoint, 1 indicates IN endpoint.
-			uint16_t : 16;	//Reserved.
+			uint16_t : 8;	//Reserved.
 		}bit;
 	}wIndex;	//The lower 8 bits are used to specify an interface. Only use the specific bits when specifying an endpoint.
 
 	uint16_t wLength;
 }usb_setup_packet_t;
+
+typedef struct 
+{
+	uint8_t bLength;			//I think this is 0x40, but the setup packet specifies how long it should be.
+	uint8_t bDescriptorType;	//"DEVICE descriptor type", 0x01 for device descriptor i think
+	uint16_t bcdUSB;			//0x0110 for version 1.1.0
+	uint8_t bDeviceClass;		//Will have to look at standard. 0x08 for mass storage.
+	uint8_t bDeviceSubClass;	// i think just 0.
+	uint8_t bDeviceProtocol;	//I think just zero again.
+	uint8_t bMaxPacketSize0;	//Depends on my configuration of OTG_DOEPCTL0
+	uint16_t idVendor;			//dunno, assigned by USB-IF
+	uint16_t idProduct;			//dunno, assigned by MFG.
+	uint16_t bcdDevice;			//device release number in binary coded decimal.
+	uint8_t iManufacturer;		//Index
+	uint8_t iProduct;			//Index
+	uint8_t iSerialNumber;		//Index
+	uint8_t bNumConfigurations;		
+}usb_dev_descriptor_t;
+
 
 /**********		DEFINES		**********/
 #define USB_FS			USB2_OTG_FS								//Bc typing out all that is getting to be a pain in the ass.
@@ -88,19 +108,66 @@ typedef struct
                                                         + USB_OTG_OUT_ENDPOINT_BASE + ((i) * USB_OTG_EP_REG_SIZE)))
 #define USB_DFIFO(i)   						(uint32_t*)(USB2_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + ((i) * USB_OTG_FIFO_SIZE))
 
-#define prv_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk												
+#define usb_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk
+#define prv_clear_doepintx_bit(ep, msk)				USBx_OUTEP(ep)->DOEPINT = msk
+#define prv_clear_diepintx_bit(ep, msk)				USBx_OUTEP(ep)->DIEPINT = msk
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-//static uint32_t data_in[10];
-static usb_setup_packet_t data_in;
+static usb_setup_packet_t prv_usb_setup;
+static usb_dev_descriptor_t prv_dev_descriptor = 
+{
+	.bLength = 0x12,
+	.bDescriptorType = 0x01,
+	.bcdUSB = 0x011,
+	.bDeviceClass = 0x08,
+	.bDeviceSubClass = 0x00,
+	.bDeviceProtocol = 0x00,
+	.bMaxPacketSize0 = 64,
+	.idVendor = 0x0000,
+	.idProduct = 0xa5a5,
+	.bcdDevice = 0x001,
+	.iManufacturer = 0x00,
+	.iProduct = 0x00,
+	.iSerialNumber = 0x00,
+};
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
+void prv_usb_write(volatile uint32_t* fifo, void* data, uint8_t len);
 void prv_wait_for_tx_fifo_flush();
 void prv_wait_for_idle();
+void prv_process_setup_packet(usb_setup_packet_t* setup);
 void prv_usb_rxflvl_handler(uint32_t grxstsp);
-void prv_usb_reset_handler();
+void usb_reset_handler();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
+void prv_usb_write(volatile uint32_t* fifo, void* data, uint8_t len) {
+    uint32_t fifoWord;
+    uint32_t* buffer = (uint32_t*)data;
+    uint8_t remains = len;
+    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
+    {
+        switch (remains)
+        {
+            case 0:
+                break;
+            case 1:
+                fifoWord = *buffer & 0xFF;
+                *fifo = fifoWord;
+                break;
+            case 2:
+                fifoWord = *buffer & 0xFFFF;
+                *fifo = fifoWord;
+                break;
+            case 3:
+                fifoWord = *buffer & 0xFFFFFF;
+                *fifo = fifoWord;
+                break;
+            default:
+                *fifo = *buffer;
+                break;
+        }
+    }
+}
 void prv_wait_for_tx_fifo_flush()
 {
 	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) != 0) {}
@@ -108,6 +175,36 @@ void prv_wait_for_tx_fifo_flush()
 void prv_wait_for_idle()
 {
 	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0) {}
+}
+
+void prv_process_setup_packet(usb_setup_packet_t* setup)
+{
+	if (setup->bRequest == USB_BREQUEST_GET_DESCRIPTOR)
+	{
+		//"Desc Req RX"
+		/* Setup IN EP0 to transmit the device descriptor. */
+		USBx_INEP(0)->DIEPTSIZ = 0;		//Clear the register.
+		USBx_INEP(0)->DIEPTSIZ = sizeof(prv_dev_descriptor) | (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos);		//Set the transfer size and packet count.
+
+		/* Move the descriptor into the FIFO. */
+		uint32_t* src_addr = (uint32_t*)&prv_dev_descriptor;
+		prv_usb_write(USB_DFIFO(0), (void*)&prv_dev_descriptor, sizeof(prv_dev_descriptor));
+		//for (uint8_t i = 0; i < prv_dev_descriptor.bLength; i += 4)
+		//{
+		//	*USB_DFIFO(0) = *src_addr;
+		//	src_addr++;
+		//}
+
+		USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA;							//Clear NAK and enable endpoint.
+
+		//Enable the TX fifo empty interrupt
+		USB_FS_DEVICE->DIEPEMPMSK |= 1;
+		
+	}
+	else
+	{
+		assert(1);
+	}
 }
 
 void prv_usb_rxflvl_handler(uint32_t grxstsp)
@@ -118,26 +215,36 @@ void prv_usb_rxflvl_handler(uint32_t grxstsp)
 	usb_data_pid_t data_pid = (grxstsp & USB_OTG_GRXSTSP_DPID) >> USB_OTG_GRXSTSP_DPID_Pos; 
 	uint32_t byte_count = (grxstsp & USB_OTG_GRXSTSP_BCNT) >> USB_OTG_GRXSTSP_BCNT_Pos;
 	uint8_t end_pt_number = grxstsp & USB_OTG_GRXSTSP_EPNUM;
-	//data_in = (uint32_t*)calloc(byte_count, sizeof(uint8_t));
+	static uint32_t buf[64];
 
+	/* If it's a setup packet, read it into the setup struct. */
+	//if (packet_status == USB_PACKET_STS_SETUP_RECIEVED)
+	//{
+		/* Read the setup data into data in. */
+	//	uint32_t* dest_addr = (uint32_t*)&prv_usb_setup;
+	//	*dest_addr = *USB_DFIFO(end_pt_number);
+	//	dest_addr++;
+	//	*dest_addr = *USB_DFIFO(end_pt_number);
+	//}
 
-	if (packet_status == USB_PACKET_STS_SETUP_RECIEVED)
+	uint32_t* dest_addr = (uint32_t*)&buf;
+	for (uint32_t i = 0; i < byte_count / 4; i++)
 	{
-		uint32_t* dest_addr = &data_in;
 		*dest_addr = *USB_DFIFO(end_pt_number);
 		dest_addr++;
-		*dest_addr = *USB_DFIFO(end_pt_number);
 	}
-	//for (uint32_t i = 0; i < byte_count / 4; i++)
-	//{
-	//	data_in[i] = *USB_DFIFO(end_pt_number);
+	if(packet_status == USB_PACKET_STS_SETUP_RECIEVED)
+	{
+		memcpy(&prv_usb_setup, &buf, 8);
 
-	//}
+
+
+	}
 
 
 }
 
-void prv_usb_reset_handler()
+void usb_reset_handler()
 {
     USB_FS_DEVICE->DCTL &= ~USB_OTG_DCTL_RWUSIG;	//Clearing the remote wakeup signaling bit.
 	
@@ -199,63 +306,54 @@ void usb_init()
 	while ((RCC->CR & RCC_CR_HSI48RDY) == 0) {}
 	RCC->D2CCIP2R |= 0x3 << RCC_D2CCIP2R_USBSEL_Pos;	//Enable kernel clock.
 
-	//The HAL does not enable ULPIEN here. I think that mighht be for the external PHY? Yeah it never enables it.
+	/* Note: Enabling ULPIEN makes it so the internal PHY wont work. */
 	RCC->AHB1ENR |= RCC_AHB1ENR_USB2OTGFSEN;// | RCC_AHB1ENR_USB2OTGFSULPIEN;	//Enable PHY and peripheral clocks.
 
 	/* Peripheral interrupt init, HAL calls this here but dont know if I want or need to yet. */
-    //HAL_NVIC_SetPriority(OTG_FS_IRQn, 0, 0);
-    //HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
-	/***********************************/
+	NVIC_EnableIRQ(OTG_FS_IRQn);
 }
 
 void usb_core_reset()
 {
-	/* Set the reset bit and wait for it to clear. */
-	//USB2_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
-	//while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) != 0) {}
 
-	/* Wait for the AHB master idle bit to be set. */
-	while ((USB2_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0) {}
-}
-
-void usb_init_core()
-{
 	/* Select embedded PHY (vs external PHY). */
     USB_FS->GUSBCFG |= USB_OTG_GUSBCFG_PHYSEL;	
 
 	/* Wait for AHB master IDLE state. */
-	uint32_t count = 0;
-	do
-	{
-
-	} while (( USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);	
+	while (( USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U) {}
 	/* Core Soft Reset */
-	count = 0;
-	USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;	
-	do
-	{
 
-	} while (( USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST);
+	assert(RCC->CR & RCC_CR_HSI48RDY);
+	USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
+	while (( USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST) {}
+}
 
+void usb_init_core()
+{
     /* Activate the USB Transceiver */
     USB_FS->GCCFG |= USB_OTG_GCCFG_PWRDWN;
 
+	/* Sets force device mode. */
 	USB_FS->GUSBCFG &= ~(USB_OTG_GUSBCFG_FHMOD | USB_OTG_GUSBCFG_FDMOD);
 	USB_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
 
+	/* Waits for current mode to be device mode. */
 	while ((USB_FS->GINTSTS & USB_OTG_GINTSTS_CMOD) != 0) {}
+
 
 	for (uint32_t i = 0U; i < 15U; i++)
   	{
     	USB_FS->DIEPTXF[i] = 0U;
   	}
 
+	/* Enable soft disconnect. */
 	USB_FS_DEVICE->DCTL |= USB_OTG_DCTL_SDIS;
 
 	/* Deactivate VBUS Sensing B */
     USB_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;
 
-    /* B-peripheral session valid override enable */
+    /* B-peripheral session valid override enable */ 
+	//Need this ??
     USB_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN;
     USB_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;
 
@@ -282,21 +380,21 @@ void usb_init_core()
 
 	for (uint32_t i = 0U; i < 9; i++)
   	{
-    if ((USBx_INEP(i)->DIEPCTL & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA)
-    {
-      	if (i == 0U)
-      	{
-        	USBx_INEP(i)->DIEPCTL = USB_OTG_DIEPCTL_SNAK;
-      	}
-      	else
-      	{
-        	USBx_INEP(i)->DIEPCTL = USB_OTG_DIEPCTL_EPDIS | USB_OTG_DIEPCTL_SNAK;
-      	}
-    }
-    else
-    {
-      	USBx_INEP(i)->DIEPCTL = 0U;
-    }
+    	if ((USBx_INEP(i)->DIEPCTL & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA)
+    	{
+    	  	if (i == 0U)
+    	  	{
+    	    	USBx_INEP(i)->DIEPCTL = USB_OTG_DIEPCTL_SNAK;
+    	  	}
+    	  	else
+    	  	{
+    	    	USBx_INEP(i)->DIEPCTL = USB_OTG_DIEPCTL_EPDIS | USB_OTG_DIEPCTL_SNAK;
+    	  	}
+    	}
+    	else
+    	{
+    	  	USBx_INEP(i)->DIEPCTL = 0U;
+    	}
 
     	USBx_INEP(i)->DIEPTSIZ = 0U;
     	USBx_INEP(i)->DIEPINT  = 0xFB7FU;
@@ -304,21 +402,21 @@ void usb_init_core()
 
   	for (uint32_t i = 0U; i < 9; i++)
   	{
-    if ((USBx_OUTEP(i)->DOEPCTL & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA)
-    {
-      	if (i == 0U)
-      	{
-        	USBx_OUTEP(i)->DOEPCTL = USB_OTG_DOEPCTL_SNAK;
-      	}
-      	else
-      	{
-        	USBx_OUTEP(i)->DOEPCTL = USB_OTG_DOEPCTL_EPDIS | USB_OTG_DOEPCTL_SNAK;
-      	}
-    }
-    else
-    {
-      	USBx_OUTEP(i)->DOEPCTL = 0U;
-    }
+    	if ((USBx_OUTEP(i)->DOEPCTL & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA)
+    	{
+    	  	if (i == 0U)
+    	  	{
+    	    	USBx_OUTEP(i)->DOEPCTL = USB_OTG_DOEPCTL_SNAK;
+    	  	}
+    	  	else
+    	  	{
+    	    	USBx_OUTEP(i)->DOEPCTL = USB_OTG_DOEPCTL_EPDIS | USB_OTG_DOEPCTL_SNAK;
+    	  	}
+    	}
+    	else
+    	{
+    	  	USBx_OUTEP(i)->DOEPCTL = 0U;
+    	}
 
     	USBx_OUTEP(i)->DOEPTSIZ = 0U;
 		USBx_OUTEP(i)->DOEPINT  = 0xFB7FU;
@@ -332,12 +430,11 @@ void usb_init_core()
   	/* Clear any pending interrupts */
   	USB_FS->GINTSTS = 0xBFFFFFFFU;
 
-	USB_FS->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;
-	  /* Enable interrupts matching to the Device mode ONLY */
-  	USB_FS->GINTMSK |= USB_OTG_GINTMSK_USBSUSPM | USB_OTG_GINTMSK_USBRST |
+
+	/* Enable interrupts matching to the Device mode ONLY */
+  	USB_FS->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM | USB_OTG_GINTMSK_USBRST |		//Both handled.
                    USB_OTG_GINTMSK_ENUMDNEM | USB_OTG_GINTMSK_IEPINT |
-                   USB_OTG_GINTMSK_OEPINT   | USB_OTG_GINTMSK_IISOIXFRM |
-                   USB_OTG_GINTMSK_PXFRM_IISOOXFRM | USB_OTG_GINTMSK_WUIM;
+                   USB_OTG_GINTMSK_OEPINT;
 
   	USB_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT;
 
@@ -377,6 +474,12 @@ void OTG_FS_IRQHandler()
 	uint32_t ir = USB_OTG_FS->GINTSTS;		//Read the interrupt status register.
 	ir &= USB_OTG_FS->GINTMSK;				//Filter it against the enabled interrupts.
 
+	uint32_t all_endpoints_ir = USB_FS_DEVICE->DAINT;
+	uint32_t in_ep0_ir = USBx_INEP(0)->DIEPINT;
+	uint32_t out_ep0_ir = USBx_OUTEP(0)->DOEPINT;
+
+//	printf("GINTMSK = %x \nAll EPs = %x \nIN EP0 = %x \nOUT EP0 = %x \n\n",ir, all_endpoints_ir, in_ep0_ir, out_ep0_ir);
+	/* If there's no interrupt bits set, return. */
 	if (ir == 0)
 	{
 		return;
@@ -389,32 +492,52 @@ void OTG_FS_IRQHandler()
 		{
 			prv_usb_rxflvl_handler(status);
 		}
-		return;
-	}
-
-	/* USB suspended handler. */
-	if (ir & USB_OTG_GINTSTS_USBSUSP)
-	{
-		USB_FS->GINTSTS = USB_OTG_GINTSTS_USBSUSP;
-		return;
 	}
 
 	/* USB Reset handler. */
 	if (ir & USB_OTG_GINTSTS_USBRST)
 	{
-		prv_usb_reset_handler();
-		prv_clear_gintsts_bit(USB_OTG_GINTSTS_USBRST);
+		usb_reset_handler();
+		usb_clear_gintsts_bit(USB_OTG_GINTSTS_USBRST);
 		return;
 	}
 
 	/* Enumeration done handler I dont think I need this lowkey. */
 	if (ir & USB_OTG_GINTSTS_ENUMDNE)
 	{
-		USB_FS->GUSBCFG &= ~(USB_OTG_GUSBCFG_TRDT);	//Clear the turn around time bits.
+		uint32_t enum_speed = USB_FS_DEVICE->DSTS & USB_OTG_DSTS_ENUMSPD;
+		USB_FS->GUSBCFG &= ~(USB_OTG_GUSBCFG_TRDT);				//Clear the turn around time bits.
 		USB_FS->GUSBCFG |= 0x6 << USB_OTG_GUSBCFG_TRDT_Pos;		//Set turnaround time to 6 (this is what HAL uses for a 120MHz AHB clk).
-		prv_clear_gintsts_bit(USB_OTG_GINTSTS_ENUMDNE);
+		usb_clear_gintsts_bit(USB_OTG_GINTSTS_ENUMDNE);
 		return;
 	}
 
-	assert(0);
+	/* OUT endpoint interrupt. */
+	if (ir & USB_OTG_GINTSTS_OEPINT)
+	{
+		/*Get the endpoint number.*/
+		uint32_t endpoint = 0xFFFF0000 & (USB_FS_DEVICE->DAINT & USB_FS_DEVICE->DAINTMSK);
+		endpoint = endpoint >> 16;
+
+		/*Get the endpoint interrupt.*/
+		uint32_t endpoint_int = USBx_OUTEP(endpoint - 1)->DOEPINT & USB_FS_DEVICE->DOEPMSK;
+
+		if (endpoint_int == USB_OTG_DOEPINT_STUP)
+		{
+			prv_process_setup_packet(&prv_usb_setup);
+			prv_clear_doepintx_bit(0, USB_OTG_DOEPINT_STUP);
+		}
+	}
+
+	/* IN endpoint interrupt. */
+	if (ir & USB_OTG_GINTSTS_IEPINT)
+	{
+
+	}
+
+	/* IN EP0 Transfer complete. */
+	if (USBx_INEP(0)->DIEPINT & USB_OTG_DIEPINT_XFRC)
+	{
+		USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPDIS | USB_OTG_DIEPCTL_SNAK;		//Disable endpoint and set NAK.
+	}
 }

@@ -16,7 +16,6 @@
 #include "ui/ui_car_menu.h"
 
 
-
 /**********		DEFINES		**********/
 #define SCB_CPACR_CP10_FULL_ACCESS			0x3 << 20
 #define SCB_CPACR_CP11_FULL_ACCESS			0x3 << 22
@@ -84,7 +83,8 @@ static void prv_lcd_bl_init()
 void system_task_init()
 {
 	/* Stop the scheduler. */
-	portENTER_CRITICAL();	//Have to use this instead of vTaskSuspendAll because we need to use a delay after resetting USB.
+	//portENTER_CRITICAL();	//Have to use this instead of vTaskSuspendAll because we need to use a delay after resetting USB.
+	vTaskSuspendAll();
 
 	/*Enable all the IO clocks.*/
 	io_init();
@@ -109,7 +109,6 @@ void system_task_init()
 	/**** TESTING USB CONFIGURATION *****/
 	usb_init();
 	usb_core_reset();
-	vTaskDelay(pdMS_TO_TICKS(10));
 	usb_init_core();
 	/***********************************/
 
@@ -117,7 +116,8 @@ void system_task_init()
 
 	//pwr_monitor_run(4);
 
-	portEXIT_CRITICAL();
+	xTaskResumeAll();
+	//portEXIT_CRITICAL();
 	
 	vTaskDelete(NULL);
 }
@@ -163,6 +163,7 @@ bool system_blink_stop(uint32_t block_time_ms)
 void vApplicationTickHook()
 {
 	lv_tick_inc(pdTICKS_TO_MS(1));
+	timer_inc(1);
 }
 
 void system_set_lcd_backlight(bool on)
