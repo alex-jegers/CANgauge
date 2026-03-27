@@ -2,6 +2,7 @@
 #include "stm32_usb.h"
 #include "string.h"
 #include "assert.h"
+#include "stdlib.h"
 
 /**********     TYPEDEFS         **********/
 typedef enum
@@ -78,7 +79,7 @@ typedef struct
 	uint16_t wLength;
 } usb_setup_packet_t;
 
-typedef struct 
+typedef struct __attribute__((packed))
 {
 	uint8_t bLength;			//I think this is 0x40, but the setup packet specifies how long it should be.
 	uint8_t bDescriptorType;	//"DEVICE descriptor type", 0x01 for device descriptor i think
@@ -108,7 +109,36 @@ typedef struct __attribute__((packed))
 	uint8_t bMaxPower;			//Expressed in 2x mA (50 = 100mA).
 }usb_config_descriptor_t ;
 
+typedef struct __attribute__((packed))
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bInterfaceNumber;
+	uint8_t bAlternateSetting;
+	uint8_t bNumEndpoints;
+	uint8_t bInterfaceClass;
+	uint8_t bInterfaceSubClass;
+	uint8_t bInterfaceProtocol;
+	uint8_t iInterface;
+}usb_interface_descriptor_t;
 
+typedef struct __attribute__((packed))
+{
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bEndpointAddress;		//Bit 1-3: The endpoint number. Bit 4-6: Reserved set to 0. Bit 7: 1 for IN endpoint, 0 for OUT.
+	uint8_t bmAttributes;
+	uint16_t wMaxPacketSize;
+	uint8_t bInterval;
+}usb_endpoint_descriptor_t;
+
+typedef struct __attribute__((packed))
+{
+	usb_config_descriptor_t config_desc;
+	usb_interface_descriptor_t interface_desc;
+	usb_endpoint_descriptor_t ep_desc_1;
+	usb_endpoint_descriptor_t ep_desc_2;
+}usb_config_packet_t;
 
 /**********		DEFINES		**********/
 #define USB_FS			USB2_OTG_FS								//Bc typing out all that is getting to be a pain in the ass.
@@ -147,17 +177,17 @@ static usb_dev_descriptor_t usb_device_descriptor =
 {
 	.bLength = 0x12,
 	.bDescriptorType = 0x01,
-	.bcdUSB = 0x011,
-	.bDeviceClass = 0x08,
+	.bcdUSB = 0x0200,
+	.bDeviceClass = 0x00,
 	.bDeviceSubClass = 0x00,
 	.bDeviceProtocol = 0x00,
 	.bMaxPacketSize0 = 64,
 	.idVendor = 0x0000,
 	.idProduct = 0xa5a5,
-	.bcdDevice = 0x001,
-	.iManufacturer = 0x00,
-	.iProduct = 0x00,
-	.iSerialNumber = 0x00,
+	.bcdDevice = 0x0200,
+	.iManufacturer = 0x0,
+	.iProduct = 0x0,
+	.iSerialNumber = 0x0,
 	.bNumConfigurations = 1,
 };
 
@@ -165,16 +195,50 @@ static usb_config_descriptor_t usb_configuration_descriptor =
 {
 	.bLength = 0x9,
 	.bDescriptorType = 0x2,
-	.wTotalLength = 9,
+	.wTotalLength = 0,		//Set later.
 	.bNumInterfaces = 1,
 	.bConfigurationValue = 1,
-	.iConfiguration = 0x00,
+	.iConfiguration = 0x0,
 	.bmAttributes = (1 << 6) | (1 << 7),
 	.bMaxPower = 150,
 };
 
+static usb_interface_descriptor_t usb_interface_descriptor = 
+{
+	.bLength = 0x9,
+	.bDescriptorType = USB_DESC_TYPE_INTERFACE,		//4
+	.bInterfaceNumber = 0,
+	.bAlternateSetting = 0,
+	.bNumEndpoints = 2,
+	.bInterfaceClass = 0x08,		//Mass Storage Class
+	.bInterfaceSubClass = 0x06,		//SCSI transparent command set.
+	.bInterfaceProtocol = 0x50,		//Bulk only communication.
+	.iInterface = 0x00,
+};
+
+static usb_endpoint_descriptor_t usb_endpoint_descriptor_IN1 = 
+{
+	.bLength = 0x07,
+	.bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+	.bEndpointAddress = (1 << 7) | 1,			//IN EP, num 1.
+	.bmAttributes = 0x02,
+	.wMaxPacketSize = 0x40,
+	.bInterval = 0
+};
+
+static usb_endpoint_descriptor_t usb_endpoint_descriptor_OUT1 = 
+{
+	.bLength = 0x07,
+	.bDescriptorType = USB_DESC_TYPE_ENDPOINT,
+	.bEndpointAddress = (0 << 7) | 1,			//OUT EP, num 1.
+	.bmAttributes = 0x02,
+	.wMaxPacketSize = 0x40,
+	.bInterval = 0
+};
+
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 void prv_usb_write(volatile uint32_t* fifo, void* data, uint8_t len);
+void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len);
 void prv_wait_for_tx_fifo_flush();
 void prv_wait_for_idle();
 void usb_ep_out_int_handler(uint32_t ir);
@@ -224,6 +288,42 @@ void prv_usb_write(volatile uint32_t* fifo, void* data, uint8_t len)
         }
     }
 }
+
+void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len)
+{
+
+	/* We're only using EP0 right now so set up that endpoint to transmit. */
+	USBx_INEP(0)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos) | len;
+	USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
+
+	uint32_t fifoWord;
+    uint32_t* buffer = (uint32_t*)data;
+    uint8_t remains = len;
+    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
+    {
+        switch (remains)
+        {
+            case 0:
+                break;
+            case 1:
+                fifoWord = *buffer & 0xFF;
+                *fifo = fifoWord;
+                break;
+            case 2:
+                fifoWord = *buffer & 0xFFFF;
+                *fifo = fifoWord;
+                break;
+            case 3:
+                fifoWord = *buffer & 0xFFFFFF;
+                *fifo = fifoWord;
+                break;
+            default:
+                *fifo = *buffer;
+                break;
+        }
+    }
+}
+
 void prv_wait_for_tx_fifo_flush()
 {
 	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) != 0) {}
@@ -236,40 +336,6 @@ void prv_wait_for_idle()
 void usb_ep_out_int_handler(uint32_t ir)
 {
 	//"OUT EP: %x\nRequest Type: %d\n",ir,usb_setup_struct.bRequest
-	/****** SETUP phase complete. ******/
-	if ((ir & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
-	{
-		if (usb_setup_struct.bmRequestType.bit.direction == 1)		//Device to host.
-		{
-			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_DESCRIPTOR)
-			{
-				usb_desc_types_t desc_type = usb_setup_struct.wValue >> 8;		//Get the upper 8 bits (USB2.0, 9.4.3).
-				if (desc_type == USB_DESC_TYPE_DEVICE)
-				{
-					prv_usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
-				}
-				if (desc_type == USB_DESC_TYPE_CONFIGURATION)
-				{
-					prv_usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, 0x9);
-				}
-			}
-			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_STATUS)
-			{
-				prv_usb_write(USB_DFIFO(0), (void*)&usb_device_status, 2);
-			}
-		}
-		else	//Host to device.
-		{
-			if (usb_setup_struct.bRequest == USB_BREQUEST_SET_ADDRESS)
-			{
-				USB_FS_DEVICE->DCFG &= ~(USB_OTG_DCFG_DAD);		//Clear the bits.
-				USB_FS_DEVICE->DCFG |= usb_setup_struct.wValue << USB_OTG_DCFG_DAD_Pos;	//Set the bits.
-				
-				prv_usb_write(USB_DFIFO(0), 0, 0);
-			}
-		}
-		memset(&usb_setup_struct, 0, sizeof(usb_setup_packet_t));
-	}
 
 	/****** Status phase receieved. ******/
 	if ((ir & USB_OTG_DOEPMSK_OTEPSPRM) == USB_OTG_DOEPMSK_OTEPSPRM)
@@ -321,12 +387,6 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 
 	/* Read all the bytes into the temp buffer from the FIFO. */
 	uint32_t* dest_addr = (uint32_t*)&usb_setup_struct;
-	//for (uint32_t i = 0; i < byte_count / 4; i++)
-	//{
-	//	*dest_addr = *USB_DFIFO(end_pt_number);
-		//Dynamic printf here: "Data: %x",*dest_addr
-	//	dest_addr++;
-	//}
 
 	/* If it's a setup packet, move it to the setup struct. */
 	if(packet_status == USB_PACKET_STS_SETUP_RECIEVED)
@@ -336,6 +396,59 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 		struct_addr++;
 			//Dynamic printf here: "Data: %x",*dest_addr
 		*struct_addr = *USB_DFIFO(0);
+
+		if (usb_setup_struct.bmRequestType.bit.direction == 1)		//Device to host.
+		{
+			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_DESCRIPTOR)
+			{
+				usb_desc_types_t desc_type = usb_setup_struct.wValue >> 8;		//Get the upper 8 bits (USB2.0, 9.4.3).
+				if (desc_type == USB_DESC_TYPE_DEVICE)
+				{
+					prv_usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
+				}
+				if (desc_type == USB_DESC_TYPE_CONFIGURATION)
+				{
+					uint32_t total_size = sizeof(usb_config_packet_t);
+					usb_configuration_descriptor.wTotalLength = total_size;
+					usb_config_packet_t usb_config_packet;
+					memcpy(&usb_config_packet.config_desc, &usb_configuration_descriptor, sizeof(usb_config_descriptor_t));
+					memcpy(&usb_config_packet.interface_desc, &usb_interface_descriptor, sizeof(usb_interface_descriptor_t));
+					memcpy(&usb_config_packet.ep_desc_1, &usb_endpoint_descriptor_IN1, sizeof(usb_endpoint_descriptor_t));
+					memcpy(&usb_config_packet.ep_desc_2, &usb_endpoint_descriptor_OUT1, sizeof(usb_endpoint_descriptor_t));
+
+					uint32_t requested_length = usb_setup_struct.wLength;
+					if (total_size <= requested_length)
+					{
+						prv_usb_write(USB_DFIFO(0), (void*)&usb_config_packet, total_size);
+					}
+					else
+					{
+						prv_usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, 9);
+					}
+				}
+				if (desc_type == USB_DESC_TYPE_DEVICE_QUALIFIER)
+				{
+					USBx_INEP(0)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos);
+					USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_STALL | USB_OTG_DIEPCTL_CNAK;
+					USBx_OUTEP(0)->DOEPCTL |= USB_OTG_DOEPCTL_EPENA | USB_OTG_DOEPCTL_STALL;
+				}
+			}
+			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_STATUS)
+			{
+				prv_usb_write(USB_DFIFO(0), (void*)&usb_device_status, 2);
+			}
+		}
+		else	//Host to device.
+		{
+			if (usb_setup_struct.bRequest == USB_BREQUEST_SET_ADDRESS)
+			{
+				USB_FS_DEVICE->DCFG &= ~(USB_OTG_DCFG_DAD);		//Clear the bits.
+				USB_FS_DEVICE->DCFG |= usb_setup_struct.wValue << USB_OTG_DCFG_DAD_Pos;	//Set the bits.
+				
+				prv_usb_write(USB_DFIFO(0), 0, 0);
+			}
+		}
+		memset(&usb_setup_struct, 0, sizeof(usb_setup_packet_t));
 	}
 
 	//Dynamic printf here: "\n"
@@ -354,8 +467,8 @@ void usb_reset_handler()
 	USBx_INEP(0)->DIEPINT = 0xFB7F;						//Clears all the IN endpoint interrupts.
 	USBx_OUTEP(0)->DOEPINT = 0xFB7F;					//Clears all the OUT endpoint interrupts.
 	USB_FS_DEVICE->DAINTMSK = 1 | (1 << 16);			//Enable interrupts for IN EP0 and OUT EP0.
-	USB_FS_DEVICE->DOEPMSK = USB_OTG_DOEPMSK_STUPM		//SETUP received.
-							| USB_OTG_DOEPMSK_XFRCM		//Transfer complete.
+	USB_FS_DEVICE->DOEPMSK = //USB_OTG_DOEPMSK_STUPM		//SETUP done.
+							 USB_OTG_DOEPMSK_XFRCM		//Transfer complete.
 							| USB_OTG_DOEPMSK_OTEPDM	//OUT token received with endpoint disabled.
 							| USB_OTG_DOEPMSK_OTEPSPRM;	//Status phase received.
 
