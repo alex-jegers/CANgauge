@@ -38,6 +38,18 @@ typedef enum
 
 }usb_bRequest_t;
 
+typedef enum
+{
+	USB_DESC_TYPE_DEVICE 			= 1,
+	USB_DESC_TYPE_CONFIGURATION		= 2,
+	USB_DESC_TYPE_STRING			= 3,
+	USB_DESC_TYPE_INTERFACE			= 4,
+	USB_DESC_TYPE_ENDPOINT			= 5,
+	USB_DESC_TYPE_DEVICE_QUALIFIER	= 6,
+	USB_DESC_TYPE_OTHER_SPEED_CONFIGURATION		= 7,
+	USB_DESC_TYPE_INTERFACE_POWER	= 8,
+}usb_desc_types_t;
+
 typedef struct
 {
 	union
@@ -50,7 +62,7 @@ typedef struct
 		}bit;
 	}bmRequestType;
 
-	usb_bRequest_t bRequest;
+	/*usb_bRequest_t*/uint8_t bRequest;
 	uint16_t wValue;
 	union
 	{
@@ -84,14 +96,17 @@ typedef struct
 	uint8_t bNumConfigurations;		
 }usb_dev_descriptor_t;
 
-typedef struct 
+typedef struct __attribute__((packed))
 {
 	uint8_t bLength;			//0xFF i think, double check.
 	uint8_t bDescriptorType;	//2 for config descriptor.
 	uint16_t wTotalLength;		//Total length of data returned for the entire configuration.
 	uint8_t bNumInterfaces;		//Number of interfaces supported by this configuration.
 	uint8_t bConfigurationValue;	//Value to use as an arguement to the SetConfiguration() request to select this configuration.
-}usb_config_descriptor_t;
+	uint8_t iConfiguration;		//Index of string descriptor describing this configuration.
+	uint8_t bmAttributes;		//D6-Self powered; D5-remote wakeup; D7,D4-0-reserved.
+	uint8_t bMaxPower;			//Expressed in 2x mA (50 = 100mA).
+}usb_config_descriptor_t ;
 
 
 
@@ -121,6 +136,8 @@ typedef struct
 #define usb_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk
 #define prv_clear_doepintx_bit(ep, msk)				USBx_OUTEP(ep)->DOEPINT = msk
 #define prv_clear_diepintx_bit(ep, msk)				USBx_OUTEP(ep)->DIEPINT = msk
+#define usb_set_gintmsk()							USB_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT_Msk
+#define usb_clear_gintmsk()							USB_FS->GAHBCFG &= ~(USB_OTG_GAHBCFG_GINT_Msk)
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
@@ -142,6 +159,18 @@ static usb_dev_descriptor_t usb_device_descriptor =
 	.iProduct = 0x00,
 	.iSerialNumber = 0x00,
 	.bNumConfigurations = 1,
+};
+
+static usb_config_descriptor_t usb_configuration_descriptor =
+{
+	.bLength = 0x9,
+	.bDescriptorType = 0x2,
+	.wTotalLength = 9,
+	.bNumInterfaces = 1,
+	.bConfigurationValue = 1,
+	.iConfiguration = 0x00,
+	.bmAttributes = (1 << 6) | (1 << 7),
+	.bMaxPower = 150,
 };
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -214,7 +243,15 @@ void usb_ep_out_int_handler(uint32_t ir)
 		{
 			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_DESCRIPTOR)
 			{
-				prv_usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
+				usb_desc_types_t desc_type = usb_setup_struct.wValue >> 8;		//Get the upper 8 bits (USB2.0, 9.4.3).
+				if (desc_type == USB_DESC_TYPE_DEVICE)
+				{
+					prv_usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
+				}
+				if (desc_type == USB_DESC_TYPE_CONFIGURATION)
+				{
+					prv_usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, 0x9);
+				}
 			}
 			if (usb_setup_struct.bRequest == USB_BREQUEST_GET_STATUS)
 			{
@@ -231,6 +268,7 @@ void usb_ep_out_int_handler(uint32_t ir)
 				prv_usb_write(USB_DFIFO(0), 0, 0);
 			}
 		}
+		memset(&usb_setup_struct, 0, sizeof(usb_setup_packet_t));
 	}
 
 	/****** Status phase receieved. ******/
@@ -293,13 +331,11 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 	/* If it's a setup packet, move it to the setup struct. */
 	if(packet_status == USB_PACKET_STS_SETUP_RECIEVED)
 	{
-		for (uint32_t i = 0; i < byte_count / 4; i++)
-		{
-			*dest_addr = *USB_DFIFO(end_pt_number);
+		uint32_t* struct_addr = &usb_setup_struct;
+		*struct_addr = *USB_DFIFO(0);
+		struct_addr++;
 			//Dynamic printf here: "Data: %x",*dest_addr
-			dest_addr++;
-		}
-		//memcpy(&usb_setup_struct, &buf, 8);
+		*struct_addr = *USB_DFIFO(0);
 	}
 
 	//Dynamic printf here: "\n"
@@ -473,6 +509,7 @@ void OTG_FS_WKUP_IRQHandler()
 }
 void OTG_FS_IRQHandler()
 {
+	//usb_clear_gintmsk();
 	uint32_t ir = USB_OTG_FS->GINTSTS;		//Read the interrupt status register.
 	ir &= USB_OTG_FS->GINTMSK;				//Filter it against the enabled interrupts.
 
@@ -534,4 +571,5 @@ void OTG_FS_IRQHandler()
 		uint32_t endpoint_int = USBx_INEP(0)->DIEPINT;
 		usb_ep_in_int_handler(endpoint_int);
 	}
+	//usb_set_gintmsk();
 }
