@@ -38,13 +38,13 @@ int main(void)
 	/* Set up the display and input device callbacks for LVGL. */
    	static touch_info_t touch_data;						//Where the touch data will be stored.
    	static touch_info_t* p_touch_data = &touch_data;	//Pointer to the touch data for indev_init.
-	lv_port_run();										//Initialize LVGL and LVGL mutex.
-	disp_init();										//LVGL display bindings.
-	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
+	//lv_port_run();										//Initialize LVGL and LVGL mutex.
+	//disp_init();										//LVGL display bindings.
+	//indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
 	touch_scr_run(p_touch_data);						//Runs the touch screen task.
 		
 	/* Load the menu screen. */
-	app_menu_run();
+	//app_menu_run();
 	//lv_demo_benchmark();
 
 
