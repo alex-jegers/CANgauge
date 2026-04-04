@@ -7,6 +7,7 @@
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
 #define BACK_BTN_Y_POS					215
+#define SETTINGS_BTN_Y_POS				300
 #define HIDDEN_LABEL_Y_POS				600
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -17,6 +18,11 @@ static bool prv_is_init = false;
 static lv_obj_t* _main_scr;
 static lv_obj_t* _gauge_select_btn_container;
 static lv_obj_t* _back_btn;
+static lv_obj_t* prv_settings_btn;
+static lv_obj_t* prv_other_scr;
+static lv_obj_t* prv_settings_back_btn;
+static lv_obj_t* prv_brightness_slider;
+static lv_obj_t* prv_other_btn_container;
 
 
 /*All the info for the gauge currently being displayed.*/
@@ -39,16 +45,31 @@ static lv_anim_t _gauge_demo_animation;	//Animation that runs in demo mode, used
 /*Event function pointers.*/
 static void (*_gauge_select_btn_cb)(lv_event_t* e) = NULL;
 static void (*_back_btn_cb)(lv_event_t* e) = NULL;
+static void (*settings_btn_cb)(lv_event_t* e) = NULL;
 static void (*_gauge_cb)(lv_event_t* e) = NULL;
 static lv_event_cb_t _scr_load_cb = NULL;
+static lv_event_cb_t prv_slider_event_cb = NULL;
+static lv_event_cb_t prv_settings_scr_load_event_cb = NULL;
+static lv_event_cb_t prv_demo_mode_checkbox_event_cb = NULL;
+static lv_event_cb_t prv_settings_back_btn_event_cb = NULL;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void _init();
 static void _gauge_select_btn_handler(lv_event_t* e);
 static void _back_btn_handler(lv_event_t* e);
+static void prv_settings_btn_handler(lv_event_t* e);
 static void _gauge_hanlder(lv_event_t* e);
 static void _scr_load_handler(lv_event_t* e);
 static void _gauge_anim_map(void* obj, int32_t val);
+static void prv_init_other_screen();
+static void prv_load_other_screen();
+static void prv_create_brightness_slider();
+
+static void prv_slider_event(lv_event_t* e);
+static void prv_settings_scr_load_event(lv_event_t* e);
+static void prv_settings_back_btn_event(lv_event_t* e);
+static void prv_settings_demo_mode_checkbox_event(lv_event_t* e);
+
 
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl);
 
@@ -60,6 +81,9 @@ static void _init()
 	_main_scr = lv_obj_create(NULL);
 	lv_obj_set_style_bg_color(_main_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	
+	/* Initialize the settings screen as well. */
+	prv_init_other_screen(); 
+
 	/*BUTTON CONTAINER.*/
 	_gauge_select_btn_container = lv_obj_create(_main_scr);
 	lv_obj_align(_gauge_select_btn_container, LV_ALIGN_CENTER, 0, GAUGE_SELECT_CONTAINER_Y_POS);
@@ -74,6 +98,10 @@ static void _init()
 	_back_btn = ui_helpers_create_btn_with_text(_main_scr, "Back", LV_FONT_DEFAULT);
 	lv_obj_align(_back_btn, LV_ALIGN_CENTER, 0, BACK_BTN_Y_POS);
 
+	/*SETTINGS BUTTON.*/
+	prv_settings_btn = ui_helpers_create_btn_with_text(_main_scr, "Settings", LV_FONT_DEFAULT);
+	lv_obj_align(prv_settings_btn, LV_ALIGN_CENTER, 0, SETTINGS_BTN_Y_POS);
+
 	/*HIDDEN LABEL.*/
 	lv_obj_t* hidden_lbl = lv_label_create(_main_scr);
 	lv_obj_align(hidden_lbl, LV_ALIGN_CENTER, 0, HIDDEN_LABEL_Y_POS);
@@ -87,6 +115,7 @@ static void _init()
 	/*BACK BUTTON EVENT.*/
 	lv_obj_add_event(_back_btn, _back_btn_handler, LV_EVENT_CLICKED, NULL);
 	lv_obj_add_event(_main_scr, _scr_load_handler, LV_EVENT_SCREEN_LOAD_START, NULL);
+	lv_obj_add_event(prv_settings_btn, prv_settings_btn_handler, LV_EVENT_CLICKED, NULL);
 
 	/* Check if were in demo mode and make some dummy buttons if we are. */
 	if (ui_helpers_is_demo_mode())
@@ -95,6 +124,51 @@ static void _init()
 		ui_gauges_create_gauge_btn("Boost Pressure");
 		ui_gauges_create_gauge_btn("Ignition Timing Angle");
 	}
+}
+
+static void prv_init_other_screen()
+{
+	/* Init the screen. */
+	prv_other_scr = lv_obj_create(NULL);
+	lv_obj_set_style_bg_color(prv_other_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
+	lv_obj_add_event_cb(prv_other_scr, prv_settings_scr_load_event, LV_EVENT_SCREEN_LOADED, &prv_brightness_slider);
+
+	/* Format the flex flow. */
+	lv_obj_set_layout(prv_other_scr, LV_LAYOUT_FLEX);
+	lv_obj_set_flex_flow(prv_other_scr, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(prv_other_scr, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_set_style_pad_top(prv_other_scr, 50, LV_PART_MAIN);
+	lv_obj_set_style_pad_row(prv_other_scr, 30, LV_STATE_DEFAULT);
+
+	lv_obj_t* settings_lbl = lv_label_create(prv_other_scr);
+	lv_label_set_text(settings_lbl, "Settings");
+	lv_obj_set_style_text_color(settings_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
+	lv_obj_set_style_text_font(settings_lbl, &lv_font_montserrat_28, LV_PART_MAIN);
+
+	prv_create_brightness_slider();
+
+	lv_obj_t* demo_mode_checkbox = lv_checkbox_create(prv_other_scr);
+	lv_checkbox_set_text(demo_mode_checkbox, "Demo Mode");
+	lv_obj_set_style_text_color(demo_mode_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	if (ui_helpers_is_demo_mode())
+	{
+		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, true);
+	}
+	else
+	{
+		lv_obj_set_state(demo_mode_checkbox, LV_STATE_CHECKED, false);
+	}
+	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
+
+
+	/* Make a button to go back. */
+	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_other_scr, "Back", LV_FONT_DEFAULT);
+	lv_obj_add_event_cb(prv_settings_back_btn, prv_settings_back_btn_event, LV_EVENT_RELEASED, NULL);
+}
+
+void prv_load_other_screen()
+{
+	lv_scr_load(prv_other_scr);
 }
 
 static void _gauge_select_btn_handler(lv_event_t* e)
@@ -153,6 +227,23 @@ static void _back_btn_handler(lv_event_t* e)
 	if (_back_btn_cb != NULL)
 	{
 		_back_btn_cb(e);
+	}
+}
+
+static void prv_settings_btn_handler(lv_event_t* e)
+{
+	lv_event_code_t event_code = lv_event_get_code(e);
+	if (event_code == LV_EVENT_CLICKED)
+	{
+		prv_load_other_screen();
+		lv_obj_delete_async(_main_scr);
+		prv_is_init = false;
+	}
+
+	/*Check if there's a function CB assign and call it if there is.*/
+	if (settings_btn_cb != NULL)
+	{
+		settings_btn_cb(e);
 	}
 }
 
@@ -260,6 +351,81 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 		ui_helpers_create_gauge_animation(&_gauge_demo_animation, _gauge, &_gauge_anim_map, 2500, min_val, max_val + 1);
 	}
 }
+
+static void prv_slider_event(lv_event_t* e)
+{
+	if (prv_slider_event_cb)
+	{
+		prv_slider_event_cb(e);
+	}
+}
+
+static void prv_settings_scr_load_event(lv_event_t* e)
+{
+	if (prv_settings_scr_load_event_cb)
+	{
+		prv_settings_scr_load_event_cb(e);
+	}
+}
+
+static void prv_settings_back_btn_event(lv_event_t* e)
+{
+	ui_gauges_load();
+	if (prv_settings_back_btn_event_cb != NULL)
+	{
+		prv_settings_back_btn_event_cb(e);
+	}
+}
+
+static void prv_settings_demo_mode_checkbox_event(lv_event_t* e)
+{
+	lv_event_code_t code = lv_event_get_code(e);
+	lv_obj_t* obj = lv_event_get_target_obj(e);
+	lv_state_t state = lv_obj_get_state(obj);
+
+	if (state & LV_STATE_CHECKED == LV_STATE_CHECKED)
+	{
+		ui_helpers_set_demo_mode(true);
+	}
+	else
+	{
+		ui_helpers_set_demo_mode(false);
+	}
+
+	if (prv_demo_mode_checkbox_event_cb != NULL)
+	{
+		prv_demo_mode_checkbox_event_cb(e);
+	}
+}
+
+static void prv_create_brightness_slider()
+{
+	/* Container to hold label and slider. */
+	lv_obj_t* container = lv_obj_create(prv_other_scr);
+	lv_obj_set_size(container, 400, 120);
+	lv_obj_set_style_bg_color(container, UI_COLOR_GRAY, LV_PART_MAIN);
+	lv_obj_set_style_border_color(container, UI_COLOR_DARK_GRAY, LV_PART_MAIN);
+	lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
+	lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
+
+	/* Create and style the slider object. */
+	prv_brightness_slider = lv_slider_create(container);
+	lv_obj_align(prv_brightness_slider, LV_ALIGN_CENTER, 0, 15);
+	lv_obj_set_width(prv_brightness_slider, 300);
+	lv_obj_set_style_bg_color(prv_brightness_slider, UI_COLOR_RED, LV_PART_MAIN);
+	lv_obj_set_style_bg_color(prv_brightness_slider, UI_COLOR_RED, LV_PART_KNOB);
+	lv_obj_set_style_bg_color(prv_brightness_slider, UI_COLOR_RED, LV_PART_INDICATOR);
+
+	/* Create and style the label. */
+	lv_obj_t* lbl = lv_label_create(container);
+	lv_obj_align(lbl, LV_ALIGN_CENTER, 0, -30);
+	lv_obj_set_style_text_color(lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	lv_label_set_text(lbl, "Brightness");
+
+	/* Bind the event callback. */
+	lv_obj_add_event_cb(prv_brightness_slider, prv_slider_event, LV_EVENT_VALUE_CHANGED, NULL);
+}
+
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void ui_gauges_load()

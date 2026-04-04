@@ -1,6 +1,6 @@
 /**
  * @file lv_conf.h
- * Configuration file for v9.3.0
+ * Configuration file for v9.5.0
  */
 
 /*
@@ -9,17 +9,7 @@
  * 2. or to any other place and
  *    - define `LV_CONF_INCLUDE_SIMPLE`;
  *    - add the path as an include path.
- * 
- * CHANGES:
- * 	#define LV_MEM_SIZE (64 - > 128 * 1024U)
- *  #define LV_COLOR_DEPTH              16 -> 32
- *  #define LV_USE_DRAW_ARM2D_SYNC      0 -> 1
- *  #define LV_FONT_MONTSERRAT_20       0 -> 1
- *  #define LV_FONT_MONTSERRAT_30       0 -> 1
- *  #define LV_FONT_MONTSERRAT_48       0 -> 1
  */
-
-/* Check for CORE_CM7 so were not building LVGL on the second core.*/
 
 /* clang-format off */
 #define ENABLE_LVGL		1 /* Set this to "1" to enable content */
