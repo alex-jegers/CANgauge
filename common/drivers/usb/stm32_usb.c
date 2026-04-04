@@ -218,10 +218,14 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 					usb_handle_get_descriptor();
 				}
 			
-				if (usb_setup_struct.bRequest == USB_BREQUEST_GET_STATUS)
+				else if (usb_setup_struct.bRequest == USB_BREQUEST_GET_STATUS)
 				{
 					usb_write(USB_DFIFO(0), (void*)&usb_device_status, 2);
 				}	
+				else
+				{
+					assert(0);
+				}
 			}
 			else if (usb_setup_struct.bmRequestType.bit.reciepient == USB_BMREQUESTTYPE_TYPE_CLASS)
 			{
@@ -240,7 +244,7 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 				usb_write(USB_DFIFO(0), 0, 0);
 			}
 
-			if (usb_setup_struct.bRequest == USB_BREQUEST_SET_CONFIGURATION)
+			else if (usb_setup_struct.bRequest == USB_BREQUEST_SET_CONFIGURATION)
 			{
 				USBx_INEP(1)->DIEPINT = 0xFB7F;						//Clears all the IN endpoint interrupts.
 				USBx_OUTEP(1)->DOEPINT = 0xFB7F;					//Clears all the OUT endpoint interrupts.
@@ -268,6 +272,10 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 
 			    usb_write(USB_DFIFO(0), 0, 0);
 			}
+			else
+			{
+				assert(0);
+			}
 		}
 		memset(&usb_setup_struct, 0, sizeof(usb_setup_packet_t));
 	}
@@ -294,7 +302,7 @@ void usb_handle_get_descriptor()
 	{
 		usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
 	}
-	if (desc_type == USB_DESC_TYPE_CONFIGURATION)
+	else if (desc_type == USB_DESC_TYPE_CONFIGURATION)
 	{
 		uint32_t total_size = sizeof(usb_config_packet_t);
 		usb_configuration_descriptor.wTotalLength = total_size;
@@ -314,12 +322,16 @@ void usb_handle_get_descriptor()
 			usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, 9);
 		}
 	}
-	if (desc_type == USB_DESC_TYPE_DEVICE_QUALIFIER)
+	else if (desc_type == USB_DESC_TYPE_DEVICE_QUALIFIER)
 	{
 		USBx_INEP(0)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos);
 		USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_STALL | USB_OTG_DIEPCTL_CNAK;
 		USBx_OUTEP(0)->DOEPTSIZ = (1 << USB_OTG_DOEPTSIZ_PKTCNT_Pos);
 		USBx_OUTEP(0)->DOEPCTL |= USB_OTG_DOEPCTL_EPENA | USB_OTG_DOEPCTL_STALL;
+	}
+	else
+	{
+		assert(0);
 	}
 }
 

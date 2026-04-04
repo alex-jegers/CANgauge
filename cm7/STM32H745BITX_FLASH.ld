@@ -51,7 +51,7 @@ MEMORY
   RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K	/*CM7 heap and data.*/
   RAM_D3 (xrw)   	: ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
   ITCMRAM (xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K		/*Not used.*/
-  EXT_RAM (xrw) 	: ORIGIN = 0x70000000, LENGTH = 32M
+  EXT_RAM (xrw) 	: ORIGIN = 0x70000000, LENGTH = 16M
 
 }
 
