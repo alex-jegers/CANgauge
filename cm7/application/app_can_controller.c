@@ -95,7 +95,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	/* If the CAN ID isn't 0x00 (meaning it found an ECU, ask for all the other "available PIDs" PIDs.)*/
 	if (prv_can_id != 0x00)
 	{
-		can_id_t can_id_type = (prv_can_id = 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
+		can_id_t can_id_type = (prv_can_id == 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
 		prv_get_available_pids(prv_can_id, can_id_type);
 	}
 
