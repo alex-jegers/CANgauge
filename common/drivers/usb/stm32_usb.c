@@ -319,7 +319,7 @@ void usb_handle_get_descriptor()
 		}
 		else
 		{
-			usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, 9);
+			usb_write(USB_DFIFO(0), (void*)&usb_configuration_descriptor, requested_length);
 		}
 	}
 	else if (desc_type == USB_DESC_TYPE_DEVICE_QUALIFIER)
@@ -339,9 +339,15 @@ void usb_reset_handler()
 {
     USB_FS_DEVICE->DCTL &= ~USB_OTG_DCTL_RWUSIG;	//Clearing the remote wakeup signaling bit.
 	
-	/* Flush all the TX FIFOs. */
+	/*Flush TX FIFOs.*/
 	prv_wait_for_idle();
-	USB_FS->GRSTCTL = (USB_OTG_GRSTCTL_TXFFLSH | (15 << 6));
+	USB_FS->GRSTCTL = (USB_OTG_GRSTCTL_TXFFLSH | (15 << USB_OTG_GRSTCTL_TXFNUM_Pos));
+	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) == USB_OTG_GRSTCTL_TXFFLSH) {}
+
+	/*Flush the RX FIFOs.*/
+	prv_wait_for_idle();
+	USB_FS->GRSTCTL = USB_OTG_GRSTCTL_RXFFLSH;
+	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_RXFFLSH) == USB_OTG_GRSTCTL_RXFFLSH) {}
 
 	/* Endpoint interrupts. */
 	USBx_INEP(0)->DIEPINT = 0xFB7F;						//Clears all the IN endpoint interrupts.
@@ -442,16 +448,6 @@ void usb_init_core()
 	/*Set device speed.*/
   	USB_FS_DEVICE->DCFG |= 0x3;
 
-	/*Flush TX FIFOs.*/
-	prv_wait_for_idle();
-	USB_FS->GRSTCTL = (USB_OTG_GRSTCTL_TXFFLSH | (15 << USB_OTG_GRSTCTL_TXFNUM_Pos));
-	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) == USB_OTG_GRSTCTL_TXFFLSH) {}
-
-	/*Flush the RX FIFOs.*/
-	prv_wait_for_idle();
-	USB_FS->GRSTCTL = USB_OTG_GRSTCTL_RXFFLSH;
-	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_RXFFLSH) == USB_OTG_GRSTCTL_RXFFLSH) {}
-
 	/* In case phy is stopped, ensure to ungate and restore the phy CLK */
   	USB_OTG_PCGCCTL &= ~(USB_OTG_PCGCCTL_STOPCLK | USB_OTG_PCGCCTL_GATECLK);
 
@@ -521,14 +517,7 @@ void OTG_FS_IRQHandler()
 		return;
 	}
 
-	/****** Handle new RX. ******/
-	if (ir & USB_OTG_GINTSTS_RXFLVL)
-	{
-		uint32_t status = USB_FS->GRXSTSP;
-		usb_rx_fifo_handler(status);
-	}
-
-	/****** USB Reset handler. *******/
+		/****** USB Reset handler. *******/
 	if (ir & USB_OTG_GINTSTS_USBRST)
 	{
 		usb_reset_handler();
@@ -542,6 +531,13 @@ void OTG_FS_IRQHandler()
 		USB_FS->GUSBCFG &= ~(USB_OTG_GUSBCFG_TRDT);				//Clear the turn around time bits.
 		USB_FS->GUSBCFG |= 0x6 << USB_OTG_GUSBCFG_TRDT_Pos;		//Set turnaround time to 6 (this is what HAL uses for a 120MHz AHB clk).
 		usb_clear_gintsts_bit(USB_OTG_GINTSTS_ENUMDNE);
+	}
+
+	/****** Handle new RX. ******/
+	if (ir & USB_OTG_GINTSTS_RXFLVL)
+	{
+		uint32_t status = USB_FS->GRXSTSP;
+		usb_rx_fifo_handler(status);
 	}
 
 	/****** OUT endpoint interrupt. ******/
@@ -567,6 +563,13 @@ void OTG_FS_IRQHandler()
 		 * */
 		uint32_t endpoint_int = USBx_INEP(0)->DIEPINT;
 		usb_ep_in_int_handler(0, endpoint_int);
+	}
+
+	if (ir & USB_OTG_GINTSTS_ESUSP)
+	{
+		usb_init();
+		usb_init_core();
+		usb_clear_gintsts_bit(USB_OTG_GINTSTS_ESUSP);
 	}
 	//usb_set_gintmsk();
 }
