@@ -99,8 +99,8 @@ void system_task_init()
 	prv_lcd_bl_init();
 
 	/*Enable the caches.*/
-	//SCB_EnableDCache();
-	//SCB_EnableICache();
+	SCB_EnableDCache();
+	SCB_EnableICache();
 
 	/* Create the private event group. */
 	prv_event_group = xEventGroupCreate();
@@ -114,7 +114,7 @@ void system_task_init()
 
 	system_blink_run(1000);
 
-	//pwr_monitor_run(4);
+	pwr_monitor_run(4);
 
 	xTaskResumeAll();
 	//portEXIT_CRITICAL();
