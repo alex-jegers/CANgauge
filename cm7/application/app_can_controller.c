@@ -75,6 +75,8 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	saej1979_ext_filter.F1.bit.EFID2 = 0x18DAF1FF;
 	can_set_ext_id_filter(FDCAN1, 0, &saej1979_ext_filter);
 
+	vTaskDelay(pdMS_TO_TICKS(2000));
+
 	/* Check for an ECU at CAN ID 0x7DF. */
 	if (prv_uds_ecu_present(0x7DF, CAN_ID_STD))
 	{
