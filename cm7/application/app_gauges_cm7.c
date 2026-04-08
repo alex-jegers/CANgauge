@@ -41,9 +41,16 @@ static void prv_gauge_scr_load_cb(lv_event_t* e);		//Handler for the gauge scree
 static void prv_gauge_select_btn_cb(lv_event_t* e);		//Handler for a available being selected.
 static void prv_gauge_back_btn_cb(lv_event_t* e);		//Handler for if the back button is pressed.
 
+static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brightness slider being changed.
+static void prv_menu_scr_load_handler(lv_event_t* e);
+
+static void prv_settings_btn_clicked_cb(lv_event_t* e);
+static void prv_settings_back_btn_clicked_cb(lv_event_t* e);
+
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
 {
+	//TODO: This check for demo mode is obsolete bc were starting from gauges now not the main menu.
 	if (ui_helpers_is_demo_mode())
 	{
 		/* Stop the task but dont block at all because we're calling from in the task just to set prv_run to false. */
@@ -63,16 +70,20 @@ static void prv_task_gauges()
 	app_can_controller_run();
 
 	/* Set the LVGL event callbacks. */
-	ui_gauges_set_gauge_cb(prv_gauge_event_cb);
-	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);
-	ui_gauges_set_gauge_select_btn_cb(prv_gauge_select_btn_cb);
-	ui_gauges_set_back_btn_cb(prv_gauge_back_btn_cb);
+	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
+	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);		//The gauge screen loads (nothing programmed).
+	ui_gauges_set_gauge_select_btn_cb(prv_gauge_select_btn_cb);		//A gauge is selected (load the gauge and set the CAN getter).
+	ui_gauges_set_back_btn_cb(prv_gauge_back_btn_cb);		//The back button is clicked. TODO: Remove, no where to go back to anymore.
+    ui_menu_set_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
+    ui_menu_set_settings_scr_load_event_cb(prv_menu_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
+    ui_menu_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
+    ui_menu_set_settings_back_btn_event_cb(prv_settings_back_btn_clicked_cb);		//Start the gauges and CAN tasks again.
 
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
 
 	/* Wait for the CAN controller to initialize. */
-	if (!app_can_controller_is_init( pdMS_TO_TICKS(5000) ) )
+	if (!app_can_controller_is_init( pdMS_TO_TICKS(10000) ) )
 	{
 		/* Do something if it fails. */
 	}
@@ -230,6 +241,8 @@ static void prv_gauge_back_btn_cb(lv_event_t* e)
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void app_gauges_run()
 {
+	ui_gauges_load();
+
 	prv_task_run = true;
 	
 	if (prv_event_group == NULL)
@@ -317,4 +330,45 @@ int32_t saej1979_current_data_process_data(can_rx_buffer_entry_t* input)
 saej1979_current_data_t* saej1979_get_current_data(uint8_t pid)
 {
 	return saej1979_current_data_arr[pid];
+}
+
+static void prv_brightness_slider_handler(lv_event_t* e)
+{
+    lv_obj_t* obj = lv_event_get_target_obj(e);
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if (code == LV_EVENT_VALUE_CHANGED)
+    {
+        uint8_t slider_val = lv_slider_get_value(obj);      //Returns a value between 0 and 100.
+        uint32_t timer_val = (605 * slider_val) + 5000;		//Map the slider value of 0 to 100 to 5000 to 65535.
+        timer_set_pwm_duty_cycle(TIM12, timer_val, 1);
+    }
+
+}
+
+static void prv_menu_scr_load_handler(lv_event_t* e)
+{
+	lv_event_code_t code = lv_event_get_code(e);
+
+	if (code == LV_EVENT_SCREEN_LOADED)
+	{
+			lv_obj_t** slider = lv_event_get_user_data(e);
+			uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
+			uint32_t slider_val = (timer_val - 5000) / 605;
+			lv_slider_set_value(*slider, slider_val, LV_ANIM_OFF);
+	}
+
+}
+
+static void prv_settings_btn_clicked_cb(lv_event_t* e)
+{
+	/* Wait until all the tasks have been stopped. */
+	can_transmit_stop(0);
+	app_can_controller_stop(0);
+	app_gauges_stop(0);
+}
+
+static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
+{
+	app_gauges_run();
 }

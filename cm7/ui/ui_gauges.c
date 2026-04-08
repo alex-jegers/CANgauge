@@ -7,7 +7,7 @@
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
 #define BACK_BTN_Y_POS					215
-#define SETTINGS_BTN_Y_POS				300
+#define SETTINGS_BTN_Y_POS				500
 #define HIDDEN_LABEL_Y_POS				600
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -437,8 +437,6 @@ void ui_gauges_load()
 	}
 	lv_scr_load(_main_scr);
 	lv_obj_remove_event(_main_scr, 0);
-
-
 }
 
 void ui_gauges_set_gauge_value(float val)
@@ -489,4 +487,29 @@ void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e))
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func)
 {
 	_scr_load_cb = func;
+}
+
+void ui_menu_set_slider_event_cb(lv_event_cb_t func)
+{
+	prv_slider_event_cb = func;
+}
+
+void ui_menu_set_settings_scr_load_event_cb(lv_event_cb_t func)
+{
+	prv_settings_scr_load_event_cb = func;
+}
+
+void ui_menu_set_demo_mode_checkbox_event_cb(lv_event_cb_t func)
+{
+	prv_demo_mode_checkbox_event_cb = func;
+}
+
+void ui_menu_set_settings_btn_event_cb(lv_event_cb_t func)
+{
+	settings_btn_cb = func;
+}
+
+void ui_menu_set_settings_back_btn_event_cb(lv_event_cb_t func)
+{
+	prv_settings_back_btn_event_cb = func;
 }

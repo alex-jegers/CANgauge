@@ -30,6 +30,12 @@ void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_back_btn_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func);
+void ui_menu_set_slider_event_cb(lv_event_cb_t func);
+
+void ui_menu_set_settings_scr_load_event_cb(lv_event_cb_t func);
+void ui_menu_set_demo_mode_checkbox_event_cb(lv_event_cb_t func);
+void ui_menu_set_settings_btn_event_cb(lv_event_cb_t func);
+void ui_menu_set_settings_back_btn_event_cb(lv_event_cb_t func);
 
 
 
