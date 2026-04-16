@@ -1,6 +1,5 @@
 /**********     INCLUDES        **********/
 #include "ui_car_menu.h"
-#include "ui_can_sniffer.h"
 #include "ui_gauges.h"
 /**********		DEFINES		**********/
 #define LOGO_Y_POS			-100
