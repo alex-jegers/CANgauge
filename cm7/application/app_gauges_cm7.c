@@ -73,11 +73,11 @@ static void prv_task_gauges()
 	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
 	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);		//The gauge screen loads (nothing programmed).
 	ui_gauges_set_gauge_select_btn_cb(prv_gauge_select_btn_cb);		//A gauge is selected (load the gauge and set the CAN getter).
-	ui_gauges_set_back_btn_cb(prv_gauge_back_btn_cb);		//The back button is clicked. TODO: Remove, no where to go back to anymore.
-    ui_menu_set_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
-    ui_menu_set_settings_scr_load_event_cb(prv_menu_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
-    ui_menu_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
-    ui_menu_set_settings_back_btn_event_cb(prv_settings_back_btn_clicked_cb);		//Start the gauges and CAN tasks again.
+
+    ui_set_brightness_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
+    ui_set_settings_scr_load_event_cb(prv_menu_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
+    ui_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
+    ui_set_settings_back_btn_event_cb(prv_settings_back_btn_clicked_cb);		//Start the gauges and CAN tasks again.
 
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
