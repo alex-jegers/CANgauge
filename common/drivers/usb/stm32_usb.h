@@ -177,6 +177,8 @@ typedef struct __attribute__((packed))
                                                         + USB_OTG_OUT_ENDPOINT_BASE + ((i) * USB_OTG_EP_REG_SIZE)))
 #define USB_DFIFO(i)   						(uint32_t*)(USB2_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + ((i) * USB_OTG_FIFO_SIZE))
 
+#define USB_LANG_ID_ENGLISH_USA					0x0409
+
 #define usb_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk
 #define prv_clear_doepintx_bit(ep, msk)				USBx_OUTEP(ep)->DOEPINT = msk
 #define prv_clear_diepintx_bit(ep, msk)				USBx_OUTEP(ep)->DIEPINT = msk
@@ -200,7 +202,7 @@ static usb_dev_descriptor_t usb_device_descriptor =
 	.idProduct = 0xa5a5,
 	.bcdDevice = 0x0200,
 	.iManufacturer = 0x0,
-	.iProduct = 0x0,
+	.iProduct = 0x1,
 	.iSerialNumber = 0x0,
 	.bNumConfigurations = 1,
 };

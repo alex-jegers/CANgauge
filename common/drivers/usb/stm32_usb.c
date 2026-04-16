@@ -329,6 +329,32 @@ void usb_handle_get_descriptor()
 		USBx_OUTEP(0)->DOEPTSIZ = (1 << USB_OTG_DOEPTSIZ_PKTCNT_Pos);
 		USBx_OUTEP(0)->DOEPCTL |= USB_OTG_DOEPCTL_EPENA | USB_OTG_DOEPCTL_STALL;
 	}
+	else if (desc_type == USB_DESC_TYPE_STRING)
+	{
+		/* Index is the low byte of wValue */
+		uint8_t index = usb_setup_struct.wValue & 0xFF;
+		if (index == 0)
+		{
+			uint8_t string_desc[6];
+			string_desc[0] = 0x6;
+			string_desc[1] = USB_DESC_TYPE_STRING;
+			string_desc[2] = 0x09;
+			string_desc[3] = 0x04;
+			string_desc[4] = 0x09;
+			string_desc[5] = 0x04;
+			usb_write(USB_DFIFO(0), (void*)&string_desc, 6);
+		}
+		else if (index == 1)
+		{
+			uint8_t strng[10] = {
+					10,
+					USB_DESC_TYPE_STRING,
+					'C','A','N','g','a','u','g','e'
+			};
+			usb_write(USB_DFIFO(0), (void*)&strng, 10);
+		}
+
+	}
 	else
 	{
 		assert(0);
