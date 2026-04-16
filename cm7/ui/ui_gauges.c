@@ -6,8 +6,7 @@
 
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
-#define BACK_BTN_Y_POS					215
-#define SETTINGS_BTN_Y_POS				500
+#define SETTINGS_BTN_Y_POS				215
 #define HIDDEN_LABEL_Y_POS				600
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -44,7 +43,6 @@ static lv_anim_t _gauge_demo_animation;	//Animation that runs in demo mode, used
 
 /*Event function pointers.*/
 static void (*_gauge_select_btn_cb)(lv_event_t* e) = NULL;
-static void (*_back_btn_cb)(lv_event_t* e) = NULL;
 static void (*settings_btn_cb)(lv_event_t* e) = NULL;
 static void (*_gauge_cb)(lv_event_t* e) = NULL;
 static lv_event_cb_t _scr_load_cb = NULL;
@@ -56,7 +54,6 @@ static lv_event_cb_t prv_settings_back_btn_event_cb = NULL;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void _init();
 static void _gauge_select_btn_handler(lv_event_t* e);
-static void _back_btn_handler(lv_event_t* e);
 static void prv_settings_btn_handler(lv_event_t* e);
 static void _gauge_hanlder(lv_event_t* e);
 static void _scr_load_handler(lv_event_t* e);
@@ -94,10 +91,6 @@ static void _init()
 	lv_obj_set_flex_flow(_gauge_select_btn_container, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(_gauge_select_btn_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 
-	/*BACK BUTTON.*/
-	_back_btn = ui_helpers_create_btn_with_text(_main_scr, "Back", LV_FONT_DEFAULT);
-	lv_obj_align(_back_btn, LV_ALIGN_CENTER, 0, BACK_BTN_Y_POS);
-
 	/*SETTINGS BUTTON.*/
 	prv_settings_btn = ui_helpers_create_btn_with_text(_main_scr, "Settings", LV_FONT_DEFAULT);
 	lv_obj_align(prv_settings_btn, LV_ALIGN_CENTER, 0, SETTINGS_BTN_Y_POS);
@@ -113,7 +106,6 @@ static void _init()
 
 	/*Bind the controls and event function handlers.*/
 	/*BACK BUTTON EVENT.*/
-	lv_obj_add_event(_back_btn, _back_btn_handler, LV_EVENT_CLICKED, NULL);
 	lv_obj_add_event(_main_scr, _scr_load_handler, LV_EVENT_SCREEN_LOAD_START, NULL);
 	lv_obj_add_event(prv_settings_btn, prv_settings_btn_handler, LV_EVENT_CLICKED, NULL);
 
@@ -211,23 +203,6 @@ static void _gauge_select_btn_handler(lv_event_t* e)
 
 	lv_screen_load(_gauge_scr);
 	lv_obj_add_event(_gauge, _gauge_hanlder, LV_EVENT_CLICKED, NULL);	//Bind the event to go back and clean the gauge if it's clicked.
-}
-
-static void _back_btn_handler(lv_event_t* e)
-{
-	lv_event_code_t event_code = lv_event_get_code(e);
-	if (event_code == LV_EVENT_CLICKED)
-	{
-		ui_menu_load();
-		lv_obj_delete_async(_main_scr);
-		prv_is_init = false;
-	}
-
-	/*Check if there's a function CB assign and call it if there is.*/
-	if (_back_btn_cb != NULL)
-	{
-		_back_btn_cb(e);
-	}
 }
 
 static void prv_settings_btn_handler(lv_event_t* e)
@@ -474,11 +449,6 @@ void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e))
 	_gauge_select_btn_cb = func;
 }
 
-void ui_gauges_set_back_btn_cb(void (*func)(lv_event_t* e))
-{
-	_back_btn_cb = func;
-}
-
 void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e))
 {
 	_gauge_cb = func;
@@ -489,27 +459,27 @@ void ui_gauges_set_scr_load_cb(lv_event_cb_t func)
 	_scr_load_cb = func;
 }
 
-void ui_menu_set_slider_event_cb(lv_event_cb_t func)
+void ui_set_brightness_slider_event_cb(lv_event_cb_t func)
 {
 	prv_slider_event_cb = func;
 }
 
-void ui_menu_set_settings_scr_load_event_cb(lv_event_cb_t func)
+void ui_set_settings_scr_load_event_cb(lv_event_cb_t func)
 {
 	prv_settings_scr_load_event_cb = func;
 }
 
-void ui_menu_set_demo_mode_checkbox_event_cb(lv_event_cb_t func)
+void ui_set_demo_mode_checkbox_event_cb(lv_event_cb_t func)
 {
 	prv_demo_mode_checkbox_event_cb = func;
 }
 
-void ui_menu_set_settings_btn_event_cb(lv_event_cb_t func)
+void ui_set_settings_btn_event_cb(lv_event_cb_t func)
 {
 	settings_btn_cb = func;
 }
 
-void ui_menu_set_settings_back_btn_event_cb(lv_event_cb_t func)
+void ui_set_settings_back_btn_event_cb(lv_event_cb_t func)
 {
 	prv_settings_back_btn_event_cb = func;
 }
