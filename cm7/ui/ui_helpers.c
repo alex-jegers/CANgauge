@@ -45,9 +45,26 @@ lv_obj_t* ui_helpers_create_btn_with_text(lv_obj_t* parent, char* text, lv_font_
 	return temp_btn;
 }
 
+lv_obj_t* ui_helpers_create_checkbox_with_text(lv_obj_t* parent, char* text, lv_font_t* font)
+{
+	lv_obj_t* temp_checkbox;
+	temp_checkbox = lv_checkbox_create(parent);
+	lv_checkbox_set_text(temp_checkbox, text);
+	lv_obj_align(temp_checkbox, LV_ALIGN_LEFT_MID, 0, 0);
+	lv_obj_set_style_text_color(temp_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	lv_obj_set_style_border_color(temp_checkbox, UI_COLOR_RED, LV_STATE_DEFAULT | LV_PART_INDICATOR);
+	lv_obj_set_style_bg_color(temp_checkbox, UI_COLOR_RED, LV_STATE_CHECKED | LV_PART_INDICATOR);
+	lv_obj_set_style_pad_left(temp_checkbox, 5, LV_PART_INDICATOR);
+	lv_obj_set_style_pad_right(temp_checkbox, 5, LV_PART_INDICATOR);
+	lv_obj_set_style_pad_top(temp_checkbox, 5, LV_PART_INDICATOR);
+	lv_obj_set_style_pad_bottom(temp_checkbox, 5, LV_PART_INDICATOR);
+
+	return temp_checkbox;
+}
+
 lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle)
 {
-	uint32_t total_tick_count = max_val - min_val;						
+	uint32_t total_tick_count = abs(max_val - min_val);						
 	uint32_t major_tick_increment = 1000;
 
 	while (1)
@@ -81,7 +98,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 
 	
 	lv_obj_t* temp_gauge = lv_scale_create(parent);
-	lv_obj_set_size(temp_gauge, 400, 400);
+	lv_obj_set_size(temp_gauge, 420, 420);
 	lv_obj_align(temp_gauge, LV_ALIGN_CENTER, 0, 0);
 	lv_scale_set_mode(temp_gauge, LV_SCALE_MODE_ROUND_INNER);
 	lv_scale_set_label_show(temp_gauge, true);
@@ -113,6 +130,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 	if (needle != NULL)
 	{
 		/* Make the center circle. */
+		/*
 		lv_obj_t* center_circle = lv_obj_create(temp_gauge);
 		lv_obj_set_size(center_circle, 50, 50);
 		lv_obj_set_style_radius(center_circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
@@ -121,14 +139,16 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 		lv_obj_set_style_border_width(center_circle, 0, LV_PART_MAIN);
 		lv_obj_set_style_border_color(center_circle, UI_COLOR_BLACK, LV_PART_MAIN);
 		lv_obj_set_scrollbar_mode(center_circle, LV_SCROLLBAR_MODE_OFF);
-
+		*/
 
 
 		/* Add shadow to center circle. */
+		/*
 		lv_obj_set_style_shadow_color(center_circle, UI_COLOR_RED, LV_PART_MAIN);
 		lv_obj_set_style_shadow_width(center_circle, 25, LV_PART_MAIN);
 		lv_obj_set_style_shadow_opa(center_circle, 175, LV_PART_MAIN);
 		lv_obj_set_style_shadow_spread(center_circle, 10, LV_PART_MAIN);
+		*/
 
 		/* Create the needle. */
 		*needle = lv_line_create(temp_gauge);
