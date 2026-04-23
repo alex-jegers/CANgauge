@@ -1,7 +1,6 @@
 /**********     INCLUDES        **********/
 #include "app_menu.h"
 #include "lvgl/lvgl.h"
-#include "ui/ui_car_menu.h"
 
 #include "drivers/drivers.h"
 

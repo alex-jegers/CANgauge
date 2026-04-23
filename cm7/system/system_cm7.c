@@ -13,7 +13,7 @@
 #include "drivers/drivers.h"
 
 #include "ui/ui_helpers.h"
-#include "ui/ui_car_menu.h"
+#include "ui/ui_gauges.h"
 
 
 /**********		DEFINES		**********/
