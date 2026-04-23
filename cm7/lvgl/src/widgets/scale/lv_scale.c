@@ -304,15 +304,9 @@ void lv_scale_set_line_needle_value(lv_obj_t * obj, lv_obj_t * needle_line, int3
         actual_needle_length = scale_width / 2 + needle_length;
     }
 
-    if(value < scale->range_min) {
-        angle = 0;
-    }
-    else if(value > scale->range_max) {
-        angle = scale->angle_range;
-    }
-    else {
-        angle = scale->angle_range * (value - scale->range_min) / (scale->range_max - scale->range_min);
-    }
+
+    angle = (int32_t)((int32_t)scale->angle_range * (value - scale->range_min)) / (scale->range_max - scale->range_min);
+
 
     needle_length_x = (actual_needle_length * lv_trigo_cos(scale->rotation + angle)) >> LV_TRIGO_SHIFT;
     needle_length_y = (actual_needle_length * lv_trigo_sin(scale->rotation + angle)) >> LV_TRIGO_SHIFT;
