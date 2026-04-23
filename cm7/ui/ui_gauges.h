@@ -22,10 +22,11 @@ void ui_gauges_load();
 * params:
 * val:
 */
-void ui_gauges_set_gauge_value(float val);
-void ui_gauges_create_gauge_btn(const char* name);
-void ui_gauges_create_gauge(const char* name, const char* units, uint32_t min, uint32_t max);
-
+void ui_gauges_set_gauge_value(float val, uint8_t idx);
+void ui_gauges_create_gauge_btn(const char* name);			//TODO: Remove, obsolete.
+void ui_gauges_create_gauge_checkbox(const char* name);
+void ui_gauges_create_gauge(const char* name, const char* units, int32_t min, int32_t max, uint8_t gauge_idx);
+void ui_gauges_set_number_of_gauges(uint8_t num_gauges);
 /**
  * Callbacks for UI element events.
  */
@@ -38,7 +39,7 @@ void ui_set_settings_scr_load_event_cb(lv_event_cb_t func);				//The settings sc
 void ui_set_demo_mode_checkbox_event_cb(lv_event_cb_t func);			//The demo mode checkbox state is changed.
 void ui_set_settings_btn_event_cb(lv_event_cb_t func);					//The button to load the settings screen is pressed.
 void ui_set_settings_back_btn_event_cb(lv_event_cb_t func);				//The back button within the settings screen is pressed.
-
+void ui_gauges_set_view_btn_cb(lv_event_cb_t func);
 
 
 #ifdef __cplusplus
