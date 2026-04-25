@@ -31,6 +31,13 @@ bool can_transmit_stop(uint32_t block_time_ms);
 
 can_transmit_handle_t* can_transmit_create_msg();
 bool can_transmit_set_period(can_transmit_handle_t* hndl, uint32_t period_ms);
+
+/**
+ * can_transmit_set_msg_data:
+ * desc:
+ * 	buf gets copied into CAN TX message RAM and does not need a permanent lifespan. buf can be
+ * 	accessed and edited through hndl after a message is created.
+ */
 bool can_transmit_set_msg_data(can_transmit_handle_t* hndl, can_tx_buffer_entry_t* buf);
 bool can_transmit_set_active(can_transmit_handle_t* hndl);
 bool can_transmit_set_inactive(can_transmit_handle_t* hndl);

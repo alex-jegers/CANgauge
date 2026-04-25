@@ -29,7 +29,9 @@ static void prv_task_can_transmit()
     {
         current_time_ms = xTaskGetTickCount();
 
-        for (uint8_t i = 0; i < 32; i++)
+        static uint8_t restart_position = 0;
+        uint8_t i = restart_position;
+        do
         {
             /* If the the handle isn't point to a buffer go to the next one. */
             if (prv_handles[i].buf == NULL)
@@ -48,6 +50,7 @@ static void prv_task_can_transmit()
                 can_tx(FDCAN1, i);
                 prv_delete_handle(&prv_handles[i]);
                 time_till_next = prv_min_time_between_msg_ms;
+                restart_position = i;
                 break;
             }
 
@@ -61,13 +64,9 @@ static void prv_task_can_transmit()
                 /* Reset the last time sent. */
                 prv_handles[i].last_time_sent = current_time_ms;
                 
-                /* Check if this messages period is greater than or equal to the time till next TX...*/
-                if (prv_handles[i].period_ms <= time_till_next)
-                {
-                    /* If it is, make this the new time till next. */
-                    time_till_next = prv_handles[i].period_ms;
-                }
-                continue;
+                time_till_next = prv_min_time_between_msg_ms;
+                restart_position = i;
+                break;
             }
             else
             {
@@ -80,8 +79,7 @@ static void prv_task_can_transmit()
                     time_till_next = next;
                 }   
             }
-
-        }
+        } while ((i = ((i + 1) % 32)) != restart_position);
 
         if (can_get_last_error_code(FDCAN1) == CAN_ERROR_CODE_ACK_ERROR)
         {
