@@ -67,10 +67,19 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 	uint32_t total_tick_count = abs(max_val - min_val);						
 	uint32_t major_tick_increment = 1000;
 
-	while (1)
+	if (angle_range < 90)
 	{
-		/* If were at 1, we cant go any lower so break.*/
-		if (major_tick_increment == 1)
+		major_tick_increment = total_tick_count;
+	}
+
+	/**
+	* If angle range is less than 90 the tick increment was already 
+	* determined above so skip this loop.
+	*/
+	while (angle_range > 90)
+	{
+		/* If were at 2, we cant go any lower so break.*/
+		if (major_tick_increment == 2)
 		{
 			break;
 		}
@@ -154,7 +163,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 		*needle = lv_line_create(temp_gauge);
 		lv_obj_set_style_line_width(*needle, 8, LV_PART_MAIN);
 		lv_obj_set_style_line_color(*needle, UI_COLOR_RED, LV_PART_MAIN);
-		lv_scale_set_line_needle_value(temp_gauge, *needle, 160, min_val);
+		lv_scale_set_line_needle_value(temp_gauge, *needle, 200, min_val);
 	}
 	return temp_gauge;
 }

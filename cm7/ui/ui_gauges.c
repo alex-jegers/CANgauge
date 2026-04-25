@@ -6,14 +6,14 @@
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
 #define VIEW_BTN_Y_POS					215
-#define SETTINGS_BTN_Y_POS				265
+#define SETTINGS_BTN_Y_POS				285
 #define HIDDEN_LABEL_Y_POS				600
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
 static bool prv_is_init = false;
 static lv_obj_t* prv_gauge_select_checkboxes[4];		//Holds pointers to the gauge select checkboxes that are checked.
-static uint8_t prv_num_gauges = 1;
+static uint8_t prv_num_gauges = 0;
 
 /*LVGL/UI variables and their associated callback functions.*/
 static lv_obj_t* _main_scr;
@@ -102,7 +102,7 @@ static void _init()
 	prv_gauge_select_btn_container = lv_obj_create(_main_scr);
 	lv_obj_align(prv_gauge_select_btn_container, LV_ALIGN_CENTER, 0, GAUGE_SELECT_CONTAINER_Y_POS);
 	lv_obj_set_size(prv_gauge_select_btn_container, 340, 280);
-	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 100, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
 	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_GRAY, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(prv_gauge_select_btn_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_layout(prv_gauge_select_btn_container, LV_LAYOUT_FLEX);
@@ -271,7 +271,7 @@ static void prv_gauge_select_checkbox_handler(lv_event_t* e)
 static void prv_settings_btn_handler(lv_event_t* e)
 {
 	lv_event_code_t event_code = lv_event_get_code(e);
-	if (event_code == LV_EVENT_CLICKED)
+	if (event_code == LV_EVENT_RELEASED)
 	{
 		prv_load_settings_screen();
 		lv_obj_delete_async(_main_scr);
@@ -369,14 +369,22 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			start = (index * 180) + 103;
 			break;
 
-		case 3:
-			span = 90;
-			start = index * 90;
+		case 3: case 4:
+			/** 
+			*	Want:
+			*	Index 0 --> Rotated 180.
+			*	Index 1 --> Rotated 270.
+			*	Index 2 --> Rotated 90.
+			*	Index 3 --> Rotated 0.
+			*/
+			span = 70;
+			if (gauge_idx == 0) { start = 180; }
+			else if (gauge_idx == 1) { start = 270; }
+			else if (gauge_idx == 2) { start = 90;  }
+			else if (gauge_idx == 3) { start = 0;  }
+			start += 10;
 			break;
-		case 4:
-			span = 90;
-			start = index * 90;
-			break;
+
 		default:
 			break;
 	}
@@ -407,14 +415,27 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	if (prv_num_gauges == 2)
 	{
 		data_lbl_pos_y = 0;
-		if (gauge_idx == 0)
+		if (gauge_idx == 0) { data_lbl_pos_x = -65; }
+		else { data_lbl_pos_x = 65; }
+	}
+	else if (prv_num_gauges >= 3)
+	{
+		data_lbl_pos_x = -60;
+		data_lbl_pos_y = -65;
+		switch (gauge_idx)
 		{
-			data_lbl_pos_x = -65;
-
-		}
-		else
-		{
-			data_lbl_pos_x = 65;
+		case 0:
+			break;
+		case 1:
+			data_lbl_pos_x *= -1;
+			break;
+		case 2:
+			data_lbl_pos_y *= -1;
+			break;
+		case 3:
+			data_lbl_pos_x *= -1;
+			data_lbl_pos_y *= -1;
+			break;
 		}
 	}
 	lv_obj_align(_gauge_data_lbl[gauge_idx], LV_ALIGN_CENTER, data_lbl_pos_x, data_lbl_pos_y);
@@ -432,14 +453,28 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	{
 		desc_lbl_pos_y = 35;
 		desc_lbl_width = 110;
-		if (gauge_idx == 0)
+		if (gauge_idx == 0) { desc_lbl_pos_x = -65; }
+		else { desc_lbl_pos_x = 65; }
+	}
+	else if (prv_num_gauges >= 3)
+	{
+		desc_lbl_width = 160;
+		desc_lbl_pos_x = -85;
+		desc_lbl_pos_y = -15;
+		switch (gauge_idx)
 		{
-			desc_lbl_pos_x = -65;
-			
-		}
-		else
-		{
-			desc_lbl_pos_x = 65;
+		case 0:
+			break;
+		case 1:
+			desc_lbl_pos_x *= -1;
+			break;
+		case 2:
+			desc_lbl_pos_y *= -1;
+			break;
+		case 3:
+			desc_lbl_pos_x *= -1;
+			desc_lbl_pos_y *= -1;
+			break;
 		}
 	}
 	lv_obj_align(_gauge_info_lbl[gauge_idx], LV_ALIGN_CENTER, desc_lbl_pos_x, desc_lbl_pos_y);
@@ -482,7 +517,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 		if (gauge_idx == prv_num_gauges - 1)
 		{
 			lv_obj_t* circle = lv_obj_create(_gauge_scr);
-			lv_obj_set_size(circle, 130, 130);
+			lv_obj_set_size(circle, 250, 250);
 			lv_obj_center(circle);
 			lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
 			lv_obj_set_style_bg_color(circle, lv_obj_get_style_bg_color(lv_screen_active(), LV_PART_MAIN), 0);
@@ -497,12 +532,22 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			}
 		}
 		/* Draw a line or 2 to divide the gauges. */
-		if (prv_num_gauges == 2)
+		if (prv_num_gauges >= 2)
 		{
 
 			lv_obj_t* divider_line = lv_obj_create(_gauge_scr);
 			lv_obj_set_size(divider_line, 7, 400);
-			lv_obj_set_style_bg_color(divider_line, UI_COLOR_WHITE, LV_PART_MAIN);
+			lv_obj_set_style_bg_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
+			lv_obj_set_style_border_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
+			lv_obj_center(divider_line);
+		}
+		if (prv_num_gauges >= 3)
+		{
+
+			lv_obj_t* divider_line = lv_obj_create(_gauge_scr);
+			lv_obj_set_size(divider_line, 400, 7);
+			lv_obj_set_style_bg_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
+			lv_obj_set_style_border_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
 			lv_obj_center(divider_line);
 		}
 		index = 0;
@@ -600,7 +645,7 @@ void ui_gauges_set_gauge_value(float val, uint8_t idx)
 		return;
 	}
 
-	lv_scale_set_line_needle_value(_gauge[idx], _gauge_needle[idx], 160, (int32_t)(val * _gauge_scaling_factor[idx]));
+	lv_scale_set_line_needle_value(_gauge[idx], _gauge_needle[idx], 200, (int32_t)(val * _gauge_scaling_factor[idx]));
 	if ((uint32_t)_gauge_scaling_factor[idx] == 100)
 	{
 		lv_label_set_text_fmt(_gauge_data_lbl[idx], "%.2f", val);
