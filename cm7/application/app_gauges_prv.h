@@ -477,9 +477,9 @@ saej1979_current_data_t* saej1979_boost_pressure_ctrl_arr[] = {
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 /**
  * Sets the CAN frame that should be transmitted to get the ECU to return
- * data as per SAE J1979 Service 01.
+ * data as per SAE J1979 Service 01. Unused PIDs should be set to 0xCC.
  */
-void saej1979_current_data_set_getter(uint8_t pid);
+void saej1979_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4);
 
 /** 
  * Returns a value that can be sent to the UI. 
