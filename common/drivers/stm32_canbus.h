@@ -56,6 +56,7 @@ void can_set_baud_rate(FDCAN_GlobalTypeDef* canbus, can_baud_rate_t baud_rate);
  *      return the baud rate assuming it's an option in can_baud_rate_t.
  */
 can_baud_rate_t can_get_baud_rate(FDCAN_GlobalTypeDef* canbus);
+
 /**
  * can_get_last_error_code:
  * desc: returns whatever the last error code stored in the PSR register was.
@@ -63,6 +64,8 @@ can_baud_rate_t can_get_baud_rate(FDCAN_GlobalTypeDef* canbus);
  */
 can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus);
 
+uint32_t can_get_rx_error_counter(FDCAN_GlobalTypeDef* canbus);
+uint32_t can_get_tx_error_counter(FDCAN_GlobalTypeDef* canbus);
 
 /**
  * can_add_tx_buffer:

@@ -529,6 +529,15 @@ can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus)
 	return last_error_code;
 }
 
+uint32_t can_get_rx_error_counter(FDCAN_GlobalTypeDef* canbus)
+{
+	return (canbus->ECR & 0x00007F00) >> 8;
+}
+
+uint32_t can_get_tx_error_counter(FDCAN_GlobalTypeDef* canbus)
+{
+	return (canbus->ECR & 0x000000FF);
+}
 
 /***********	INTERRUPT HANDLERS		************/
 void FDCAN1_IT0_IRQHandler()
