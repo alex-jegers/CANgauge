@@ -178,6 +178,8 @@ bool can_transmit_set_msg_data(can_transmit_handle_t* hndl, can_tx_buffer_entry_
     {
         hndl->buf->T0.bit.ID = hndl->buf->T0.bit.ID << 18;
     }
+
+    return true;
 }
 
 bool can_transmit_set_active(can_transmit_handle_t* hndl)
@@ -187,6 +189,7 @@ bool can_transmit_set_active(can_transmit_handle_t* hndl)
         return false;
     }
     hndl->active = true;
+    return true;
 }
 
 bool can_transmit_set_inactive(can_transmit_handle_t* hndl)

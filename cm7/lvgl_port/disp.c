@@ -23,7 +23,6 @@ SYSTEM_MEM_REGION_RAM_D1 static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map);
-static void disp_clean_dcache(lv_display_t* drv);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map)
@@ -47,11 +46,6 @@ static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, ui
 	}
 
 	lv_display_flush_ready(display);
-}
-
-static void disp_clean_dcache(lv_display_t* drv)
-{
-	SCB_CleanInvalidateDCache();
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/

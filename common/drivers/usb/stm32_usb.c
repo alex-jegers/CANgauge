@@ -4,10 +4,6 @@
 #include "assert.h"
 #include "stdlib.h"
 
-
-
-static uint8_t* data_buffer[128];
-
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len);
 void prv_wait_for_tx_fifo_flush();

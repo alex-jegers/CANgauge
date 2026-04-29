@@ -13,7 +13,7 @@ extern "C" {
 /**********     TYPEDEFS        **********/
 typedef struct
 {
-    char* name;                     //For debugging and easier readability.
+    const char* name;                     //For debugging and easier readability.
     const uint8_t pid_code;
     float scale;
     float offset;
