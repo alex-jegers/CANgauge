@@ -379,10 +379,12 @@ void saej1979_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, u
 	{
 		prv_current_data_query[0] = can_transmit_create_msg();
 		prv_current_data_query[1] = can_transmit_create_msg();
+		prv_current_data_query[2] = can_transmit_create_msg();
+		prv_current_data_query[3] = can_transmit_create_msg();
 	}
 
 	/* Determine how many PIDs are being passed in. */
-	uint8_t num_pids = 4;
+	int8_t num_pids = 4;
 	if (pid1 == 0) { return; }
 	else if (pid2 == 0) { num_pids = 1; }
 	else if (pid3 == 0) { num_pids = 2; }
@@ -391,15 +393,28 @@ void saej1979_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, u
 	/* These set the data field. */
 	iso15765_query.data[2] = pid1;
 
-	/* Add the CAN message, set its transmit period, and activate it. */
-	can_transmit_set_msg_data(prv_current_data_query[0], &iso15765_query);
-	can_transmit_set_period(prv_current_data_query[0], 25);
-	can_transmit_set_active(prv_current_data_query[0]);
-
-	iso15765_query.data[2] = pid2;
-	can_transmit_set_msg_data(prv_current_data_query[1], &iso15765_query);
-	can_transmit_set_period(prv_current_data_query[1], 25);
-	can_transmit_set_active(prv_current_data_query[1]);
+	for (;num_pids > 0; num_pids--)
+	{
+		switch (num_pids - 1)
+		{
+		case 0:
+			iso15765_query.data[2] = pid1;
+			break;
+		case 1:
+			iso15765_query.data[2] = pid2;
+			break;
+		case 2:
+			iso15765_query.data[2] = pid3;
+			break;
+		case 3:
+			iso15765_query.data[2] = pid4;
+			break;
+		}
+		/* Add the CAN message, set its transmit period, and activate it. */
+		can_transmit_set_msg_data(prv_current_data_query[num_pids - 1], &iso15765_query);
+		can_transmit_set_period(prv_current_data_query[num_pids - 1], 25);
+		can_transmit_set_active(prv_current_data_query[num_pids - 1]);
+	}
 
 	return;
 }
