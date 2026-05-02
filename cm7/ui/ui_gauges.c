@@ -377,12 +377,12 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			*	Index 2 --> Rotated 90.
 			*	Index 3 --> Rotated 0.
 			*/
-			span = 70;
+			span = 60;
 			if (gauge_idx == 0) { start = 180; }
 			else if (gauge_idx == 1) { start = 270; }
 			else if (gauge_idx == 2) { start = 90;  }
 			else if (gauge_idx == 3) { start = 0;  }
-			start += 10;
+			start += 15;
 			break;
 
 		default:
@@ -458,8 +458,8 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	}
 	else if (prv_num_gauges >= 3)
 	{
-		desc_lbl_width = 160;
-		desc_lbl_pos_x = -85;
+		desc_lbl_width = 200;
+		desc_lbl_pos_x = -110;
 		desc_lbl_pos_y = -15;
 		switch (gauge_idx)
 		{
@@ -488,12 +488,12 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 
 	/* Make the label that displays the units. */
 	gauge_units_lbl[gauge_idx] = lv_label_create(_gauge_scr);
-	int32_t uints_lbl_pos_y = 180;
+	int32_t units_lbl_pos_y = 180;
 	int32_t units_lbl_pos_x = 0;
 
 	if (prv_num_gauges == 2)
 	{
-		uints_lbl_pos_y = 60;
+		units_lbl_pos_y = 60;
 		if (gauge_idx == 0)
 		{
 			units_lbl_pos_x = -65;
@@ -504,11 +504,31 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			units_lbl_pos_x = 65;
 		}
 	}
+	else if (prv_num_gauges >= 3)
+	{
+		units_lbl_pos_x = -75;
+		units_lbl_pos_y = -35;
+		switch (gauge_idx)
+		{
+		case 0:
+			break;
+		case 1:
+			units_lbl_pos_x *= -1;
+			break;
+		case 2:
+			units_lbl_pos_y *= -1;
+			break;
+		case 3:
+			units_lbl_pos_x *= -1;
+			units_lbl_pos_y *= -1;
+			break;
+		}
+	}
 	lv_label_set_text(gauge_units_lbl[gauge_idx], secondary_lbl);
 	lv_obj_set_style_text_font(gauge_units_lbl[gauge_idx], &lv_font_montserrat_20, LV_PART_MAIN);
 	lv_obj_set_style_text_color(gauge_units_lbl[gauge_idx], UI_COLOR_WHITE, LV_PART_MAIN);
 	lv_obj_set_style_text_align(gauge_units_lbl[gauge_idx], LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-	lv_obj_align(gauge_units_lbl[gauge_idx], LV_ALIGN_CENTER, units_lbl_pos_x, uints_lbl_pos_y);
+	lv_obj_align(gauge_units_lbl[gauge_idx], LV_ALIGN_CENTER, units_lbl_pos_x, units_lbl_pos_y);
 
 	index++;
 	if (gauge_idx == prv_num_gauges - 1)
