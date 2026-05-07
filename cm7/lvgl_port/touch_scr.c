@@ -30,7 +30,7 @@
 #define TOUCH_INT_PORT				GPIOI
 #define TOUCH_INT_PIN				GPIO_PIN6_Msk
 
-#define CST830_SLAVE_ADDR           0x15
+#define CST830_SLAVE_ADDR           0x2A
 
 #define CST830_FW_VER_H             0xA7
 #define CST830_FW_VER_L             0xA8
@@ -117,13 +117,14 @@ static void prv_init()
 	//i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST830_WORK_MODE, &work_mode_val, 2, true);
 
 	const uint8_t auto_sleep_val = CST820_DISAUTOSLEEP_ON;
-	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
+	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, I2C_INTERNAL_ADDR_8_BIT, &auto_sleep_val, 1, true);
 }
 
 static int8_t prv_read_data()
 {
 	touch_info_raw_t data;
-	int8_t status = i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, (uint8_t*)&data, 5);
+	int8_t status = i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, I2C_INTERNAL_ADDR_8_BIT,
+					(uint8_t*)&data, 5, false);
 
 	if (status == -1)
 	{
@@ -161,7 +162,7 @@ static void prv_task_update(touch_info_t* p_touch_data)
 	}
 	/* Enable autosleep. */
 	const uint8_t auto_sleep_val = CST820_DISAUTOSLEEP_OFF;
-	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, &auto_sleep_val, 2, true);
+	i2c_write(I2C_INST, CST830_SLAVE_ADDR, CST820_DISAUTOSLEEP, I2C_INTERNAL_ADDR_8_BIT, &auto_sleep_val, 2, true);
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 	vTaskDelete(NULL);
 }
