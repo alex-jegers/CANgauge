@@ -11,13 +11,13 @@
 #include "diskio.h"		/* Declarations FatFs MAI */
 
 /* Example: Declarations of the platform and disk functions in the project */
-#include "platform.h"
-#include "storage.h"
+//#include "platform.h"
+#include "file_system/eeprom.h"
+#include "drivers/stm32_iic.h"
 
 /* Example: Mapping of physical drive number for each drive */
-#define DEV_FLASH	0	/* Map FTL to physical drive 0 */
-#define DEV_MMC		1	/* Map MMC/SD card to physical drive 1 */
-#define DEV_USB		2	/* Map USB MSD to physical drive 2 */
+#define DEV_EEPROM	0	/* Map FTL to physical drive 0 */
+
 
 
 /*-----------------------------------------------------------------------*/
@@ -31,27 +31,23 @@ DSTATUS disk_status (
 	DSTATUS stat;
 	int result;
 
-	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_status();
+	switch (pdrv)
+	{
+	case DEV_EEPROM :
+		result = eeprom_status();
+		if (result == I2C_EXIT_CODE_TC)
+		{
+			stat = RES_OK;
+		}
+		else
+		{
+			stat = RES_NOTRDY;
+		}
 
 		// translate the reslut code here
 
 		return stat;
 
-	case DEV_MMC :
-		result = MMC_disk_status();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_USB :
-		result = USB_disk_status();
-
-		// translate the reslut code here
-
-		return stat;
 	}
 	return STA_NOINIT;
 }
@@ -70,26 +66,12 @@ DSTATUS disk_initialize (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_initialize();
+	case DEV_EEPROM :
+		if (eeprom_present() == true)
+		{
+			return RES_OK;
+		}
 
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_MMC :
-		result = MMC_disk_initialize();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_USB :
-		result = USB_disk_initialize();
-
-		// translate the reslut code here
-
-		return stat;
 	}
 	return STA_NOINIT;
 }
@@ -111,31 +93,15 @@ DRESULT disk_read (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
+	case DEV_EEPROM :
+		uint32_t phy_addr = sector * 512;
+		uint32_t num_bytes = 512 * count;	//512 bytes per sector.
 
-		result = RAM_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_MMC :
-		// translate the arguments here
-
-		result = MMC_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_USB :
-		// translate the arguments here
-
-		result = USB_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
+		for (uint32_t i = 0; i < num_bytes; i++)
+		{
+			eeprom_read(buff + (i * 128), phy_addr + (i * 128), 128);
+		}
+		res = RES_OK;
 		return res;
 	}
 
@@ -160,32 +126,18 @@ DRESULT disk_write (
 	DRESULT res;
 	int result;
 
-	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
+	switch (pdrv)
+	{
+	case DEV_EEPROM :
+		uint32_t phy_addr = sector * 512;
+		uint32_t num_eeprom_blocks = count * 4;		//EEPROM block size is 128.
 
-		result = RAM_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_MMC :
-		// translate the arguments here
-
-		result = MMC_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_USB :
-		// translate the arguments here
-
-		result = USB_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
+		for (uint32_t i = 0; i < num_eeprom_blocks; i++)
+		{
+			eeprom_write(phy_addr + (i * 128), buff + (i * 128), 128);
+			while (eeprom_status() != I2C_EXIT_CODE_TC) {}
+		}
+		res = RES_OK;
 		return res;
 	}
 
@@ -209,22 +161,25 @@ DRESULT disk_ioctl (
 	int result;
 
 	switch (pdrv) {
-	case DEV_RAM :
+	case DEV_EEPROM :
 
-		// Process of the command for the RAM drive
+		if (cmd == GET_SECTOR_COUNT)
+		{
+			const uint32_t sector_count = 1000;
+			*(uint32_t*)buff = sector_count;
+		}
+		else if (cmd == GET_SECTOR_SIZE)
+		{
+			const uint32_t sector_size = 512;
+			*(uint32_t*)buff = sector_size;
+		}
+		else if (cmd == GET_BLOCK_SIZE)
+		{
+			const uint32_t block_size = 512;
+			*(uint32_t*)buff = block_size;
+		}
 
-		return res;
-
-	case DEV_MMC :
-
-		// Process of the command for the MMC/SD card
-
-		return res;
-
-	case DEV_USB :
-
-		// Process of the command the USB drive
-
+		res = RES_OK;
 		return res;
 	}
 
