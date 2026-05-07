@@ -240,7 +240,7 @@ i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal
 
 	}
 
-	prv_clear_timer();
+	//prv_clear_timer();
 
 	return rtn;
 }
@@ -356,7 +356,7 @@ i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t interna
 		}
 	}
 
-	prv_clear_timer();
+	//prv_clear_timer();
 
 	return rtn;
 }
