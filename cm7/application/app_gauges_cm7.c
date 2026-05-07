@@ -68,7 +68,7 @@ static void prv_task_gauges()
 	can_run(FDCAN1);
 
 	/* Start the CAN transmitter task. */
-	can_transmit_run(FDCAN1, 5);
+	can_transmit_run(FDCAN1, 15);
 
 	/* Start the CAN receiver task. */
 	app_can_controller_run();
