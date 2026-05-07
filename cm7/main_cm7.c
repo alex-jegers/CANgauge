@@ -30,7 +30,14 @@ int main(void)
 	/* Initializes the external SDRAM. */
 	fmc_init_sdram();
 
+	/* Enable the hardware floating point unit (ensure this is enabled in project settings too). */
 	system_init_fpu();
+
+	system_init();
+
+	system_blink_run(1000);
+
+	pwr_monitor_run(4);
 
 	/* Creates a task to finish the rest of the system initialization. */
    	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 5, NULL);

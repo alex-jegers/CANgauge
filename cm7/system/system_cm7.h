@@ -33,6 +33,7 @@
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void system_task_init();
+void system_init();
 void system_init_fpu();
 void system_blink_run(const uint32_t delay_time_ms);
 void system_blink_set_delay(uint32_t on_ms, uint32_t off_ms);

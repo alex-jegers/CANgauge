@@ -10,6 +10,10 @@
 #include "application/applications_cm7.h"
 #include "system_cm7.h"
 
+#include "file_system/eeprom.h"		//TODO: remove, for test.
+#include "file_system/fatfs/ff.h"
+#include "file_system/fatfs/diskio.h"
+
 #include "drivers/drivers.h"
 
 #include "ui/ui_helpers.h"
@@ -19,14 +23,13 @@
 /**********		DEFINES		**********/
 #define SCB_CPACR_CP10_FULL_ACCESS			0x3 << 20
 #define SCB_CPACR_CP11_FULL_ACCESS			0x3 << 22
+#define SYS_GET_WATERMARK					system_stack_watermark = uxTaskGetStackHighWaterMark(NULL);
 #define TEST_LED_PORT						GPIOB
 #define TEST_LED_PIN						GPIO_PIN15_Msk
-#define SYS_GET_WATERMARK					system_stack_watermark = uxTaskGetStackHighWaterMark(NULL);
+
 
 #define EVENT_BITS_BLINK_TASK_STOPPED		(EventBits_t)0x01	//Bit is set when blink is stopped, clear when task is created.
 
-#define USB_FS_DEVICE         ((USB_OTG_DeviceTypeDef *) 0x40080800)	//TODO: Move to USB source code when it's created.
-#define USB_OTG_DCFG_DESCDMA	(1 << 23)
 
 /**********		GLOBAL VARIABLE DEFINITIONS		**********/
 
@@ -46,6 +49,13 @@ static void prv_lcd_bl_init();
 /**********     STATIC FUNCTION DEFINITIONS     **********/
 void prv_task_blink(const uint32_t delay_time_ms)
 {
+	/* Create the private event group if it hasnt been created yet. */
+	if (prv_event_group == NULL)
+	{
+		prv_event_group = xEventGroupCreate();
+	}
+	xEventGroupSetBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
+
 	TickType_t last_run_time;
 	last_run_time = xTaskGetTickCount();
 	prv_blink_delay_off = delay_time_ms;
@@ -66,7 +76,6 @@ void prv_task_blink(const uint32_t delay_time_ms)
 
 static void prv_lcd_bl_init()
 {
-	io_init();
 	//io_set_pin_dir_out(GPIOB, GPIO_PIN14_Msk);
 	//io_pin_out_set(GPIOB, GPIO_PIN14_Msk);
 	//TODO: Double check this PWM code.
@@ -76,7 +85,6 @@ static void prv_lcd_bl_init()
 	timer_set_pwm_freq(TIM12, 100);
 	timer_set_pwm_duty_cycle(TIM12, 0xFFFF, 1);
 	timer_enable(TIM12);
-
 }
 
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
@@ -85,7 +93,61 @@ void system_task_init()
 	/* Stop the scheduler. */
 	//portENTER_CRITICAL();	//Have to use this instead of vTaskSuspendAll because we need to use a delay after resetting USB.
 	vTaskSuspendAll();
+/*
+	i2c_exit_code_t present_code = eeprom_present();
+	static uint8_t test_data_wr[8] = { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0 };
+	eeprom_write(0x0200, &test_data_wr, 8);
+	static uint8_t test_data_rd[8] = { 0,0,0,0,0,0,0,0 };
+	i2c_exit_code_t status = eeprom_status();
+	while (status != I2C_EXIT_CODE_TC) {status = eeprom_status();}
+	i2c_exit_code_t read_code = eeprom_read(&test_data_rd, 0x0200, 8);
+*/
+/*
+    FATFS fs;           // Filesystem object
+    FIL fil;            // File object
+    FRESULT res;        // API result code
+    UINT bw;            // Bytes written
+    uint8_t* work = calloc(512000, 1);
+	res = f_mkfs("0", FM_ANY, work, 512000);
+	if (res != FR_OK)
+	{
+		assert(0);
+	}
+    // Give a work area to the default drive
+    res = f_mount(&fs, "0", 0);
+	if (res != FR_OK)
+	{
+		assert(0);
+	}
 
+    // Create a file as new
+    res = f_open(&fil, "hello.txt", FA_CREATE_NEW | FA_WRITE);
+	if (res != FR_OK)
+	{
+		assert(0);
+	}
+    // Write a message
+    f_write(&fil, "Hello, World!\r\n", 15, &bw);
+    if (bw != 15)
+    {
+		assert(0);
+	}
+
+    // Close the file
+    res = f_close(&fil);
+
+    // Unregister work area
+    //res = f_unmount("0");
+*/
+	i2c_bus_reset(I2C4);
+	xTaskResumeAll();
+	//portEXIT_CRITICAL();
+
+	vTaskDelete(NULL);
+}
+
+void system_init()
+{
 	/*Enable all the IO clocks.*/
 	io_init();
 
@@ -102,24 +164,24 @@ void system_task_init()
 	SCB_EnableDCache();
 	SCB_EnableICache();
 
-	/* Create the private event group. */
-	prv_event_group = xEventGroupCreate();
-	xEventGroupSetBits(prv_event_group, EVENT_BITS_BLINK_TASK_STOPPED);
-
 	/**** TESTING USB CONFIGURATION *****/
 	usb_init();
 	usb_core_reset();
 	usb_init_core();
 	/***********************************/
 
-	system_blink_run(1000);
+	/* Configure the IO pins for I2C. */
+	io_set_output_type(GPIOD, GPIO_PIN12_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
+	io_set_output_type(GPIOD, GPIO_PIN13_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
+	io_set_pin_mux(GPIOD, GPIO_PIN12_Msk, GPIO_AFR_AF4);
+	io_set_pin_mux(GPIOD, GPIO_PIN13_Msk, GPIO_AFR_AF4);
 
-	pwr_monitor_run(4);
-
-	xTaskResumeAll();
-	//portEXIT_CRITICAL();
-	
-	vTaskDelete(NULL);
+	/* Initialize the I2C interface. Used by the LCD screen and EEPROM. */
+	i2c_init_clk(I2C4);
+	i2c_set_clk_speed(I2C4, I2C_CLK_400K);
+	i2c_disable_analog_filt(I2C4);
+	i2c_enable_timeout_detection(I2C4);
+	i2c_enable(I2C4);
 }
 
 void system_init_fpu()
