@@ -8,6 +8,7 @@
 #define EEPROM_IIC_ADDR			0xA0
 #define EEPROM_HOST_CODE		0xF8
 #define EEPROM_SECURITY_ADDR	0xB0
+#define EEPROM_RDY				I2C_EXIT_CODE_TC
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
@@ -35,6 +36,7 @@ int8_t eeprom_status()
 
 int8_t eeprom_write(uint16_t addr, void* data, uint32_t size)
 {
+	while (eeprom_status() != EEPROM_RDY) {}
 	return i2c_write(I2C4, EEPROM_IIC_ADDR, (uint16_t)addr, I2C_INTERNAL_ADDR_16_BIT, (uint8_t*)data, size, true);
 }
 
