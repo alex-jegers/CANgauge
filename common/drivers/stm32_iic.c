@@ -12,6 +12,8 @@
 #include "task.h"
 #include "timers.h"
 
+#include "drivers/drivers.h"
+
 
 
 #define RCC_D2CCIP2R_I2C123SEL_PCLK1					0x0 << RCC_D2CCIP2R_I2C123SEL_Pos
@@ -158,29 +160,38 @@ void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
 	prv_timer_timeout = xTimerCreate("I2C_TIMER", pdMS_TO_TICKS(5), pdFALSE, NULL, prv_timer_cb_timeout);
 }
 
-int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes)
+i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
+				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
+	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0) {}
+
 	/* If setting the internal register pointer failed, return an error. */
-	if (i2c_write(i2c, slave_addr, internal_addr, NULL, 1, false) != 0)
+	i2c_exit_code_t wr_sts = i2c_write(i2c, slave_addr, internal_addr, internal_addr_type, NULL, 0, auto_stop);
+	if (wr_sts == I2C_EXIT_CODE_NACK)
 	{
 		return -1;
 	}
 
-	i2c->CR2 = slave_addr << 1;						//set slave address and clear the rest of the register.
+
+	i2c->CR2 = slave_addr;						//set slave address and clear the rest of the register.
 	i2c->CR2 |= I2C_CR2_RD_WRN;						//set bit for requesting read.
 	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
-	i2c->CR2 |= I2C_CR2_AUTOEND;					//enable auto stop.
+	if (auto_stop == true)
+	{
+		//i2c->CR2 |= I2C_CR2_AUTOEND;					//enable auto stop.
+	}
 	i2c_clear_status(i2c);
 
 	/* Start the timeout timer. */
-	if (prv_start_timer() != 0)
-	{
-		return -1;
-	}
+	//if (prv_start_timer() != 0)
+	//{
+	//	return -1;
+	//}
 
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
 	uint8_t x = 0;
+	int8_t rtn = 0;
 	while (1)
 	{
 		if (i2c_status(i2c) & I2C_ISR_RXNE)
@@ -191,105 +202,188 @@ int8_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uin
 		}
 		if (i2c_status(i2c) & I2C_ISR_NACKF)
 		{
-			return -1;
+			rtn = I2C_EXIT_CODE_NACK;
+			break;
 		}
 		if (i2c_status(i2c) & I2C_ISR_STOPF)
 		{
 			if (x == num_bytes)
 			{
-				return 0;
+				rtn = I2C_EXIT_CODE_STOP;
+				break;
 			}
-			return -1;
+			rtn = I2C_EXIT_CODE_ERR;
+			break;
 		}
 		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
 		{
-			return -1;
+			rtn = I2C_EXIT_CODE_TIMEOUT;
+			break;
 		}
 		if (i2c_status(i2c) & I2C_ISR_ARLO)
 		{
-			return -1;
+			rtn = I2C_EXIT_CODE_ARB_LOST;
+			break;
+		}
+		if (i2c_status(i2c) & I2C_ISR_TC)
+		{
+			i2c->CR2 |= I2C_CR2_STOP;
+			rtn = I2C_EXIT_CODE_TC;
+			break;
 		}
 
 		if (prv_timeout)
 		{
-			return -1;
+			rtn = -1;
+			break;
 		}
 
 	}
 
 	prv_clear_timer();
 
-	return 0;
+	return rtn;
 }
-
 /*Returns zero for success, non-zero for a failure.*/
-int8_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint8_t internal_addr, uint8_t* data, uint8_t num_bytes, bool auto_stop)
+i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
+				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
-	i2c->CR2 = slave_addr << 1;						//set slave address and clear the rest of the register.
-	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
-	i2c->ISR |= I2C_ISR_TXE;						//Flush the TXDR register.
-	i2c->TXDR = internal_addr;						//send the internal address first.
-	//i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
+	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0) {}
+
 	i2c_clear_status(i2c);
+	i2c->ISR |= I2C_ISR_TXE;						//Flush the TXDR register.
+
+	if (internal_addr_type == I2C_INTERNAL_ADDR_8_BIT)
+	{
+		i2c->TXDR = internal_addr;						//send the internal address first.
+
+		/* If there are no data bytes and were only setting the internal address this will be the only thing we send
+		 * so check if we need to stop after it as well.
+		 */
+		if ((num_bytes == 0) && (auto_stop == true))
+		{
+			//i2c->CR2 |= I2C_CR2_STOP;
+		}
+		num_bytes++;
+	}
+	else if (internal_addr_type == I2C_INTERNAL_ADDR_16_BIT)
+	{
+		i2c->TXDR = ((internal_addr & 0xFF00) >> 8);
+		num_bytes += 2;								//Add one byte to send for the second half of the internal address.
+	}
+
+	i2c->CR2 = slave_addr;							//set slave address and clear the rest of the register.
+	i2c->CR2 |= num_bytes << I2C_CR2_NBYTES_Pos;	//set the number of bytes.
+
+	if (auto_stop == true)
+	{
+		//i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
+	}
+
 
 	/* Start the timeout timer. */
-	if (prv_start_timer() != 0)
-	{
-		return -1;
-	}
+	//if (prv_start_timer() != 0)
+	//{
+	//	return -1;
+	//}
 
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
 	uint8_t bytes_transferred = 0;
-
+	i2c_exit_code_t rtn = 0;
 	while(1)
 	{
 
 		if (i2c_status(i2c) & I2C_ISR_TXE)
 		{
-			if (bytes_transferred + 1 == num_bytes)
+			if (bytes_transferred + 1 == num_bytes)		//If this next byte is the last one set the stop bit to send a stop signal after this bit.
 			{
-				i2c->CR2 |= I2C_CR2_STOP;
+				if (auto_stop == true)
+				{
+					i2c->CR2 |= I2C_CR2_STOP;
+				}
 			}
-			i2c_write_data(i2c, *data);
-			data++;
+			/* Check if we need to transfer another internal address byte. */
+			if ((internal_addr_type == I2C_INTERNAL_ADDR_16_BIT) && (bytes_transferred == 0))
+			{
+				i2c_write_data(i2c, (internal_addr & 0x00FF));			//Write the other half of the internal address.
+			}
+			/* Otherwise start sending data. */
+			else
+			{
+				i2c_write_data(i2c, *data);
+				data++;
+			}
 			bytes_transferred++;
+		}
+
+
+		if (i2c_status(i2c) & I2C_ISR_NACKF)
+		{
+			rtn = I2C_EXIT_CODE_NACK;
+			break;
+		}
+
+		if (i2c_status(i2c) & I2C_ISR_TC)
+		{
+			rtn = I2C_EXIT_CODE_TC;
+			break;
 		}
 
 		if (i2c_status(i2c) & I2C_ISR_STOPF)
 		{
-			if (i2c_status(i2c) & I2C_ISR_NACKF)
+			if (bytes_transferred == num_bytes)
 			{
-				return -1;
+				rtn = I2C_EXIT_CODE_TC;
 			}
-			return 0;
-		}
-		if (i2c_status(i2c) & I2C_ISR_TC)
-		{
-			return 0;
+			else
+			{
+				rtn = I2C_EXIT_CODE_ERR;
+			}
+			break;
 		}
 
 		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
 		{
-			return -1;
+			rtn = I2C_EXIT_CODE_TIMEOUT;
+			break;
 		}
 
 		if (prv_timeout)
 		{
-			return -1;
+			rtn = I2C_EXIT_CODE_TIMEOUT;
+			break;
 		}
 	}
 
 	prv_clear_timer();
 
-	return 0;
+	return rtn;
+}
+
+void i2c_bus_reset(I2C_TypeDef* i2c)
+{
+	io_set_output_type(GPIOD, GPIO_PIN12_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
+	io_set_output_type(GPIOD, GPIO_PIN13_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
+	io_set_pin_dir_out(GPIOD, GPIO_PIN12_Msk);
+
+	for (uint8_t i = 0; i < 10; i++)
+	{
+		io_pin_out_set(GPIOD, GPIO_PIN12_Msk);
+		timer_delay_ms(1);
+		io_pin_out_clr(GPIOD, GPIO_PIN12_Msk);
+		timer_delay_ms(1);
+	}
+
+	io_set_pin_mux(GPIOD, GPIO_PIN12_Msk, GPIO_AFR_AF4);
+	io_set_pin_mux(GPIOD, GPIO_PIN13_Msk, GPIO_AFR_AF4);
 }
 
 int8_t i2c_probe(I2C_TypeDef* i2c)
 {
 	for (int8_t addr = 0; addr < 128; addr++)
 	{
-		int8_t rtn = i2c_write(i2c, addr, 0x00, NULL, 0, false);
+		int8_t rtn = i2c_write(i2c, addr, 0x00, I2C_INTERNAL_ADDR_8_BIT, NULL, 0, false);
 		if (rtn == 0)
 		{
 			return addr;
