@@ -8,10 +8,10 @@ extern "C" {
 
 /**********     INCLUDES        **********/
 #include "application/pwr_monitor.h"
-//#include "application/app_can_sniffer_cm7.h"
 #include "application/app_gauges_cm7.h"
 #include "application/can_transmitter.h"
 #include "application/app_can_controller.h"
+#include "application/usb_task.h"
 
 /**********     DEFINES      **********/
 

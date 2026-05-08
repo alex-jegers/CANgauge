@@ -275,6 +275,11 @@ void usb_core_reset();
  */
 void usb_init_core();
 
+/** usb_get_frame_number:
+ * 		returns: the last SOF frame number from USB device DSTS register.
+ */
+uint16_t usb_get_frame_number();
+
 void usb_write(volatile uint32_t* fifo, void* data, uint8_t len);
 void usb_write_fifo1(volatile uint32_t* fifo, void* data, uint8_t len);
 

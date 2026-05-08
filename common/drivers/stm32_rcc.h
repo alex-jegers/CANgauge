@@ -46,15 +46,18 @@ extern "C" {
 #define rcc_enable_pll_3q()     RCC->PLLCFGR |= RCC_PLLCFGR_DIVQ3EN
 #define rcc_enable_pll_3r()     RCC->PLLCFGR |= RCC_PLLCFGR_DIVR3EN
 
-#define rcc_disable_pll_1p()	 RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP1EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_1q()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ1EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_1r()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR1EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_2p()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP2EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_2q()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ2EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_2r()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR2EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_3p()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP3EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_3q()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ3EN | RCC_PLL1DIVR_R1)
-#define rcc_disable_pll_3r()     RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR3EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_1p()	RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP1EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_1q()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ1EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_1r()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR1EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_2p()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP2EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_2q()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ2EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_2r()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR2EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_3p()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVP3EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_3q()    RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVQ3EN | RCC_PLL1DIVR_R1)
+#define rcc_disable_pll_3r()	RCC->PLLCFGR &= ~(RCC_PLLCFGR_DIVR3EN | RCC_PLL1DIVR_R1)
+
+#define rcc_reset_usb2otg()			RCC->AHB1RSTR |= RCC_AHB1RSTR_USB2OTGFSRST
+#define rcc_clr_reset_usb2otg()		RCC->AHB1RSTR &= ~(RCC_AHB1RSTR_USB2OTGFSRST)
 
 /**********     TYPEDEFS        **********/
 typedef enum 

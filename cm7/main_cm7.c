@@ -39,6 +39,8 @@ int main(void)
 
 	pwr_monitor_run(4);
 
+	usb_watchdog_run();
+
 	/* Creates a task to finish the rest of the system initialization. */
    	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 5, NULL);
 

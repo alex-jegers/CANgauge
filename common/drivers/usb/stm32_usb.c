@@ -507,6 +507,11 @@ void usb_init_core()
 	NVIC_EnableIRQ(OTG_FS_EP1_IN_IRQn);
 }
 
+uint16_t usb_get_frame_number()
+{
+	return ((USB_FS_DEVICE->DSTS >> 8) & 0x3FFF);
+}
+
 void OTG_FS_EP1_OUT_IRQHandler()
 {
 	uint32_t endpoint_int = USBx_OUTEP(1)->DOEPINT;

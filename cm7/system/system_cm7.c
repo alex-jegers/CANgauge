@@ -164,12 +164,6 @@ void system_init()
 	SCB_EnableDCache();
 	SCB_EnableICache();
 
-	/**** TESTING USB CONFIGURATION *****/
-	usb_init();
-	usb_core_reset();
-	usb_init_core();
-	/***********************************/
-
 	/* Configure the IO pins for I2C. */
 	io_set_output_type(GPIOD, GPIO_PIN12_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
 	io_set_output_type(GPIOD, GPIO_PIN13_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
