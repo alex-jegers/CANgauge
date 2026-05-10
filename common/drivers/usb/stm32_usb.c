@@ -329,25 +329,43 @@ void usb_handle_get_descriptor()
 	{
 		/* Index is the low byte of wValue */
 		uint8_t index = usb_setup_struct.wValue & 0xFF;
+		uint16_t lang_id = usb_setup_struct.wIndex.val;
 		if (index == 0)
 		{
-			uint8_t string_desc[6];
-			string_desc[0] = 0x6;
+			uint8_t string_desc[4];
+			string_desc[0] = 0x4;
 			string_desc[1] = USB_DESC_TYPE_STRING;
 			string_desc[2] = 0x09;
 			string_desc[3] = 0x04;
-			string_desc[4] = 0x09;
-			string_desc[5] = 0x04;
-			usb_write(USB_DFIFO(0), (void*)&string_desc, 6);
+
+			usb_write(USB_DFIFO(0), (void*)&string_desc, 8);
 		}
-		else if (index == 1)
+		else if (index == 1 && lang_id == 0x0409)
 		{
-			uint8_t strng[10] = {
-					10,
-					USB_DESC_TYPE_STRING,
-					'C','A','N','g','a','u','g','e'
-			};
-			usb_write(USB_DFIFO(0), (void*)&strng, 10);
+			uint8_t strng[8];
+			strng[0] = 8;
+			strng[1] = 0x04;
+			strng[2] = 'c';
+			strng[3] = 0x00;
+			strng[4] = 'a';
+			strng[5] = 0x00;
+			strng[6] = 'n';
+			strng[7] = 0x00;
+
+			usb_write(USB_DFIFO(0), (void*)&strng, 8);
+		}
+		else if (index == 2  && lang_id == 0x0409)
+		{
+			uint8_t strng[8];
+			strng[0] = 8;
+			strng[1] = 0x03;
+			strng[2] = 'u';
+			strng[3] = 0x00;
+			strng[4] = 'g';
+			strng[5] = 0x00;
+			strng[6] = 'h';
+			strng[7] = 0x00;
+			usb_write(USB_DFIFO(0), (void*)&strng, 6);
 		}
 
 	}
@@ -502,6 +520,7 @@ void usb_init_core()
   	USB_OTG_PCGCCTL &= ~(USB_OTG_PCGCCTL_STOPCLK | USB_OTG_PCGCCTL_GATECLK);
 	USB_FS_DEVICE->DCTL &= ~USB_OTG_DCTL_SDIS;
 
+	NVIC_SetPriority(OTG_FS_IRQn, 0x9);
 	NVIC_EnableIRQ(OTG_FS_IRQn);
 	NVIC_EnableIRQ(OTG_FS_EP1_OUT_IRQn);
 	NVIC_EnableIRQ(OTG_FS_EP1_IN_IRQn);

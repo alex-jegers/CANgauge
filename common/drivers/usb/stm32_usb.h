@@ -65,7 +65,7 @@ typedef enum
 	USB_DESC_TYPE_INTERFACE_POWER	= 8,
 }usb_desc_types_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
 	union
 	{
@@ -86,8 +86,9 @@ typedef struct
 			uint8_t endpoint_number : 4;
 			uint8_t : 3;	//Reserved.
 			uint8_t direction : 1;		//Zero indicated OUT endpoint, 1 indicates IN endpoint.
-			uint16_t : 8;	//Reserved.
+			uint8_t : 8;	//Reserved.
 		}bit;
+		uint16_t val;
 	}wIndex;	//The lower 8 bits are used to specify an interface. Only use the specific bits when specifying an endpoint.
 
 	uint16_t wLength;
@@ -201,9 +202,9 @@ static usb_dev_descriptor_t usb_device_descriptor =
 	.idVendor = 0x0000,
 	.idProduct = 0xa5a5,
 	.bcdDevice = 0x0200,
-	.iManufacturer = 0x0,
-	.iProduct = 0x1,
-	.iSerialNumber = 0x0,
+	.iManufacturer = 0x00,
+	.iProduct = 0x00,
+	.iSerialNumber = 0x00,
 	.bNumConfigurations = 1,
 };
 
