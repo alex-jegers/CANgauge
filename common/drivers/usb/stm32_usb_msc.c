@@ -302,9 +302,6 @@ static void usb_msc_handle_cbw()
 					| usb_msc_cbw_struct.CBWCB[5];
 		wr_num_blocks = usb_msc_cbw_struct.CBWCB[7] << 8
 							| usb_msc_cbw_struct.CBWCB[8];
-<<<<<<< Updated upstream
-		wr_start_addr = (uint32_t*)&storage;
-=======
 
 		if (prv_msc_write_cb != NULL)
 		{
@@ -312,7 +309,6 @@ static void usb_msc_handle_cbw()
 		}
 
 		wr_start_addr = (uint32_t*)&storage[USB_MSC_BLOCK_LENGTH * wr_lba];
->>>>>>> Stashed changes
 		wr_transfer_length = usb_msc_cbw_struct.dCBWDataTransferLength;
 
 	}
