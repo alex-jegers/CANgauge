@@ -10,10 +10,6 @@
 #include "application/applications_cm7.h"
 #include "system_cm7.h"
 
-#include "file_system/eeprom.h"		//TODO: remove, for test.
-#include "file_system/fatfs/ff.h"
-#include "file_system/fatfs/diskio.h"
-
 #include "drivers/drivers.h"
 
 #include "ui/ui_helpers.h"
@@ -102,43 +98,7 @@ void system_task_init()
 	while (status != I2C_EXIT_CODE_TC) {status = eeprom_status();}
 	i2c_exit_code_t read_code = eeprom_read(&test_data_rd, 0x0200, 8);
 */
-/*
-    FATFS fs;           // Filesystem object
-    FIL fil;            // File object
-    FRESULT res;        // API result code
-    UINT bw;            // Bytes written
-    uint8_t* work = calloc(512000, 1);
-	res = f_mkfs("0", FM_ANY, work, 512000);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
-    // Give a work area to the default drive
-    res = f_mount(&fs, "0", 0);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
 
-    // Create a file as new
-    res = f_open(&fil, "hello.txt", FA_CREATE_NEW | FA_WRITE);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
-    // Write a message
-    f_write(&fil, "Hello, World!\r\n", 15, &bw);
-    if (bw != 15)
-    {
-		assert(0);
-	}
-
-    // Close the file
-    res = f_close(&fil);
-
-    // Unregister work area
-    //res = f_unmount("0");
-*/
 	i2c_bus_reset(I2C4);
 	xTaskResumeAll();
 	//portEXIT_CRITICAL();

@@ -27,6 +27,8 @@ void system_mem_save_nvm_u32(flash_uint32_t* p, uint32_t val);
 void system_mem_save_nvm_u8(flash_uint8_t* p, uint8_t val);
 void system_mem_save_nvm_void(flash_void_t* p, void* src, uint32_t size);
 
+uint8_t* sys_mem_get_ram_fs_ptr();
+
 
 
 

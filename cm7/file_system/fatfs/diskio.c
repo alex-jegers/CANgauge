@@ -14,11 +14,21 @@
 //#include "platform.h"
 #include "file_system/eeprom.h"
 #include "drivers/stm32_iic.h"
+#include "system/system_mem.h"
 
 /* Example: Mapping of physical drive number for each drive */
 #define DEV_EEPROM	0	/* Map FTL to physical drive 0 */
+#define DEV_RAM		1
 
+#define NUM_SECTORS_RAM			0x4000
+#define SECTOR_SIZE_RAM			512
+#define BLOCK_SIZE_RAM			512
 
+#define NUM_SECTORS_EEPROM		1000
+#define SECTOR_SIZE_EEPROM		512
+#define BLOCK_SIZE_EEPROM		512
+
+uint8_t* ram_fs_buf = NULL;
 
 /*-----------------------------------------------------------------------*/
 /* Get Drive Status                                                      */
@@ -43,13 +53,20 @@ DSTATUS disk_status (
 		{
 			stat = RES_NOTRDY;
 		}
+		break;
 
-		// translate the reslut code here
-
-		return stat;
-
+	case DEV_RAM:
+		if (ram_fs_buf != NULL)
+		{
+			stat = RES_OK;
+		}
+		else
+		{
+			stat = RES_NOTRDY;
+		}
+		break;
 	}
-	return STA_NOINIT;
+	return stat;
 }
 
 
@@ -69,11 +86,17 @@ DSTATUS disk_initialize (
 	case DEV_EEPROM :
 		if (eeprom_present() == true)
 		{
-			return RES_OK;
+			stat = RES_OK;
 		}
+		break;
+	case DEV_RAM:
+		ram_fs_buf = sys_mem_get_ram_fs_ptr();
+
+		stat = RES_OK;
+		break;
 
 	}
-	return STA_NOINIT;
+	return stat;
 }
 
 
@@ -92,7 +115,8 @@ DRESULT disk_read (
 	DRESULT res;
 	int result;
 
-	switch (pdrv) {
+	switch (pdrv)
+	{
 	case DEV_EEPROM :
 		uint32_t phy_addr = sector * 512;
 		uint32_t num_bytes = 512 * count;	//512 bytes per sector.
@@ -102,10 +126,17 @@ DRESULT disk_read (
 			eeprom_read(buff + (i * 128), phy_addr + (i * 128), 128);
 		}
 		res = RES_OK;
-		return res;
+		break;
+	case DEV_RAM:
+		uint8_t* starting_addr = ram_fs_buf + (sector * SECTOR_SIZE_RAM);
+		num_bytes = SECTOR_SIZE_RAM * count;
+		for (uint32_t i = 0; i < num_bytes; i++)
+		{
+			*(buff + i) = *(starting_addr + i);
+		}
 	}
 
-	return RES_PARERR;
+	return res;
 }
 
 
@@ -138,10 +169,20 @@ DRESULT disk_write (
 			while (eeprom_status() != I2C_EXIT_CODE_TC) {}
 		}
 		res = RES_OK;
-		return res;
+		break;
+	case DEV_RAM:
+		uint8_t* starting_addr = ram_fs_buf + (sector * SECTOR_SIZE_RAM);
+		uint32_t num_bytes = SECTOR_SIZE_RAM * count;
+		for (uint32_t i = 0; i < num_bytes; i++)
+		{
+			*(starting_addr + i) = *(buff + i);
+		}
+		res = RES_OK;
+		break;
+
 	}
 
-	return RES_PARERR;
+	return res;
 }
 
 #endif
@@ -160,29 +201,45 @@ DRESULT disk_ioctl (
 	DRESULT res;
 	int result;
 
-	switch (pdrv) {
+	switch (pdrv)
+	{
 	case DEV_EEPROM :
 
 		if (cmd == GET_SECTOR_COUNT)
 		{
-			const uint32_t sector_count = 1000;
+			const uint32_t sector_count = NUM_SECTORS_EEPROM;
 			*(uint32_t*)buff = sector_count;
 		}
 		else if (cmd == GET_SECTOR_SIZE)
 		{
-			const uint32_t sector_size = 512;
+			const uint32_t sector_size = SECTOR_SIZE_EEPROM;
 			*(uint32_t*)buff = sector_size;
 		}
 		else if (cmd == GET_BLOCK_SIZE)
 		{
-			const uint32_t block_size = 512;
+			const uint32_t block_size = BLOCK_SIZE_EEPROM;
 			*(uint32_t*)buff = block_size;
 		}
-
-		res = RES_OK;
-		return res;
+		break;
+	case DEV_RAM:
+		if (cmd == GET_SECTOR_COUNT)
+		{
+			const uint32_t sector_count = NUM_SECTORS_RAM;
+			*(uint32_t*)buff = sector_count;
+		}
+		else if (cmd == GET_SECTOR_SIZE)
+		{
+			const uint32_t sector_size = SECTOR_SIZE_RAM;
+			*(uint32_t*)buff = sector_size;
+		}
+		else if (cmd == GET_BLOCK_SIZE)
+		{
+			const uint32_t block_size = BLOCK_SIZE_RAM;
+			*(uint32_t*)buff = block_size;
+		}
+		break;
 	}
-
-	return RES_PARERR;
+	res = RES_OK;
+	return res;
 }
 

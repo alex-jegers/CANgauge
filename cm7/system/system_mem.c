@@ -8,6 +8,7 @@
 
 /**********		STATIC VARIABLES		**********/
 SYSTEM_MEM_REGION_EXTERN_RAM uint8_t prv_flash_buffer[SYSTEM_MEM_CONFIG_LENGTH_BYTES];
+SYSTEM_MEM_REGION_EXTERN_RAM uint8_t system_mem_ram_fs[512 * 0x4000];
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 void prv_save_nvm(void* dest, void* src, uint32_t size);
@@ -60,4 +61,9 @@ void system_mem_save_nvm_u8(flash_uint8_t* p, uint8_t val)
 void system_mem_save_nvm_void(flash_void_t* p, void* src, uint32_t size)
 {
 	prv_save_nvm(p, src, size);
+}
+
+uint8_t* sys_mem_get_ram_fs_ptr()
+{
+	return &system_mem_ram_fs;
 }
