@@ -71,7 +71,7 @@ typedef struct __attribute__((packed))
 
 /**********		DEFINES		**********/
 #define USB_MSC_BLOCK_LENGTH			0x200
-#define USB_MSC_NUM_BLOCKS				0x1000
+#define USB_MSC_NUM_BLOCKS				0x4000
 
 #define USB_MSC_CBW_SIGNATURE			0x43425355
 #define USB_MSC_CSW_SIGNATURE			0x53425355
@@ -82,6 +82,9 @@ typedef struct __attribute__((packed))
 /**********		STATIC VARIABLES		**********/
 static uint32_t usb_msc_max_lun = 0x01010101;
 static usb_msc_cbw_t usb_msc_cbw_struct;
+static void (*prv_msc_read_cb)(uint32_t lba, uint32_t num_blocks);
+static void (*prv_msc_write_cb)(uint32_t lba, uint32_t num_blocks);
+static void (*prv_msc_write_complete_cb)(uint8_t* buf, uint32_t bytes);
 
 struct more_data_ll
 {
@@ -112,7 +115,7 @@ usb_msc_read_format_response_t read_format_response =
 		.max_capacity_desc.bit.block_length = USB_MSC_BLOCK_LENGTH,
 };
 
-__attribute__((__section__(".ext_mem_ram"))) uint8_t storage[USB_MSC_NUM_BLOCKS * USB_MSC_BLOCK_LENGTH];
+__attribute__((__section__(".ext_mem_ram"))) uint8_t storage[4096];
 
 static uint32_t wr_lba;
 static uint16_t wr_num_blocks;
@@ -189,25 +192,47 @@ static void usb_msc_handle_cbw()
 		add_more_data(&header, sizeof(usb_msc_csw_t));
 		usb_write_fifo1(USB_DFIFO(1), &inquiry_data, 0x24);
 	}
-	else if (command == USB_MSC_SCSI_READ_FORMAT_CAPACITIES)
+	else if (command == USB_MSC_SCSI_READ_FORMAT_CAPACITIES)		//From UFI, not in SCSI.
 	{
 		uint8_t rd_fmt_capacities[12];
-		rd_fmt_capacities[3] = 0x80;
-		rd_fmt_capacities[6] = 0x01;
-		rd_fmt_capacities[7] = 0xff;
-		rd_fmt_capacities[8] = 0x02;
-		rd_fmt_capacities[10] = 0x02;
+		uint32_t size = usb_msc_get_block_size();
+		uint32_t num = usb_msc_get_num_blocks() - 1;
+
+
+		rd_fmt_capacities[3] = 0x80;			//Capacity list length.
+
+		rd_fmt_capacities[4] = (num >> 24) & 0xFF;//0x00;			//Number of blocks MSB.
+		rd_fmt_capacities[5] = (num >> 16) & 0xFF; //0x00;
+		rd_fmt_capacities[6] = (num >> 8) & 0xFF; //0x01;
+		rd_fmt_capacities[7] = (num & 0xFF); //0xff;			//Number of blocks LSB.
+
+		rd_fmt_capacities[8] = 0x02;			//Descriptor Code.
+
+		rd_fmt_capacities[9] = (size >> 16) & 0xFF;//0x00;			//Block length MSB.
+		rd_fmt_capacities[10] = (size >> 8) & 0xFF;//0x02;
+		rd_fmt_capacities[11] = (size & 0xFF);//0x00;			//Block length LSB.
 		uint32_t residual = length - sizeof(rd_fmt_capacities);
 		header.dCSWDataResidue = residual;
 
 		add_more_data(&header, sizeof(usb_msc_csw_t));
 		usb_write_fifo1(USB_DFIFO(1), &rd_fmt_capacities, sizeof(rd_fmt_capacities));
 	}
-	else if (command == USB_MSC_SCSI_READ_CAPACITIES)
+	else if (command == USB_MSC_SCSI_READ_CAPACITIES)		//From SCSI
 	{
-		uint32_t read_capacities_response[2];
-		read_capacities_response[0] = 0xff010000;
-		read_capacities_response[1] = 0x00020000;
+		uint8_t read_capacities_response[8];
+		uint32_t size = usb_msc_get_block_size();
+		uint32_t num = usb_msc_get_num_blocks() - 1;
+
+		read_capacities_response[0] = (num >> 24) & 0xFF;//0x00;		//Largest LBA MSB.
+		read_capacities_response[1] = (num >> 16) & 0xFF; //0x00;
+		read_capacities_response[2] = (num >> 8) & 0xFF; //0x01;
+		read_capacities_response[3] = (num & 0xFF); //0xff;		//Largest LBA LSB.
+
+		read_capacities_response[4] = (size >> 24) & 0xFF;//0x00;		//Block length MSB.
+		read_capacities_response[5] = (size >> 16) & 0xFF;//0x00;
+		read_capacities_response[6] = (size >> 8) & 0xFF;//0x02;
+		read_capacities_response[7] = (size & 0xFF);//0x00;		//Block length LSB.
+
 		uint32_t residual = length - 8;
 		header.dCSWDataResidue = residual;
 
@@ -226,6 +251,7 @@ static void usb_msc_handle_cbw()
 	}
 	else if (command == USB_MSC_SCSI_READ_10)
 	{
+
 		//Logical Block Address
 		uint32_t lba = usb_msc_cbw_struct.CBWCB[2] << 24
 					| usb_msc_cbw_struct.CBWCB[3] << 16
@@ -237,6 +263,11 @@ static void usb_msc_handle_cbw()
 
 		uint32_t residual = length - (num_blocks * USB_MSC_BLOCK_LENGTH);
 		header.dCSWDataResidue = residual;
+
+		if (prv_msc_read_cb != NULL)
+		{
+			prv_msc_read_cb(lba, num_blocks);
+		}
 
 		//Transfer Length in number of blocks minus 1 bc were sending one right now.
 		uint16_t size = (USB_MSC_BLOCK_LENGTH * num_blocks) - 0x40;
@@ -271,7 +302,17 @@ static void usb_msc_handle_cbw()
 					| usb_msc_cbw_struct.CBWCB[5];
 		wr_num_blocks = usb_msc_cbw_struct.CBWCB[7] << 8
 							| usb_msc_cbw_struct.CBWCB[8];
+<<<<<<< Updated upstream
 		wr_start_addr = (uint32_t*)&storage;
+=======
+
+		if (prv_msc_write_cb != NULL)
+		{
+			prv_msc_write_cb(wr_lba, wr_num_blocks);
+		}
+
+		wr_start_addr = (uint32_t*)&storage[USB_MSC_BLOCK_LENGTH * wr_lba];
+>>>>>>> Stashed changes
 		wr_transfer_length = usb_msc_cbw_struct.dCBWDataTransferLength;
 
 	}
@@ -321,9 +362,16 @@ void usb_msc_handle_data(uint32_t length)
 			length -= 4;
 		}
 
+		/* Send the header signifying the transfer is done. */
 		if (wr_transfer_length == 0)
 		{
 			usb_write_fifo1(USB_DFIFO(1), &header, sizeof(usb_msc_csw_t));
+		}
+
+		/* Call the application handler. */
+		if (prv_msc_write_complete_cb != NULL)
+		{
+			prv_msc_write_complete_cb(wr_start_addr, length);		//These nunmbers are wrong just place holder for now.
 		}
 	}
 	else
@@ -368,4 +416,19 @@ void usb_msc_ep_in_handler(uint32_t ep, uint32_t ir)
 	temp = temp->next_node;
 
 	usb_write_fifo1(USB_DFIFO(1), temp->data_ptr, temp->data_size);
+}
+
+void usb_msc_set_read_cb(void (*func)(uint32_t lba, uint32_t num_blocks))
+{
+	prv_msc_read_cb = func;
+}
+
+void usb_msc_set_write_cb(void (*func)(uint32_t lba, uint32_t num_blocks))
+{
+	prv_msc_write_cb = func;
+}
+
+void usb_msc_set_write_complete_cb(void (*func)(uint8_t* buf, uint32_t bytes))
+{
+	prv_msc_write_complete_cb = func;
 }
