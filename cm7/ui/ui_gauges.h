@@ -27,10 +27,10 @@ void ui_gauges_create_gauge_btn(const char* name);			//TODO: Remove, obsolete.
 void ui_gauges_create_gauge_checkbox(const char* name);
 void ui_gauges_create_gauge(const char* name, const char* units, int32_t min, int32_t max, uint8_t gauge_idx);
 void ui_gauges_set_number_of_gauges(uint8_t num_gauges);
+
 /**
  * Callbacks for UI element events.
  */
-
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e));	//The buttons that select a gauge (to be replaced with checkboxes.
 void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e));				//When a gauge itself is pressed.
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func);						//When the main screen is loaded.
@@ -40,6 +40,7 @@ void ui_set_demo_mode_checkbox_event_cb(lv_event_cb_t func);			//The demo mode c
 void ui_set_settings_btn_event_cb(lv_event_cb_t func);					//The button to load the settings screen is pressed.
 void ui_set_settings_back_btn_event_cb(lv_event_cb_t func);				//The back button within the settings screen is pressed.
 void ui_gauges_set_view_btn_cb(lv_event_cb_t func);
+void ui_set_settings_firmware_update_btn_event_cb(lv_event_cb_t func);	//The button to start a firmware update.
 
 
 #ifdef __cplusplus

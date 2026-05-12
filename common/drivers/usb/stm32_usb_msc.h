@@ -70,7 +70,7 @@ void usb_msc_set_write_complete_cb(void (*func)(uint8_t* buf, uint32_t bytes));
  * 			buf: a pointer to the start of the data to be transmitted to the USB host.
  * 			bytes: the number of bytes in buf.
  */
-void usb_msc_read_cmd(uint8_t* buf, uint32_t bytes);
+void usb_msc_read_cmd(uint8_t* buf, uint32_t num_blocks);
 
 
 

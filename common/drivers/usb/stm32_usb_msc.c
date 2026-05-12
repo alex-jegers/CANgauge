@@ -5,6 +5,8 @@
 #include "assert.h"
 #include "stdbool.h"
 
+#include "system/system_mem.h"
+
 /**********     TYPEDEFS        ***********/
 typedef enum
 {
@@ -115,7 +117,7 @@ usb_msc_read_format_response_t read_format_response =
 		.max_capacity_desc.bit.block_length = USB_MSC_BLOCK_LENGTH,
 };
 
-__attribute__((__section__(".ext_mem_ram"))) uint8_t storage[4096];
+uint8_t* storage;
 
 static uint32_t wr_lba;
 static uint16_t wr_num_blocks;
@@ -144,6 +146,7 @@ static void add_more_data(void* data_ptr, uint8_t size)
 
 static void usb_msc_handle_cbw()
 {
+	storage = sys_mem_get_ram_fs_ptr();
 	usb_msc_ufi_cmd_t command = usb_msc_cbw_struct.CBWCB[0];
 
 	uint32_t length = usb_msc_cbw_struct.dCBWDataTransferLength;
@@ -264,14 +267,9 @@ static void usb_msc_handle_cbw()
 		uint32_t residual = length - (num_blocks * USB_MSC_BLOCK_LENGTH);
 		header.dCSWDataResidue = residual;
 
-		if (prv_msc_read_cb != NULL)
-		{
-			prv_msc_read_cb(lba, num_blocks);
-		}
-
 		//Transfer Length in number of blocks minus 1 bc were sending one right now.
 		uint16_t size = (USB_MSC_BLOCK_LENGTH * num_blocks) - 0x40;
-		uint8_t* starting_addr = &storage[USB_MSC_BLOCK_LENGTH * lba];
+		uint8_t* starting_addr = (uint8_t*)storage + (lba * USB_MSC_BLOCK_LENGTH);
 		uint8_t* next_addr = starting_addr + 0x40;
 		/* Queue a block into the more data link list. */
 		while (size > 0)
@@ -282,6 +280,11 @@ static void usb_msc_handle_cbw()
 		}
 		add_more_data(&header, sizeof(usb_msc_csw_t));
 		usb_write_fifo1(USB_DFIFO(1), starting_addr, 0x40);
+
+		if (prv_msc_read_cb != NULL)
+		{
+			//prv_msc_read_cb(lba, num_blocks);
+		}
 	}
 	else if (command == USB_MSC_SCSI_TEST_UNIT_READY)
 	{
@@ -302,14 +305,15 @@ static void usb_msc_handle_cbw()
 					| usb_msc_cbw_struct.CBWCB[5];
 		wr_num_blocks = usb_msc_cbw_struct.CBWCB[7] << 8
 							| usb_msc_cbw_struct.CBWCB[8];
+		wr_start_addr = (uint8_t*)storage + (wr_lba * USB_MSC_BLOCK_LENGTH);
+		wr_transfer_length = usb_msc_cbw_struct.dCBWDataTransferLength;
 
 		if (prv_msc_write_cb != NULL)
 		{
-			prv_msc_write_cb(wr_lba, wr_num_blocks);
+			//prv_msc_write_cb(wr_lba, wr_num_blocks);
 		}
 
-		wr_start_addr = (uint32_t*)&storage[USB_MSC_BLOCK_LENGTH * wr_lba];
-		wr_transfer_length = usb_msc_cbw_struct.dCBWDataTransferLength;
+		assert( wr_transfer_length <= 0x10000 );
 
 	}
 	
@@ -358,16 +362,14 @@ void usb_msc_handle_data(uint32_t length)
 			length -= 4;
 		}
 
-		/* Send the header signifying the transfer is done. */
 		if (wr_transfer_length == 0)
 		{
+			/* Call the application handler. */
+			if (prv_msc_write_complete_cb != NULL)
+			{
+				//prv_msc_write_complete_cb((uint8_t*)&storage, 0);		//These nunmbers are wrong just place holder for now.
+			}
 			usb_write_fifo1(USB_DFIFO(1), &header, sizeof(usb_msc_csw_t));
-		}
-
-		/* Call the application handler. */
-		if (prv_msc_write_complete_cb != NULL)
-		{
-			prv_msc_write_complete_cb(wr_start_addr, length);		//These nunmbers are wrong just place holder for now.
 		}
 	}
 	else
@@ -412,6 +414,23 @@ void usb_msc_ep_in_handler(uint32_t ep, uint32_t ir)
 	temp = temp->next_node;
 
 	usb_write_fifo1(USB_DFIFO(1), temp->data_ptr, temp->data_size);
+}
+
+void usb_msc_read_cmd(uint8_t* buf, uint32_t num_blocks)
+{
+	//Transfer Length in number of blocks minus 1 bc were sending one right now.
+	uint16_t size = (USB_MSC_BLOCK_LENGTH * num_blocks) - 0x40;
+	uint8_t* starting_addr = buf;
+	uint8_t* next_addr = starting_addr + 0x40;
+	/* Queue a block into the more data link list. */
+	while (size > 0)
+	{
+		add_more_data(next_addr, 0x40);
+		next_addr += 0x40;
+		size -= 0x40;
+	}
+	add_more_data(&header, sizeof(usb_msc_csw_t));
+	usb_write_fifo1(USB_DFIFO(1), starting_addr, 0x40);
 }
 
 void usb_msc_set_read_cb(void (*func)(uint32_t lba, uint32_t num_blocks))

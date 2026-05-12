@@ -8,7 +8,7 @@
 
 /**********		STATIC VARIABLES		**********/
 SYSTEM_MEM_REGION_EXTERN_RAM uint8_t prv_flash_buffer[SYSTEM_MEM_CONFIG_LENGTH_BYTES];
-SYSTEM_MEM_REGION_EXTERN_RAM uint8_t system_mem_ram_fs[512 * 0x4000];
+SYSTEM_MEM_REGION_EXTERN_RAM uint8_t system_mem_ram_fs[512 * 0x4000];//needs to be 0x4000 not 0x4
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 void prv_save_nvm(void* dest, void* src, uint32_t size);

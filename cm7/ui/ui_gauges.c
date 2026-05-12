@@ -15,13 +15,12 @@ static bool prv_is_init = false;
 static lv_obj_t* prv_gauge_select_checkboxes[4];		//Holds pointers to the gauge select checkboxes that are checked.
 static uint8_t prv_num_gauges = 0;
 
-/*LVGL/UI variables and their associated callback functions.*/
+/*****	LVGL/UI variables and their associated callback functions.	*****/
 static lv_obj_t* _main_scr;
 
 static lv_obj_t* prv_gauge_select_btn_container;
 static lv_event_cb_t _gauge_select_btn_cb = NULL;
 static void prv_gauge_select_checkbox_handler(lv_event_t* e);
-
 
 static lv_obj_t* prv_settings_btn;
 static lv_event_cb_t settings_btn_cb = NULL;
@@ -38,13 +37,12 @@ static void prv_settings_back_btn_event(lv_event_t* e);
 static lv_obj_t* prv_brightness_slider;
 static lv_event_cb_t prv_slider_event_cb = NULL;
 static void prv_slider_event(lv_event_t* e);
-static void prv_slider_event(lv_event_t* e)		//Sends a point to prv_gauge_select_checkboxes in the user data.
-{
-	if (prv_slider_event_cb)
-	{
-		prv_slider_event_cb(e);
-	}
-}
+
+static lv_obj_t* prv_settings_firmware_update_btn;
+static lv_event_cb_t prv_settings_firmware_update_btn_event_cb = NULL;
+static void prv_settings_firmware_update_btn_event(lv_event_t* e);
+void ui_set_settings_firmware_update_btn_event_cb(lv_event_cb_t func) { prv_settings_firmware_update_btn_event_cb = func; }
+
 
 /*** VIEW BUTTON. ***/
 static lv_obj_t* prv_view_btn;
@@ -68,7 +66,6 @@ static lv_anim_t _gauge_demo_animation;	//Animation that runs in demo mode, used
 
 
 /*Event function pointers.*/
-
 static lv_event_cb_t _scr_load_cb = NULL;
 
 static lv_event_cb_t prv_demo_mode_checkbox_event_cb = NULL;
@@ -159,13 +156,16 @@ static void prv_init_settings_screen()
 	lv_obj_set_style_pad_top(prv_settings_screen, 50, LV_PART_MAIN);
 	lv_obj_set_style_pad_row(prv_settings_screen, 30, LV_STATE_DEFAULT);
 
+	/* Create the settings label. */
 	lv_obj_t* settings_lbl = lv_label_create(prv_settings_screen);
 	lv_label_set_text(settings_lbl, "Settings");
 	lv_obj_set_style_text_color(settings_lbl, UI_COLOR_WHITE, LV_PART_MAIN);
 	lv_obj_set_style_text_font(settings_lbl, &lv_font_montserrat_28, LV_PART_MAIN);
 
+	/* Create the brightness slider. */
 	prv_create_brightness_slider();
 
+	/* Create the demo mode checkbox. */
 	lv_obj_t* demo_mode_checkbox = lv_checkbox_create(prv_settings_screen);
 	lv_checkbox_set_text(demo_mode_checkbox, "Demo Mode");
 	lv_obj_set_style_text_color(demo_mode_checkbox, UI_COLOR_WHITE, LV_STATE_DEFAULT);
@@ -179,6 +179,9 @@ static void prv_init_settings_screen()
 	}
 	lv_obj_add_event(demo_mode_checkbox, prv_settings_demo_mode_checkbox_event, LV_EVENT_VALUE_CHANGED, NULL);
 
+	/* Make a firmware update button. */
+	prv_settings_firmware_update_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Update Firmware", LV_FONT_DEFAULT);
+	lv_obj_add_event_cb(prv_settings_firmware_update_btn, prv_settings_firmware_update_btn_event, LV_EVENT_RELEASED, NULL);
 
 	/* Make a button to go back. */
 	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Back", LV_FONT_DEFAULT);
@@ -593,6 +596,22 @@ static void prv_settings_back_btn_event(lv_event_t* e)
 	if (prv_settings_back_btn_event_cb != NULL)
 	{
 		prv_settings_back_btn_event_cb(e);
+	}
+}
+
+static void prv_slider_event(lv_event_t* e)		//Sends a point to prv_gauge_select_checkboxes in the user data.
+{
+	if (prv_slider_event_cb)
+	{
+		prv_slider_event_cb(e);
+	}
+}
+
+static void prv_settings_firmware_update_btn_event(lv_event_t* e)
+{
+	if (prv_settings_firmware_update_btn_event_cb != NULL)
+	{
+		prv_settings_firmware_update_btn_event_cb(e);
 	}
 }
 

@@ -25,7 +25,10 @@ static bool prv_read_int = false;
 
 static uint8_t* ram_fs_ptr = NULL;
 static uint8_t* rd_starting_addr = NULL;
-static uint32_t rd_size_bytes = 0;
+static uint32_t rd_size_blocks = 0;
+static uint32_t wr_lba = 0;
+static uint32_t wr_num_blocks = 0;
+static uint8_t* wr_buf = NULL;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks);		//Called in an ISR.
@@ -40,7 +43,7 @@ static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks)
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
 	rd_starting_addr = ram_fs_ptr + (lba * 512);
-	rd_size_bytes = num_blocks * 512;
+	rd_size_blocks = num_blocks;
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 
@@ -52,7 +55,8 @@ static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks)
 
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-
+	wr_lba = lba;
+	wr_num_blocks = num_blocks;
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 
@@ -64,7 +68,7 @@ static void prv_msc_write_complete_handler(uint8_t* buf, uint32_t bytes)
 
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-
+	wr_buf = buf;
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 
@@ -140,10 +144,19 @@ void usb_msc_task()
 	FIL fil;            // File object
 	FRESULT res;        // API result code
 	UINT bw;            // Bytes written
+	const MKFS_PARM params =
+	{
+			.fmt = FM_FAT,
+			.n_fat = 1,
+			.align = 0,
+			.n_root = 0,
+			.au_size = 0
+	};
+
 	ram_fs_ptr = sys_mem_get_ram_fs_ptr();	//Pointer to the start of the file system memory.
 
 	uint8_t* work = calloc(4096, 1);
-	res = f_mkfs("1:", NULL, work, 4096);
+	res = f_mkfs("1:", &params, work, 4096);
 	if (res != FR_OK)
 	{
 		assert(0);
@@ -183,7 +196,9 @@ void usb_msc_task()
 		{
 			if (prv_write_complete_int)
 			{
-
+				uint8_t* start_addr = ram_fs_ptr + (wr_lba * 512);
+				uint32_t num_bytes = wr_num_blocks * 512;
+				memcpy(start_addr, wr_buf, num_bytes);
 			}
 			if (prv_write_int)
 			{
@@ -191,7 +206,7 @@ void usb_msc_task()
 			}
 			if (prv_read_int)
 			{
-
+				usb_msc_read_cmd(rd_starting_addr, rd_size_blocks);
 			}
 		}
 		else //count <=0 (should never happen)
