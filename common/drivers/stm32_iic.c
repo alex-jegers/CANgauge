@@ -49,11 +49,22 @@ static void i2c_write_data(I2C_TypeDef* i2c, uint8_t data)
 static void prv_timer_cb_timeout(TimerHandle_t* timer)
 {
 	prv_timeout = true;
+	i2c_bus_reset(I2C4);
+	prv_clear_timer();
 }
 
 static int8_t prv_start_timer()
 {
 	if (prv_timer_timeout == NULL)
+	{
+		return -1;
+	}
+
+	/* Check if timer was already started by other IIC function.
+	 * i.e. were in an IIC write which was called by an IIC read
+	 * therefore the timer would've been started by IIC read.
+	 */
+	if (xTimerIsTimerActive(prv_timer_timeout) == pdTRUE)
 	{
 		return 0;
 	}
@@ -163,13 +174,20 @@ void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
 i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
 				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
-	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0) {}
+	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0)
+	{
+		if (prv_timeout == true)
+		{
+			return I2C_EXIT_CODE_TIMEOUT;
+		}
+	}
 
 	/* If setting the internal register pointer failed, return an error. */
 	i2c_exit_code_t wr_sts = i2c_write(i2c, slave_addr, internal_addr, internal_addr_type, NULL, 0, auto_stop);
-	if (wr_sts == I2C_EXIT_CODE_NACK)
+	prv_start_timer();
+	if (wr_sts != I2C_EXIT_CODE_TC)
 	{
-		return -1;
+		return wr_sts;
 	}
 
 
@@ -181,12 +199,6 @@ i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal
 		//i2c->CR2 |= I2C_CR2_AUTOEND;					//enable auto stop.
 	}
 	i2c_clear_status(i2c);
-
-	/* Start the timeout timer. */
-	//if (prv_start_timer() != 0)
-	//{
-	//	return -1;
-	//}
 
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
@@ -240,7 +252,7 @@ i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal
 
 	}
 
-	//prv_clear_timer();
+	prv_clear_timer();
 
 	return rtn;
 }
@@ -248,7 +260,14 @@ i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal
 i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
 				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
-	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0) {}
+	prv_start_timer();
+	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0)
+	{
+		if (prv_timeout == true)
+		{
+			return I2C_EXIT_CODE_TIMEOUT;
+		}
+	}
 
 	i2c_clear_status(i2c);
 	i2c->ISR |= I2C_ISR_TXE;						//Flush the TXDR register.
@@ -279,13 +298,6 @@ i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t interna
 	{
 		//i2c->CR2 |= auto_stop << I2C_CR2_AUTOEND_Pos;	//set the auto end bit if needed.
 	}
-
-
-	/* Start the timeout timer. */
-	//if (prv_start_timer() != 0)
-	//{
-	//	return -1;
-	//}
 
 	i2c->CR2 |= I2C_CR2_START;						//start the transmission.
 
@@ -356,7 +368,7 @@ i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t interna
 		}
 	}
 
-	//prv_clear_timer();
+	prv_clear_timer();
 
 	return rtn;
 }
