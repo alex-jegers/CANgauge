@@ -3,11 +3,10 @@
 #include "drivers/drivers.h"
 #include "drivers/usb/stm32_usb_msc.h"
 
-#include "file_system/fatfs/ff.h"
-#include "file_system/fatfs/diskio.h"
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
+#define BLOCK_LENGTH		512
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -26,53 +25,66 @@ static bool prv_read_int = false;
 static uint8_t* ram_fs_ptr = NULL;
 static uint8_t* rd_starting_addr = NULL;
 static uint32_t rd_size_blocks = 0;
-static uint32_t wr_lba = 0;
-static uint32_t wr_num_blocks = 0;
-static uint8_t* wr_buf = NULL;
+
+/* Stuff for when the PC is writing to the device. */
+static uint32_t* wr_start_addr = 0;
+static uint32_t wr_full_length = 0;
+static uint32_t wr_partial_length = 0;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks);		//Called in an ISR.
 static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks);		//Called in an ISR.
-static void prv_msc_write_complete_handler(uint8_t* buf, uint32_t bytes);	//Called in an ISR.
+
+/**
+ * prv_msc_write_complete_handler
+ * 		returns: true if this was the last transfer.
+ */
+static bool prv_msc_write_complete_handler(uint32_t length_bytes);	//Called in an ISR.
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks)
 {
 	prv_read_int = true;
-
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
 	rd_starting_addr = ram_fs_ptr + (lba * 512);
 	rd_size_blocks = num_blocks;
+	usb_clear_gintmsk();						//Disable USB interrupts, have to re-enable after we read in this data.
+	usb_clear_ep1_intmsk();
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
-
 	portYIELD_FROM_ISR(higher_pri_task_woken);
 }
 static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks)
 {
 	prv_write_int = true;
-
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-	wr_lba = lba;
-	wr_num_blocks = num_blocks;
+	wr_start_addr = (uint32_t*)((uint8_t*)ram_fs_ptr + (lba * BLOCK_LENGTH));
+	wr_full_length = num_blocks * BLOCK_LENGTH;
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
-
 	portYIELD_FROM_ISR(higher_pri_task_woken);
 }
-static void prv_msc_write_complete_handler(uint8_t* buf, uint32_t bytes)
+static bool prv_msc_write_complete_handler(uint32_t length_bytes)
 {
 	prv_write_complete_int = true;
-
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-	wr_buf = buf;
+	wr_partial_length = length_bytes;
+	usb_clear_gintmsk();						//Disable USB interrupts, have to re-enable after we read in this data.
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
-
 	portYIELD_FROM_ISR(higher_pri_task_woken);
+
+	if (wr_full_length - wr_partial_length == 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -129,7 +141,7 @@ void usb_watchdog_task()
 
 void usb_msc_task_run()
 {
-	xTaskCreate(usb_msc_task, "USB_MSC", 250, NULL, 4, &prv_usb_msc_handle);
+	xTaskCreate(usb_msc_task, "USB_MSC", 450, NULL, 4, &prv_usb_msc_handle);
 }
 
 void usb_msc_task()
@@ -139,52 +151,10 @@ void usb_msc_task()
 	usb_msc_set_write_cb(prv_msc_write_handler);
 	usb_msc_set_write_complete_cb(prv_msc_write_complete_handler);
 
-	/* Create the file system. */
-	static FATFS fs;           // Filesystem object
-	FIL fil;            // File object
-	FRESULT res;        // API result code
-	UINT bw;            // Bytes written
-	const MKFS_PARM params =
-	{
-			.fmt = FM_FAT,
-			.n_fat = 1,
-			.align = 0,
-			.n_root = 0,
-			.au_size = 0
-	};
-
 	ram_fs_ptr = sys_mem_get_ram_fs_ptr();	//Pointer to the start of the file system memory.
 
-	uint8_t* work = calloc(4096, 1);
-	res = f_mkfs("1:", &params, work, 4096);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
 
-	// Give a work area to the default drive
-	res = f_mount(&fs, "1:", 0);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
 
-	// Create a file as new
-	res = f_open(&fil, "1:hello.txt", FA_CREATE_NEW | FA_WRITE);
-	if (res != FR_OK)
-	{
-		assert(0);
-	}
-
-	// Write a message
-	f_write(&fil, "Hello, World!\r\n", 15, &bw);
-	if (bw != 15)
-	{
-		assert(0);
-	}
-	
-	// Close the file
-	res = f_close(&fil);
 	// Unregister work area
 	//res = f_unmount("0");
 
@@ -196,18 +166,29 @@ void usb_msc_task()
 		{
 			if (prv_write_complete_int)
 			{
-				uint8_t* start_addr = ram_fs_ptr + (wr_lba * 512);
-				uint32_t num_bytes = wr_num_blocks * 512;
-				memcpy(start_addr, wr_buf, num_bytes);
+				wr_full_length -= wr_partial_length;
+				while (wr_partial_length > 0)
+				{
+					*wr_start_addr = *USB_DFIFO(1);
+					wr_start_addr++;
+					wr_partial_length -= 4;
+				}
+				prv_write_complete_int = false;
+				count--;
 			}
 			if (prv_write_int)
 			{
-
+				count--;
+				prv_write_int = false;
 			}
 			if (prv_read_int)
 			{
+				count--;
 				usb_msc_read_cmd(rd_starting_addr, rd_size_blocks);
+				usb_set_ep1_intmsk();
+				prv_read_int = false;
 			}
+			usb_set_gintmsk();
 		}
 		else //count <=0 (should never happen)
 		{

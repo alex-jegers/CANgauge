@@ -185,6 +185,8 @@ typedef struct __attribute__((packed))
 #define prv_clear_diepintx_bit(ep, msk)				USBx_OUTEP(ep)->DIEPINT = msk
 #define usb_set_gintmsk()							USB_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT_Msk
 #define usb_clear_gintmsk()							USB_FS->GAHBCFG &= ~(USB_OTG_GAHBCFG_GINT_Msk)
+#define usb_set_ep1_intmsk()						USB_FS_DEVICE->DEACHMSK |= USB_OTG_DEACHINTMSK_OEP1INTM | USB_OTG_DEACHINTMSK_IEP1INTM
+#define usb_clear_ep1_intmsk()						USB_FS_DEVICE->DEACHMSK &= ~(USB_OTG_DEACHINTMSK_OEP1INTM | USB_OTG_DEACHINTMSK_IEP1INTM)
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
@@ -283,6 +285,7 @@ uint16_t usb_get_frame_number();
 
 void usb_write(volatile uint32_t* fifo, void* data, uint8_t len);
 void usb_write_fifo1(volatile uint32_t* fifo, void* data, uint8_t len);
+uint32_t usb_read(uint8_t ep);
 
 
 #ifdef __cplusplus

@@ -24,9 +24,9 @@
 #define SECTOR_SIZE_RAM			512
 #define BLOCK_SIZE_RAM			512
 
-#define NUM_SECTORS_EEPROM		1000
-#define SECTOR_SIZE_EEPROM		512
-#define BLOCK_SIZE_EEPROM		512
+#define SECTOR_SIZE_EEPROM		128
+#define BLOCK_SIZE_EEPROM		128
+#define NUM_SECTORS_EEPROM		0xFFFF / SECTOR_SIZE_EEPROM
 
 uint8_t* ram_fs_buf = NULL;
 
@@ -118,8 +118,8 @@ DRESULT disk_read (
 	switch (pdrv)
 	{
 	case DEV_EEPROM :
-		uint32_t phy_addr = sector * 512;
-		uint32_t num_bytes = 512 * count;	//512 bytes per sector.
+		uint32_t phy_addr = sector * SECTOR_SIZE_EEPROM;
+		uint32_t num_bytes = SECTOR_SIZE_EEPROM * count;
 
 		for (uint32_t i = 0; i < num_bytes; i++)
 		{
@@ -160,7 +160,7 @@ DRESULT disk_write (
 	switch (pdrv)
 	{
 	case DEV_EEPROM :
-		uint32_t phy_addr = sector * 512;
+		uint32_t phy_addr = sector * SECTOR_SIZE_EEPROM;
 		uint32_t num_eeprom_blocks = count * 4;		//EEPROM block size is 128.
 
 		for (uint32_t i = 0; i < num_eeprom_blocks; i++)

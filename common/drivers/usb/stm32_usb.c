@@ -287,7 +287,6 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 		USB_FS_DEVICE->DAINTMSK |= (1 << 17);	//Enable EP1 interrupts.
 		//USBx_OUTEP(1)->DOEPCTL |=
 	}
-	//Dynamic printf here: "\n"
 
 }
 
@@ -531,6 +530,11 @@ uint16_t usb_get_frame_number()
 	return ((USB_FS_DEVICE->DSTS >> 8) & 0x3FFF);
 }
 
+uint32_t usb_read(uint8_t ep)
+{
+	return *USB_DFIFO(ep);
+}
+
 void OTG_FS_EP1_OUT_IRQHandler()
 {
 	uint32_t endpoint_int = USBx_OUTEP(1)->DOEPINT;
@@ -619,3 +623,5 @@ void OTG_FS_IRQHandler()
 	}
 	//usb_set_gintmsk();
 }
+
+

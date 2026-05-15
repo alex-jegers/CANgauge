@@ -59,7 +59,7 @@ void usb_msc_set_write_cb(void (*func)(uint32_t lba, uint32_t num_blocks));
  * 			buf: the address where the bytes are stored.
  * 			bytes: the number of bytes received.
  */
-void usb_msc_set_write_complete_cb(void (*func)(uint8_t* buf, uint32_t bytes));
+void usb_msc_set_write_complete_cb(bool (*func)(uint32_t length_bytes));
 
 /**
  * usb_msc_read_cmd:
