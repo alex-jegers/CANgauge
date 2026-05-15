@@ -11,7 +11,7 @@
 #include "system_cm7.h"
 
 #include "drivers/drivers.h"
-
+#include "lvgl_port/lvgl_port_def.h"
 #include "ui/ui_helpers.h"
 #include "ui/ui_gauges.h"
 
@@ -86,22 +86,34 @@ static void prv_lcd_bl_init()
 /**********     GLOBAL FUNCTION DEFINITIONS     **********/
 void system_task_init()
 {
-	/* Stop the scheduler. */
-	//portENTER_CRITICAL();	//Have to use this instead of vTaskSuspendAll because we need to use a delay after resetting USB.
-	vTaskSuspendAll();
-/*
-	i2c_exit_code_t present_code = eeprom_present();
-	static uint8_t test_data_wr[8] = { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0 };
-	eeprom_write(0x0200, &test_data_wr, 8);
-	static uint8_t test_data_rd[8] = { 0,0,0,0,0,0,0,0 };
-	i2c_exit_code_t status = eeprom_status();
-	while (status != I2C_EXIT_CODE_TC) {status = eeprom_status();}
-	i2c_exit_code_t read_code = eeprom_read(&test_data_rd, 0x0200, 8);
-*/
-
+	/* Reset the I2C bus. */
 	i2c_bus_reset(I2C4);
-	xTaskResumeAll();
-	//portEXIT_CRITICAL();
+
+	/* Initialize the file systems. This has to come after I2C init bc EEPROM uses I2C. */
+	sys_mem_init_file_systems();
+
+	/* Start all the tasks. */
+	system_blink_run(1000);
+
+	pwr_monitor_run(4);
+
+	usb_msc_task_run();
+
+	usb_watchdog_run();
+
+	/* Set up the display and input device callbacks for LVGL. */
+   	static touch_info_t touch_data;						//Where the touch data will be stored.
+   	static touch_info_t* p_touch_data = &touch_data;	//Pointer to the touch data for indev_init.
+	lv_port_run();										//Initialize LVGL and LVGL mutex.
+	disp_init();										//LVGL display bindings.
+	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
+
+	touch_scr_run(p_touch_data);						//Runs the touch screen task.
+	/* Load the menu screen. */
+	app_gauges_run();
+	//lv_demo_benchmark();
+
+
 
 	vTaskDelete(NULL);
 }
@@ -136,6 +148,7 @@ void system_init()
 	i2c_disable_analog_filt(I2C4);
 	i2c_enable_timeout_detection(I2C4);
 	i2c_enable(I2C4);
+
 }
 
 void system_init_fpu()
@@ -150,7 +163,7 @@ void system_blink_run(const uint32_t delay_time_ms)
 		vTaskResume(prv_task_handle_blink);
 		return;
 	}
-	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 50, delay_time_ms, 4, &prv_task_handle_blink);
+	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 150, delay_time_ms, 4, &prv_task_handle_blink);
 
 }
 
