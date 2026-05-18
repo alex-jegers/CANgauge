@@ -7,9 +7,14 @@ static bool ui_demo_mode = false;
 /**********		STATIC VARIABLES		**********/
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
-
+static lv_event_cb_t ui_helpers_msgbox_close(lv_event_t* e);
 /**********		STATIC FUNCTION DEFINITIONS		**********/
-
+static lv_event_cb_t ui_helpers_msgbox_close(lv_event_t* e)
+{
+	lv_obj_t* btn = lv_event_get_target(e);
+	lv_obj_t* msgbox = lv_obj_get_parent(btn);
+	lv_obj_delete(msgbox);
+}
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void ui_helpers_init_styles()
 {
@@ -188,3 +193,24 @@ void ui_helpers_add_text_to_act_scr(char* text, lv_align_t alignment, uint32_t x
 	lv_obj_align(lbl, alignment, x, y);
 	lv_obj_set_style_text_color(lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
 }
+
+lv_obj_t* ui_helpers_show_msgbox(const char* text, const char* btn_text, lv_event_cb_t func)
+{
+	lv_obj_t* msg_box = lv_msgbox_create(lv_layer_top());
+	lv_msgbox_add_text(msg_box, text);
+	//lv_msgbox_add_close_button(msg_box);
+	lv_obj_t* close_btn = lv_msgbox_add_footer_button(msg_box, "Close");
+	lv_obj_add_event_cb(close_btn, ui_helpers_msgbox_close, LV_EVENT_RELEASED, NULL);
+
+	if (btn_text != NULL)
+	{
+		lv_obj_t* user_btn = lv_msgbox_add_footer_button(msg_box, btn_text);
+		if (func != NULL)
+		{
+			lv_obj_add_event_cb(user_btn, func, LV_EVENT_RELEASED, NULL);
+		}
+	}
+
+	return msg_box;
+}
+
