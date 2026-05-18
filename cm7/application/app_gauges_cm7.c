@@ -13,6 +13,7 @@
 #include "lvgl.h"
 
 #include "lvgl_port/lvgl_port_def.h"
+#include "bootloader/bootloader.h"
 
 
 
@@ -123,7 +124,8 @@ static void prv_task_gauges()
 										CAN ID: 0x%X\n \
 										RX ECR: %d\n \
 										TX ECR: %d\n \
-										LEC: %d",
+										LEC: %d\n	\
+										v0.3",
 										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id,
 										rx_ecr, tx_ecr, ec);
 	realloc(label, str_size);
@@ -483,6 +485,11 @@ static void prv_settings_btn_clicked_cb(lv_event_t* e)
 	can_transmit_stop(0);
 	app_can_controller_stop(0);
 	app_gauges_stop(portMAX_DELAY);
+
+	/* Initialize the boot loader, this sets the function CB
+	 * for the update firmware button.
+	 */
+	btldr_init();
 }
 
 static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
