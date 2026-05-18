@@ -16,6 +16,7 @@ typedef enum
 
 typedef enum
 {
+	USB_MSC_SCSI_REZERO_UNIT			= 0x01,
 	USB_MSC_SCSI_CMD_INQUIRY			= 0x12,
 	USB_MSC_SCSI_READ_FORMAT_CAPACITIES	= 0x23,
 	USB_MSC_SCSI_READ_CAPACITIES		= 0x25,
@@ -302,6 +303,11 @@ static void usb_msc_handle_cbw()
 
 		assert( wr_transfer_length <= 0x10000 );
 
+	}
+	else if (command == USB_MSC_SCSI_REZERO_UNIT)
+	{
+		header.dCSWDataResidue = 0;
+		usb_write_fifo1(USB_DFIFO(1), &header, sizeof(usb_msc_csw_t));
 	}
 	
 	else
