@@ -20,14 +20,6 @@
 #define DEV_EEPROM	0	/* Map FTL to physical drive 0 */
 #define DEV_RAM		1
 
-#define NUM_SECTORS_RAM			0x4000
-#define SECTOR_SIZE_RAM			512
-#define BLOCK_SIZE_RAM			512
-
-#define SECTOR_SIZE_EEPROM		128
-#define BLOCK_SIZE_EEPROM		128
-#define NUM_SECTORS_EEPROM		0xFFFF / SECTOR_SIZE_EEPROM
-
 uint8_t* ram_fs_buf = NULL;
 
 /*-----------------------------------------------------------------------*/
@@ -113,7 +105,6 @@ DRESULT disk_read (
 )
 {
 	DRESULT res;
-	int result;
 
 	switch (pdrv)
 	{
@@ -134,6 +125,7 @@ DRESULT disk_read (
 		{
 			*(buff + i) = *(starting_addr + i);
 		}
+		res = RES_OK;
 	}
 
 	return res;
