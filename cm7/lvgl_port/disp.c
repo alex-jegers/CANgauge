@@ -8,9 +8,7 @@
 
 #include "common/drivers/drivers.h"
 
-#include "system/system_mem.h"
-
-#include "system/system_mem.h"
+#include "system/system_cm7.h"
 
 /**********		DEFINES		**********/
 
@@ -18,8 +16,8 @@
 
 /**********		STATIC VARIABLES		**********/
 static lv_display_t* disp;
-SYSTEM_MEM_REGION_EXTERN_RAM static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
-SYSTEM_MEM_REGION_RAM_D1 static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
+SYS_MEM_REGION_EXTERN_RAM static uint8_t ltdc_lvgl_buffer1[LTDC_BUFFER_SIZE];
+SYS_MEM_REGION_RAM_D1 static uint8_t ltdc_lvgl_buffer2[LTDC_BUFFER_SIZE];
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map);
@@ -32,7 +30,9 @@ static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, ui
 	uint32_t addr = (uint32_t)lv_display_get_buf_active(display)->data;
 	if (is_last == 1) {
 		LTDC->ICR = LTDC_ICR_CRRIF;
+#if SYS_ENABLE_DATA_CACHE == 1
 		SCB_CleanDCache();
+#endif
 		// wait for VSYNC to avoid tearing
 		//while ((LTDC->CDSR & LTDC_CDSR_VSYNCS) == 0){}
 		// swap framebuffers (NOTE: LVGL will swap the buffers in the background, so here we can set the LCD framebuffer to the current LVGL buffer, which has been just completed)

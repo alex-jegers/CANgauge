@@ -28,6 +28,7 @@
 #include "system_mem.h"
 
 /**********		DEFINES		**********/
+#define SYS_ENABLE_DATA_CACHE		0
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 

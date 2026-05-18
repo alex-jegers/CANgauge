@@ -133,9 +133,10 @@ void system_init()
 	prv_lcd_bl_init();
 
 	/*Enable the caches.*/
-	SCB_EnableDCache();
-	SCB_EnableICache();
-
+#if SYS_ENABLE_DATA_CACHE == 1
+	//SCB_EnableDCache();
+	//SCB_EnableICache();
+#endif
 	/* Configure the IO pins for I2C. */
 	io_set_output_type(GPIOD, GPIO_PIN12_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
 	io_set_output_type(GPIOD, GPIO_PIN13_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
