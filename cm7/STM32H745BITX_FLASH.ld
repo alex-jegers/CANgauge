@@ -50,7 +50,7 @@ MEMORY
   DTCMRAM (xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K	/*Stack.*/
   RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K	/*CM7 heap and data.*/
   RAM_D3 (xrw)   	: ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
-  ITCMRAM (xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K		/*Not used.*/
+  ITCMRAM (xrw)  	: ORIGIN = 0x000000ff, LENGTH = 64K		/*Bootloader functions*/
   EXT_RAM (xrw) 	: ORIGIN = 0x70000000, LENGTH = 16M
 
 }
