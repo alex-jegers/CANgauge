@@ -14,6 +14,7 @@ extern "C" {
 
 /**********     INCLUDES        **********/
 #include "stm32h745xx.h"
+#include "system/system_mem.h"
 
 /**********     DEFINES      **********/
 #define F_CPU_M7			480000000
@@ -153,7 +154,7 @@ void rcc_disable_all_pll();
  */
 void rcc_set_sys_ck(rcc_sys_ck_t ck_src);
 
-void rcc_sw_reset();
+SYS_MEM_REGION_RAM_EXE void rcc_sw_reset();
 void rcc_set_systick_reload(uint32_t reload);
 
 

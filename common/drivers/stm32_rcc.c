@@ -264,7 +264,7 @@ void rcc_set_sys_ck(rcc_sys_ck_t ck_src)
 
 }
 
-void rcc_sw_reset()
+SYS_MEM_REGION_RAM_EXE void rcc_sw_reset()
 {
 	NVIC_SystemReset();
 }
