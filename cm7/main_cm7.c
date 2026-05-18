@@ -35,7 +35,7 @@ int main(void)
 	system_init();
 
 	/* Creates a task to finish the rest of the system initialization. */
-   	xTaskCreate(system_task_init, "SYS_INIT", 450, NULL, 5, NULL);
+   	xTaskCreate(system_task_init, "SYS_INIT", 650, NULL, 5, NULL);
 
 	/* Starts the FreeRTOS scheduler. */
 	vTaskStartScheduler();
