@@ -38,17 +38,26 @@ void sys_mem_init_file_systems()
 			.n_root = 0,
 			.au_size = 0
 	};
+	const MKFS_PARM params_eeprom =
+	{
+			.fmt = FM_FAT,
+			.n_fat = 1,
+			.align = 0,
+			.n_root = 16,
+			.au_size = 0
+	};
+
+
+	/* Do the same for the EEPROM file system. */
+	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_eeprom[4096];
+	memset(work_eeprom, 0, 4096);
+	res = f_mkfs("0:", &params_eeprom, &work_eeprom, 4096);
+	assert(res == FR_OK);
 
 	/* Set up the working memory and make the file system in RAM. */
 	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_ram[4096];
 	memset(work_ram, 0, 4096);
 	res = f_mkfs("1:", &params, &work_ram, 4096);
-	assert(res == FR_OK);
-
-	/* Do the same for the EEPROM file system. */
-	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_eeprom[4096];
-	memset(work_eeprom, 0, 4096);
-	res = f_mkfs("0:", &params, &work_eeprom, 4096);
 	assert(res == FR_OK);
 
 	// Give a work area to each drive

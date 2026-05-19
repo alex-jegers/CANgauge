@@ -29,7 +29,6 @@ typedef enum
 
 typedef enum
 {
-	I2C_EXIT_CODE_ALL_BYTES_TRNSFD 	= 0,
 	I2C_EXIT_CODE_NACK 				= 1,
 	I2C_EXIT_CODE_STOP				= 2,
 	I2C_EXIT_CODE_TC				= 3,

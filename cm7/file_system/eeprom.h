@@ -11,7 +11,12 @@ extern "C" {
 #include "stdint.h"
 #include "stddef.h"
 /**********     TYPEDEFS         **********/
-
+typedef enum
+{
+	EEPROM_STS_OK,
+	EEPROM_STS_I2C_ERR,
+	EEPROM_STS_ERR
+}eeprom_sts_t;
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
@@ -22,14 +27,14 @@ extern "C" {
  * 		desc: write data, data, or size, size, to eeprom address, addr.
  * 		returns: zero if an error occurred. Non-zero for success.
  */
-int8_t eeprom_write(uint16_t addr, void* data, uint32_t size);
+eeprom_sts_t eeprom_write(uint32_t addr, void* data, uint32_t size);
 
 /**
  * eeprom_read:
  * 		desc: reads size bytes from eeprom address, addr, into data.
  * 		returns: zero if an error occurred. Non-zero if the read was a success.
  */
-int8_t eeprom_read(void* data, uint16_t addr, uint32_t size);
+eeprom_sts_t eeprom_read(void* data, uint32_t addr, uint32_t size);
 
 /**
  * eeprom_probe:

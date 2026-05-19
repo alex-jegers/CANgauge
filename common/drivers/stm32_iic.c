@@ -50,7 +50,7 @@ static void prv_timer_cb_timeout(TimerHandle_t* timer)
 {
 	prv_timeout = true;
 	i2c_bus_reset(I2C4);
-	prv_clear_timer();
+	//prv_clear_timer();
 }
 
 static int8_t prv_start_timer()
