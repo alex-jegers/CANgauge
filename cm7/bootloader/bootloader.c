@@ -5,6 +5,7 @@
 #include "file_system/fatfs/ff.h"
 #include "lvgl_port/lvgl_port_def.h"
 #include "lvgl/lvgl.h"
+#include "application/applications_cm7.h"
 
 /**********     TYPEDEFS         **********/
 
@@ -21,6 +22,7 @@ static uint32_t file_size = 0;								//The size of the file that was uploaded t
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void btldr_firmware_btn_cb(lv_event_t* e);
 static void prv_file_ready(lv_event_t* e);
+static void prv_msgbox_close();
 
 /**
  * btldr_reprogram:
@@ -32,7 +34,9 @@ SYS_MEM_REGION_RAM_EXE static void btldr_reprogram();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void btldr_firmware_btn_cb(lv_event_t* e)
 {
+	usb_connect(USB_FS_RAM);
 	msg_box = ui_helpers_show_msgbox("Waiting for file upload.", "Done.", &prv_file_ready);
+	ui_helpers_add_msgbox_close_btn(msg_box, prv_msgbox_close);
 	xTaskCreate(btldr_task, "BOOTLDR", 500, NULL, 4, &prv_btldr_task_handle);
 }
 
@@ -50,6 +54,13 @@ SYS_MEM_REGION_RAM_EXE static void btldr_reprogram()
 		sys_mem_flash_write_sector(i, firmware_buf + (i * 0x20000));
 	}
 	rcc_sw_reset();
+}
+
+static void prv_msgbox_close()
+{
+	vTaskDelete(prv_btldr_task_handle);
+	vSemaphoreDelete(prv_mutex_file_ready);
+	usb_disconnect();
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/

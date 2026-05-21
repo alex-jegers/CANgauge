@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _BOOTLOADER_H_
+#define _BOOTLOADER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,4 +31,4 @@ void btldr_init();
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_BOOTLOADER_H_
