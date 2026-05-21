@@ -31,7 +31,7 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 void ui_helpers_create_gauge_animation(lv_anim_t* anim, lv_obj_t* obj, lv_anim_exec_xcb_t func, uint32_t duration, uint32_t min, uint32_t max);
 void ui_helpers_add_text_to_act_scr(char* text, lv_align_t alignment, uint32_t x, uint32_t y);
 lv_obj_t* ui_helpers_show_msgbox(const char* text, const char* btn_text, lv_event_cb_t func);
-
+void ui_helpers_add_msgbox_close_btn(lv_obj_t* msgbox, void (*func)());
 
 #ifdef __cplusplus
 } /*extern "C"*/

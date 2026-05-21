@@ -12,7 +12,13 @@ static lv_event_cb_t ui_helpers_msgbox_close(lv_event_t* e);
 static lv_event_cb_t ui_helpers_msgbox_close(lv_event_t* e)
 {
 	lv_obj_t* btn = lv_event_get_target(e);
-	lv_obj_t* msgbox = lv_obj_get_parent(btn);
+	lv_obj_t* footer = lv_obj_get_parent(btn);
+	lv_obj_t* msgbox = lv_obj_get_parent(footer);
+	void* func = lv_event_get_user_data(e);
+	if (func != NULL)
+	{
+		((void(*)())func)();
+	}
 	lv_obj_delete(msgbox);
 }
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -199,8 +205,7 @@ lv_obj_t* ui_helpers_show_msgbox(const char* text, const char* btn_text, lv_even
 	lv_obj_t* msg_box = lv_msgbox_create(lv_layer_top());
 	lv_msgbox_add_text(msg_box, text);
 	//lv_msgbox_add_close_button(msg_box);
-	lv_obj_t* close_btn = lv_msgbox_add_footer_button(msg_box, "Close");
-	lv_obj_add_event_cb(close_btn, ui_helpers_msgbox_close, LV_EVENT_RELEASED, NULL);
+
 
 	if (btn_text != NULL)
 	{
@@ -212,5 +217,11 @@ lv_obj_t* ui_helpers_show_msgbox(const char* text, const char* btn_text, lv_even
 	}
 
 	return msg_box;
+}
+
+void ui_helpers_add_msgbox_close_btn(lv_obj_t* msgbox, void (*func)())
+{
+	lv_obj_t* close_btn = lv_msgbox_add_footer_button(msgbox, "Close");
+	lv_obj_add_event_cb(close_btn, ui_helpers_msgbox_close, LV_EVENT_RELEASED, (void*)func);
 }
 
