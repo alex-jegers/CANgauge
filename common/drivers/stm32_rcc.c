@@ -266,7 +266,18 @@ void rcc_set_sys_ck(rcc_sys_ck_t ck_src)
 
 SYS_MEM_REGION_RAM_EXE void rcc_sw_reset()
 {
-	NVIC_SystemReset();
+	//NVIC_SystemReset();
+	  __DSB();                                                          /* Ensure all outstanding memory accesses included
+	                                                                       buffered write are completed before reset */
+	  SCB->AIRCR  = (uint32_t)((0x5FAUL << SCB_AIRCR_VECTKEY_Pos)    |
+	                           (SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) |
+	                            SCB_AIRCR_SYSRESETREQ_Msk    );         /* Keep priority group unchanged */
+	  __DSB();                                                          /* Ensure completion of memory access */
+
+	  for(;;)                                                           /* wait until reset */
+	  {
+	    __NOP();
+	  }
 }
 
 void rcc_set_systick_reload(uint32_t reload)

@@ -1,6 +1,5 @@
 /**********     INCLUDES        **********/
 #include "application/applications_cm7.h"
-#include <cangauge_common.h>
 #include "drivers/stm32_hsem.h"
 #include <stdio.h>				//For sprintf.
 #include <string.h>				//For memcpy.

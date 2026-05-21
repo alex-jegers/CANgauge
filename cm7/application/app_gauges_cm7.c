@@ -1,5 +1,4 @@
 /**********     INCLUDES        **********/
-#include "cangauge_common.h"
 #include "app_gauges_cm7.h"
 #include "app_gauges_prv.h"
 
@@ -24,6 +23,7 @@
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
+const char* prv_version = "v0.6";
 static bool prv_task_run = false;
 static TaskHandle_t prv_gauges_task_handle;
 static EventGroupHandle_t prv_event_group = NULL;
@@ -78,7 +78,6 @@ static void prv_task_gauges()
 	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
 	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);		//The gauge screen loads (nothing programmed).
 	ui_gauges_set_view_btn_cb(prv_gauge_view_btn_cb);		//A gauge is selected (load the gauge and set the CAN getter).
-
     ui_set_brightness_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
     ui_set_settings_scr_load_event_cb(prv_menu_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
     ui_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
@@ -125,9 +124,9 @@ static void prv_task_gauges()
 										RX ECR: %d\n \
 										TX ECR: %d\n \
 										LEC: %d\n	\
-										v0.3",
+										%s",
 										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id,
-										rx_ecr, tx_ecr, ec);
+										rx_ecr, tx_ecr, ec, prv_version);
 	realloc(label, str_size);
 
 	/* Write the label to the screen. */
@@ -486,6 +485,7 @@ static void prv_settings_btn_clicked_cb(lv_event_t* e)
 	app_can_controller_stop(0);
 	app_gauges_stop(portMAX_DELAY);
 
+
 	/* Initialize the boot loader, this sets the function CB
 	 * for the update firmware button.
 	 */
@@ -496,3 +496,5 @@ static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
 {
 	app_gauges_run();
 }
+
+

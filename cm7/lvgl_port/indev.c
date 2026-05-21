@@ -3,8 +3,6 @@
 /**********     INCLUDES        **********/
 #include "indev.h"
 
-#include <cangauge_common.h>
-
 #include "FreeRTOS.h"
 #include "task.h"
 

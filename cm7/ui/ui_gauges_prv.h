@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _UI_PRV_GAUGES_H_
+#define _UI_PRV_GAUGES_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,4 +21,4 @@ extern "C" {
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_UI_PRV_GAUGES_H_

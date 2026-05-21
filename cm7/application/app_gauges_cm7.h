@@ -24,4 +24,4 @@ bool app_gauges_stop(uint32_t block_time_ms);
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_APP_GAUGES_CM7_H_

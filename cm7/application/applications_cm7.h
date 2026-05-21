@@ -26,4 +26,4 @@ extern "C" {
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_APPLICATIONS_CM7_
