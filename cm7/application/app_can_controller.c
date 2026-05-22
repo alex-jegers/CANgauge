@@ -307,7 +307,7 @@ void app_can_controller_run(uint8_t (*data_storage)[176][10])
 											| EVENT_BITS_INIT_DONE);
 
 	/* Create the task. */
-	xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 3, prv_task_handle);
+	xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 2, prv_task_handle);
 	
 }
 

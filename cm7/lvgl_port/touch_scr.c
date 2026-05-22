@@ -106,7 +106,7 @@ static void prv_init()
 	io_set_pin_mux(I2C_SDA_PORT, I2C_SDA_PIN, I2C_SDA_ALT_FUNC);
 
 	/*Initialize the I2C.*/
-	i2c_init_clk(I2C_INST);
+	i2c_init(I2C_INST);
 	i2c_set_clk_speed(I2C_INST, I2C_CLK_400K);
 	i2c_disable_analog_filt(I2C_INST);
 	i2c_enable_timeout_detection(I2C_INST);
@@ -126,7 +126,7 @@ static int8_t prv_read_data()
 	int8_t status = i2c_read(I2C_INST, CST830_SLAVE_ADDR, CST830_TOUCH_NUM, I2C_INTERNAL_ADDR_8_BIT,
 					(uint8_t*)&data, 5, false);
 
-	if (status == -1)
+	if (status != I2C_EXIT_CODE_TC)
 	{
 		return status;
 	}
@@ -152,9 +152,9 @@ static void prv_task_update(touch_info_t* p_touch_data)
 	while (p_touch_data == NULL) {}
 	while (prv_run)
 	{
-		if (prv_read_data() == -1)
+		if (prv_read_data() != I2C_EXIT_CODE_TC)
 		{
-			//TODO: RESET IIC here.
+			i2c_bus_reset(I2C4);
 		}
 		*p_touch_data = touch_info;
 		vTaskDelay(CST830_REFRESH_PERIOD_MS);
@@ -172,7 +172,7 @@ void touch_scr_run(touch_info_t* p_touch_data)
 {
 	prv_event_group = xEventGroupCreate();
 	xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
-	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 200, p_touch_data, 4, NULL);
+	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 200, p_touch_data, 3, NULL);
 }
 
 bool touch_scr_stop(uint32_t block_time_ms)

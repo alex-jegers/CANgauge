@@ -95,11 +95,9 @@ void system_task_init()
 	/* Start all the tasks. */
 	system_blink_run(1000);
 
-	pwr_monitor_run(4);
+	pwr_monitor_run(1);
 
-	usb_msc_task_run();
-
-	usb_watchdog_run();
+	//usb_connect(USB_FS_EEPROM);
 
 	/* Set up the display and input device callbacks for LVGL. */
    	static touch_info_t touch_data;						//Where the touch data will be stored.
@@ -107,8 +105,8 @@ void system_task_init()
 	lv_port_run();										//Initialize LVGL and LVGL mutex.
 	disp_init();										//LVGL display bindings.
 	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
-
 	touch_scr_run(p_touch_data);						//Runs the touch screen task.
+
 	/* Load the menu screen. */
 	app_gauges_run();
 	//lv_demo_benchmark();
@@ -144,7 +142,7 @@ void system_init()
 	io_set_pin_mux(GPIOD, GPIO_PIN13_Msk, GPIO_AFR_AF4);
 
 	/* Initialize the I2C interface. Used by the LCD screen and EEPROM. */
-	i2c_init_clk(I2C4);
+	i2c_init(I2C4);
 	i2c_set_clk_speed(I2C4, I2C_CLK_400K);
 	i2c_disable_analog_filt(I2C4);
 	i2c_enable_timeout_detection(I2C4);
