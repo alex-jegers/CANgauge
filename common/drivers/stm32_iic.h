@@ -37,7 +37,7 @@ typedef enum
 	I2C_EXIT_CODE_ARB_LOST			= 6,
 }i2c_exit_code_t;
 
-void i2c_init_clk(I2C_TypeDef* i2c);
+void i2c_init(I2C_TypeDef* i2c);
 void i2c_set_clk_speed(I2C_TypeDef* i2c, i2c_clk_speed_t clk_frq);
 void i2c_enable(I2C_TypeDef* i2c);
 void i2c_disable_analog_filt(I2C_TypeDef* i2c);

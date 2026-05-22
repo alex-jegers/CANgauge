@@ -11,6 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
+#include "semphr.h"
 
 #include "drivers/drivers.h"
 
@@ -29,6 +30,7 @@
 
 static bool prv_timeout = false;
 static TimerHandle_t prv_timer_timeout = NULL;
+static SemaphoreHandle_t prv_i2c_mutex = NULL;
 
 static uint8_t i2c_get_data(I2C_TypeDef* i2c);
 static void i2c_write_data(I2C_TypeDef* i2c, uint8_t data);
@@ -60,15 +62,6 @@ static int8_t prv_start_timer()
 		return -1;
 	}
 
-	/* Check if timer was already started by other IIC function.
-	 * i.e. were in an IIC write which was called by an IIC read
-	 * therefore the timer would've been started by IIC read.
-	 */
-	if (xTimerIsTimerActive(prv_timer_timeout) == pdTRUE)
-	{
-		return 0;
-	}
-
 	if (xTimerStart(prv_timer_timeout, 0) == pdFAIL)
 	{
 		return -1;
@@ -90,11 +83,17 @@ static void prv_clear_timer()
 	}
 }
 
-void i2c_init_clk(I2C_TypeDef* i2c)
+void i2c_init(I2C_TypeDef* i2c)
 {
 	/*I2C4 bus and kernel clock enable and selection.*/
 	if (i2c == I2C4)
 	{
+		if (prv_i2c_mutex == NULL)
+		{
+			prv_i2c_mutex = xSemaphoreCreateRecursiveMutex();
+		}
+		assert( prv_i2c_mutex != NULL );
+
 		RCC->APB4ENR |= RCC_APB4ENR_I2C4EN;					//enable APB clock.
 		RCC->D3CCIPR &= ~(0x3 << RCC_D3CCIPR_I2C4SEL_Pos);	//clear the bits.
 		RCC->D3CCIPR |= RCC_D3CCIPR_I2C4SEL_HSI;			//select the HSI as the kernel clock
@@ -118,6 +117,7 @@ void i2c_init_clk(I2C_TypeDef* i2c)
 	/*I2C1,2,3 kernel clock selection.*/
 	RCC->D2CCIP2R &= (0x3 << RCC_D2CCIP2R_I2C123SEL_Pos);	//clear the bits.
 	RCC->D2CCIP2R |= RCC_D2CCIP2R_I2C123SEL_HSI;			//select the HSI as the kernel clock
+
 }
 
 
@@ -168,28 +168,44 @@ void i2c_disable_clk_stretch(I2C_TypeDef* i2c)
 
 void i2c_enable_timeout_detection(I2C_TypeDef* i2c)
 {
-	prv_timer_timeout = xTimerCreate("I2C_TIMER", pdMS_TO_TICKS(5), pdFALSE, NULL, prv_timer_cb_timeout);
+	prv_timer_timeout = xTimerCreate("I2C_TIMER", pdMS_TO_TICKS(100), pdFALSE, NULL, prv_timer_cb_timeout);
 }
 
 i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
 				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
+	if (xSemaphoreTakeRecursive(prv_i2c_mutex, portMAX_DELAY) == pdFALSE)
+	{
+		return I2C_EXIT_CODE_ERR;
+	}
+
+	prv_start_timer();
+
 	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0)
 	{
 		if (prv_timeout == true)
 		{
+			i2c_bus_reset(i2c);
+			xSemaphoreGiveRecursive(prv_i2c_mutex);
 			return I2C_EXIT_CODE_TIMEOUT;
+		}
+		if (i2c_status(i2c) & I2C_ISR_ARLO)
+		{
+			i2c_bus_reset(i2c);
+			xSemaphoreGiveRecursive(prv_i2c_mutex);
+			return I2C_EXIT_CODE_ARB_LOST;
 		}
 	}
 
 	/* If setting the internal register pointer failed, return an error. */
 	i2c_exit_code_t wr_sts = i2c_write(i2c, slave_addr, internal_addr, internal_addr_type, NULL, 0, auto_stop);
-	prv_start_timer();
+
 	if (wr_sts != I2C_EXIT_CODE_TC)
 	{
+		xSemaphoreGiveRecursive(prv_i2c_mutex);
 		return wr_sts;
 	}
-
+	prv_start_timer();
 
 	i2c->CR2 = slave_addr;						//set slave address and clear the rest of the register.
 	i2c->CR2 |= I2C_CR2_RD_WRN;						//set bit for requesting read.
@@ -254,17 +270,26 @@ i2c_exit_code_t i2c_read(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal
 
 	prv_clear_timer();
 
+	xSemaphoreGiveRecursive(prv_i2c_mutex);
+
 	return rtn;
 }
 /*Returns zero for success, non-zero for a failure.*/
 i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t internal_addr, i2c_internal_addr_t internal_addr_type,
 				uint8_t* data, uint8_t num_bytes, bool auto_stop)
 {
+	if (xSemaphoreTakeRecursive(prv_i2c_mutex, portMAX_DELAY) == pdFALSE)
+	{
+		return I2C_EXIT_CODE_ERR;
+	}
+
 	prv_start_timer();
+
 	while ((i2c_status(I2C4) & I2C_ISR_BUSY) != 0)
 	{
 		if (prv_timeout == true)
 		{
+			xSemaphoreGiveRecursive(prv_i2c_mutex);
 			return I2C_EXIT_CODE_TIMEOUT;
 		}
 	}
@@ -355,6 +380,12 @@ i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t interna
 			break;
 		}
 
+		if (i2c_status(i2c) & I2C_ISR_ARLO)
+		{
+			rtn = I2C_EXIT_CODE_ARB_LOST;
+			break;
+		}
+
 		if (i2c_status(i2c) & I2C_ISR_TIMEOUT)
 		{
 			rtn = I2C_EXIT_CODE_TIMEOUT;
@@ -369,6 +400,8 @@ i2c_exit_code_t i2c_write(I2C_TypeDef* i2c, uint8_t slave_addr, uint16_t interna
 	}
 
 	prv_clear_timer();
+
+	xSemaphoreGiveRecursive(prv_i2c_mutex);
 
 	return rtn;
 }

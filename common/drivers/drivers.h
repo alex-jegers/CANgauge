@@ -25,6 +25,8 @@ extern "C" {
 #include "stm32_flash.h"
 #include "usb/stm32_usb.h"
 
+#include "assert.h"
+
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
