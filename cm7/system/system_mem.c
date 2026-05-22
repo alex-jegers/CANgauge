@@ -47,13 +47,6 @@ void sys_mem_init_file_systems()
 			.au_size = 0
 	};
 
-
-	/* Do the same for the EEPROM file system. */
-	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_eeprom[4096];
-	memset(work_eeprom, 0, 4096);
-	res = f_mkfs("0:", &params_eeprom, &work_eeprom, 4096);
-	assert(res == FR_OK);
-
 	/* Set up the working memory and make the file system in RAM. */
 	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_ram[4096];
 	memset(work_ram, 0, 4096);
@@ -62,18 +55,12 @@ void sys_mem_init_file_systems()
 
 	// Give a work area to each drive
 	res = f_mount(&fs_ram, "1:", 0);
-	if (res != FR_OK)
-	assert(res == FR_OK);
-
-	// Give a work area to each drive
-	res = f_mount(&fs_eeprom, "0:", 0);
-	if (res != FR_OK)
 	assert(res == FR_OK);
 
 	/* Create a directory called firmware in the RAM FS. */
-	res = f_mkdir("1:Firmware");
+	res = f_mkdir("1:/Firmware");
 	assert(res == FR_OK);
-	res = f_mkdir("1:Other");
+	res = f_mkdir("1:/Other");
 	assert(res == FR_OK);
 
 	FIL file;
@@ -84,6 +71,30 @@ void sys_mem_init_file_systems()
 	assert( bw == 15 );
 	f_close(&file);
 
+	/* Check if there's already a file system. */
+	res = f_mount(&fs_eeprom, "0:", 0);
+	if (res != FR_OK)
+	{
+		/* Create a file system if there isnt one. */
+		SYS_MEM_REGION_EXTERN_RAM static uint8_t work_eeprom[4096];	//TODO change to calloc.
+		memset(work_eeprom, 0, 4096);
+		res = f_mkfs("0:", &params_eeprom, &work_eeprom, 4096);
+		assert(res == FR_OK);
+	}
+	/* Check if the config file is already there. */
+	FIL temp;
+	res = f_open(&temp, "0:/Settings/System Data.txt", FA_READ);
+	if (res != FR_OK)
+	{
+		/* Create the directories if not. */
+		res = f_mkdir("0:/Settings");
+		assert(res == FR_OK);
+		res = f_open(&temp, "0:/Settings/System Data.txt", FA_WRITE | FA_CREATE_NEW);
+		assert(res == FR_OK);
+		res = f_mkdir("0:/Data Logs");
+		assert(res == FR_OK);
+	}
+	f_close(&temp);
 }
 
 SYS_MEM_REGION_RAM_EXE void sys_mem_flash_write_sector(uint8_t sector, void* src)

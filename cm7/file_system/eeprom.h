@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _EEPROM_H_
+#define _EEPROM_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,14 +27,14 @@ typedef enum
  * 		desc: write data, data, or size, size, to eeprom address, addr.
  * 		returns: zero if an error occurred. Non-zero for success.
  */
-eeprom_sts_t eeprom_write(uint32_t addr, void* data, uint32_t size);
+eeprom_sts_t eeprom_write(uint32_t addr, void* data, uint32_t num_bytes);
 
 /**
  * eeprom_read:
  * 		desc: reads size bytes from eeprom address, addr, into data.
  * 		returns: zero if an error occurred. Non-zero if the read was a success.
  */
-eeprom_sts_t eeprom_read(void* data, uint32_t addr, uint32_t size);
+eeprom_sts_t eeprom_read(void* data, uint32_t addr, uint32_t num_bytes);
 
 /**
  * eeprom_probe:
@@ -51,4 +51,4 @@ int8_t eeprom_status();
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_EEPROM_H_

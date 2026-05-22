@@ -1,6 +1,6 @@
 
-#ifndef _TEMPLATE_H_
-#define _TEMPLATE_H_
+#ifndef _USB_TASK_H_
+#define _USB_TASK_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,12 +10,29 @@ extern "C" {
 #include "system/system_cm7.h"
 
 /**********     TYPEDEFS         **********/
+typedef enum
+{
+	USB_FS_RAM,		//used for the bootloader.
+	USB_FS_EEPROM	//used for saving settings and data logging.
+}usb_fs_t;
 
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
+/**
+ * usb_disconnect:
+ * 		desc: disables the USB peripheral and stops both tasks.
+ */
+void usb_disconnect();
+
+/**
+ * usb_connect:
+ * 		desc: starts both USB tasks, links the file_sys indicated to the MSC device.
+ */
+void usb_connect(usb_fs_t file_sys);
+
 /**
  * usb_watchdog_task
  *      desc: FreeRTOS task that monitors the activity on the USB bus and reset the peripheral if
@@ -38,4 +55,4 @@ void usb_msc_task_run();
 } /*extern "C"*/
 #endif
 
-#endif  //_TEMPLATE_H_
+#endif  //_USB_TASK_H_

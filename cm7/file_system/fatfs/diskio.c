@@ -15,6 +15,7 @@
 #include "file_system/eeprom.h"
 #include "drivers/stm32_iic.h"
 #include "system/system_mem.h"
+#include <assert.h>
 
 /* Example: Mapping of physical drive number for each drive */
 #define DEV_EEPROM	0	/* Map FTL to physical drive 0 */
@@ -112,10 +113,8 @@ DRESULT disk_read (
 		uint32_t phy_addr = sector * SECTOR_SIZE_EEPROM;
 		uint32_t num_bytes = SECTOR_SIZE_EEPROM * count;
 
-		for (uint32_t i = 0; i < num_bytes; i++)
-		{
-			eeprom_read(buff + (i * 128), phy_addr + (i * 128), 128);
-		}
+		eeprom_read(buff, phy_addr, num_bytes);
+
 		res = RES_OK;
 		break;
 	case DEV_RAM:
@@ -157,7 +156,7 @@ DRESULT disk_write (
 
 		for (uint32_t i = 0; i < num_eeprom_blocks; i++)
 		{
-			eeprom_write(phy_addr + (i * 128), buff + (i * 128), 128);
+			assert( eeprom_write(phy_addr + (i * 128), buff + (i * 128), 128) == EEPROM_STS_OK );
 			while (eeprom_status() != I2C_EXIT_CODE_TC) {}
 		}
 		res = RES_OK;

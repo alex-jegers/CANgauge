@@ -6,7 +6,6 @@
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
-#define BLOCK_LENGTH		512
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -22,7 +21,11 @@ static bool prv_write_complete_int = false;
 static bool prv_write_int = false;
 static bool prv_read_int = false;
 
-static uint8_t* ram_fs_ptr = NULL;
+static uint32_t prv_block_length = 512;
+static uint32_t prv_num_blocks = 0;
+static usb_fs_t prv_file_sys = 0xFF;
+
+static uint8_t* file_sys_start_ptr = NULL;
 static uint8_t* rd_starting_addr = NULL;
 static uint32_t rd_size_blocks = 0;
 
@@ -37,9 +40,9 @@ static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks);		//Called 
 
 /**
  * prv_msc_write_complete_handler
- * 		returns: true if this was the last transfer.
+ * 		returns: true if this was the last transfer of the entire write.
  */
-static bool prv_msc_write_complete_handler(uint32_t length_bytes);	//Called in an ISR.
+static bool prv_msc_partial_wr_handler(uint32_t length_bytes);	//Called in an ISR.
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks)
@@ -47,10 +50,12 @@ static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks)
 	prv_read_int = true;
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-	rd_starting_addr = ram_fs_ptr + (lba * 512);
+	/* This is to read from RAM. */
+	rd_starting_addr = file_sys_start_ptr + (lba * prv_block_length);
 	rd_size_blocks = num_blocks;
 	usb_clear_gintmsk();						//Disable USB interrupts, have to re-enable after we read in this data.
 	usb_clear_ep1_intmsk();
+	/*****************************/
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 	portYIELD_FROM_ISR(higher_pri_task_woken);
@@ -60,19 +65,23 @@ static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks)
 	prv_write_int = true;
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
-	wr_start_addr = (uint32_t*)((uint8_t*)ram_fs_ptr + (lba * BLOCK_LENGTH));
-	wr_full_length = num_blocks * BLOCK_LENGTH;
+	/* This is to write to RAM. */
+	wr_start_addr = (uint32_t*)((uint8_t*)file_sys_start_ptr + (lba * prv_block_length));
+	wr_full_length = num_blocks * prv_block_length;
+	/***************************/
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 	portYIELD_FROM_ISR(higher_pri_task_woken);
 }
-static bool prv_msc_write_complete_handler(uint32_t length_bytes)
+static bool prv_msc_partial_wr_handler(uint32_t length_bytes)
 {
 	prv_write_complete_int = true;
 	BaseType_t higher_pri_task_woken = pdFALSE;
 
+	/* This is to write to RAM. */
 	wr_partial_length = length_bytes;
 	usb_clear_gintmsk();						//Disable USB interrupts, have to re-enable after we read in this data.
+	/************************/
 
 	vTaskNotifyGiveFromISR(prv_usb_msc_handle, &higher_pri_task_woken);
 	portYIELD_FROM_ISR(higher_pri_task_woken);
@@ -88,18 +97,64 @@ static bool prv_msc_write_complete_handler(uint32_t length_bytes)
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
+void usb_disconnect()
+{
+	if (prv_usb_watchdog_handle != NULL)
+	{
+		vTaskDelete(prv_usb_watchdog_handle);
+		prv_usb_watchdog_handle = NULL;
+	}
+	if (prv_usb_msc_handle != NULL)
+	{
+		vTaskDelete(prv_usb_msc_handle);
+		prv_usb_msc_handle = NULL;
+	}
+	rcc_reset_usb2otg();
+}
+
+void usb_connect(usb_fs_t file_sys)
+{
+	usb_disconnect();		//Make sure were not currently connected with another file system.
+
+	prv_file_sys = file_sys;
+
+	if (file_sys == USB_FS_RAM)
+	{
+		prv_num_blocks = NUM_SECTORS_RAM;
+		file_sys_start_ptr = sys_mem_get_ram_fs_ptr();	//Pointer to the start of the file system memory.
+	}
+	else if (file_sys == USB_FS_EEPROM)
+	{
+		prv_num_blocks = NUM_SECTORS_EEPROM;
+
+		/* Pointer to the start of the file system memory.
+		 * For EEPROM this is the physical address of the EEPROM
+		 * which is just 0x00000.
+		 */
+		file_sys_start_ptr = 0;
+	}
+	/* Sets the interrupt handlers. */
+	usb_msc_set_read_cb(prv_msc_read_handler);
+	usb_msc_set_write_cb(prv_msc_write_handler);
+	usb_msc_set_write_complete_cb(prv_msc_partial_wr_handler);
+
+	/* Initialize the USB peripheral. */
+	rcc_clr_reset_usb2otg();
+	usb_init();
+	usb_core_reset();
+	usb_init_core();
+
+	/* Start the tasks. */
+	usb_watchdog_run();
+	usb_msc_task_run();
+}
+
 void usb_watchdog_run()
 {
 	xTaskCreate(usb_watchdog_task, "USB_WD", 100, NULL, 4, &prv_usb_watchdog_handle);
 }
 void usb_watchdog_task()
 {
-	/**** TESTING USB CONFIGURATION *****/
-	usb_init();
-	usb_core_reset();
-	usb_init_core();
-	/***********************************/
-
 	TickType_t last_run_time;
 	last_run_time = xTaskGetTickCount();
 
@@ -146,19 +201,6 @@ void usb_msc_task_run()
 
 void usb_msc_task()
 {
-	/* Sets the interrupt handlers. */
-	usb_msc_set_read_cb(prv_msc_read_handler);
-	usb_msc_set_write_cb(prv_msc_write_handler);
-	usb_msc_set_write_complete_cb(prv_msc_write_complete_handler);
-
-	ram_fs_ptr = sys_mem_get_ram_fs_ptr();	//Pointer to the start of the file system memory.
-
-
-
-	// Unregister work area
-	//res = f_unmount("0");
-
-
 	while (1)
 	{
 		uint32_t count = ulTaskGenericNotifyTake(0, pdTRUE, portMAX_DELAY);
@@ -167,24 +209,59 @@ void usb_msc_task()
 			if (prv_write_complete_int)
 			{
 				wr_full_length -= wr_partial_length;
-				while (wr_partial_length > 0)
+				/* If RAM file system. */
+				if (prv_file_sys == USB_FS_RAM)
 				{
-					*wr_start_addr = *USB_DFIFO(1);
-					wr_start_addr++;
-					wr_partial_length -= 4;
+					while (wr_partial_length > 0)
+					{
+						*wr_start_addr = *USB_DFIFO(1);
+						wr_start_addr++;
+						wr_partial_length -= 4;
+					}
+				}
+				else if (prv_file_sys == USB_FS_EEPROM)
+				{
+					/* Read the FIFO data into a temporary buffer. */
+					uint32_t temp_buf[16];
+					uint8_t counter = 0;
+					uint32_t og_length = wr_partial_length;
+					while (wr_partial_length > 0)
+					{
+						temp_buf[counter] = *USB_DFIFO(1);
+						counter++;
+						wr_partial_length -= 4;
+					}
+
+					/* Copy it to EEPROM and increment the wr_start_addr for next time through. */
+					eeprom_write((uint32_t)wr_start_addr, temp_buf, og_length);
+					wr_start_addr += 16;		//wr_start_address is a uint32_t* so +=16 is actually +=64.
 				}
 				prv_write_complete_int = false;
 				count--;
 			}
+
 			if (prv_write_int)
 			{
 				count--;
 				prv_write_int = false;
 			}
+
 			if (prv_read_int)
 			{
 				count--;
-				usb_msc_read_cmd(rd_starting_addr, rd_size_blocks);
+
+				if (prv_file_sys == USB_FS_RAM)
+				{
+					usb_msc_read_cmd(rd_starting_addr, rd_size_blocks);
+				}
+				else if (prv_file_sys == USB_FS_EEPROM)
+				{
+					uint32_t num_bytes = rd_size_blocks * prv_block_length;
+					uint8_t* temp_buf = (uint8_t*)calloc(num_bytes, 1);
+					eeprom_read(temp_buf, (uint32_t)rd_starting_addr, num_bytes);
+					usb_msc_read_cmd(temp_buf, rd_size_blocks);
+					free(temp_buf);
+				}
 				usb_set_ep1_intmsk();
 				prv_read_int = false;
 			}
@@ -199,10 +276,10 @@ void usb_msc_task()
 
 uint32_t usb_msc_get_block_size()
 {
-	return 512;
+	return prv_block_length;
 }
 
 uint32_t usb_msc_get_num_blocks()
 {
-	return 0x4000;
+	return prv_num_blocks;
 }
