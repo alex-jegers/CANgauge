@@ -14,6 +14,7 @@
 #include "lvgl_port/lvgl_port_def.h"
 #include "bootloader/bootloader.h"
 
+#include "system/system_mem.h"
 
 
 /**********		DEFINES		**********/
@@ -98,8 +99,8 @@ static void prv_task_gauges()
 	{
 		prv_can_id = app_can_controller_get_can_id();
 		prv_id_type = (prv_can_id > 0x7ff) ? CAN_ID_XTD : CAN_ID_STD;
-		prv_update_available_uds_data();
-		prv_create_gauge_select_btns();
+		prv_update_available_uds_data();		//Gets data from CAN controller and sets the "available" variable in the data array.
+		prv_create_gauge_select_btns();			//Creates the buttons in the UI.
 	}
 	else
 	{
@@ -135,7 +136,14 @@ static void prv_task_gauges()
 	lv_port_give_lvgl_mutex();
 	free(label);
 
-	TickType_t last_wake_time = xTaskGetTickCount();
+	FIL last_state_file;
+	FRESULT res;
+	res = f_open(&last_state_file, "0:/System Data.txt", FA_READ);
+	char* buf = malloc(100);
+	uint32_t br = 0;
+	res = f_read(&last_state_file, buf, 50, &br);
+
+	TickType_t last_wake_time = xTaskGetTickCount();		//This is for calculating delay time.
 
 	/********** 	TASK LOOP	**********/
 	/* While _run is set to true. */
@@ -247,7 +255,7 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 	/* I tried to just access the pointer but it was NOT working so I'm using memcpy for now. */
 	/* Copy the lv_checkbox pointers. */
 	lv_obj_t* gauge_select_checkboxes[4];
-	void* src_addr = lv_event_get_user_data(e);
+	void* src_addr = lv_event_get_user_data(e);			//User data contains an array of up to 4 checkboxes that are selected from the UI.
 	memcpy(&gauge_select_checkboxes, src_addr, sizeof(lv_obj_t*) * 4);
 
 	/* Determine how many are checked, this tell us how many gauges to display. */
@@ -272,6 +280,38 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 
 	/* Tell the UI how many gauges were gonna load. */
 	ui_gauges_set_number_of_gauges(num_gauges);
+
+	/* Start a string that we can write to the config file that saves what gauges are displayed. */
+	const char* str[4];
+	str[0] = lv_checkbox_get_text(gauge_select_checkboxes[0]);
+	str[1] = lv_checkbox_get_text(gauge_select_checkboxes[1]);
+	str[2] = lv_checkbox_get_text(gauge_select_checkboxes[2]);
+	str[3] = lv_checkbox_get_text(gauge_select_checkboxes[3]);
+	uint32_t str_len = strlen(str[0]) + strlen(str[0]) + strlen(str[0]) + strlen(str[0]) + 4;	//Plus 4 for 3 commas and an endline.
+	char* save_str = (char*)malloc(str_len);
+	if (str[0] == NULL)
+	{
+		return;
+	}
+	snprintf(save_str, strlen(str[0]) + 1, "%s,", str[0]);
+	for (uint32_t s = 1; s < num_gauges; s++)
+	{
+		if (str[s] != NULL)
+		{
+			strcat(save_str, ",");
+			strcat(save_str, str[s]);
+		}
+	}
+	strcat(save_str, "\n");
+
+	FIL save_file;
+	uint32_t bw;
+	FRESULT res;
+	res = f_open(&save_file, "0:/System Data.txt", FA_WRITE);
+	res = f_write(&save_file, save_str, str_len, &bw);
+	res = f_close(&save_file);
+	assert(res == FR_OK);
+	free(save_str);
 
 	/* Load the gauges into the UI and set the ISO15675 query on CAN. */
 	for (uint8_t g = 0; g < num_gauges; g++)

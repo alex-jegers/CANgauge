@@ -97,7 +97,7 @@ void system_task_init()
 
 	pwr_monitor_run(1);
 
-	//usb_connect(USB_FS_EEPROM);
+	usb_connect(USB_FS_EEPROM);
 
 	/* Set up the display and input device callbacks for LVGL. */
    	static touch_info_t touch_data;						//Where the touch data will be stored.

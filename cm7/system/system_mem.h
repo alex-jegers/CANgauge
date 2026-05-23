@@ -9,6 +9,9 @@ extern "C" {
 /**********     INCLUDES        **********/
 #include "stm32h745xx.h"
 
+#include "file_system/fatfs/ff.h"
+#include "file_system/fatfs/diskio.h"
+
 /**********     DEFINES      **********/
 #define SYS_MEM_REGION_EXTERN_RAM			__attribute__((__section__(".ext_mem_ram")))
 #define SYS_MEM_REGION_RAM_D1				__attribute__((__section__(".ram_d1")))

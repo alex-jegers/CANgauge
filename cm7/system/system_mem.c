@@ -4,8 +4,6 @@
 #include "drivers/drivers.h"
 #include <string.h>
 
-#include "file_system/fatfs/ff.h"
-#include "file_system/fatfs/diskio.h"
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
@@ -83,16 +81,16 @@ void sys_mem_init_file_systems()
 	}
 	/* Check if the config file is already there. */
 	FIL temp;
-	res = f_open(&temp, "0:/Settings/System Data.txt", FA_READ);
+	res = f_open(&temp, "0:/System Data.txt", FA_READ);
 	if (res != FR_OK)
 	{
 		/* Create the directories if not. */
 		res = f_mkdir("0:/Settings");
-		assert(res == FR_OK);
-		res = f_open(&temp, "0:/Settings/System Data.txt", FA_WRITE | FA_CREATE_NEW);
-		assert(res == FR_OK);
+		assert(res == FR_OK || res == FR_EXIST);
+		res = f_open(&temp, "0:/System Data.txt", FA_WRITE | FA_CREATE_NEW);
+		assert(res == FR_OK || res == FR_EXIST);
 		res = f_mkdir("0:/Data Logs");
-		assert(res == FR_OK);
+		assert(res == FR_OK || res == FR_EXIST);
 	}
 	f_close(&temp);
 }
