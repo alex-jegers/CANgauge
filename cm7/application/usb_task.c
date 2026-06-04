@@ -37,7 +37,6 @@ static uint32_t wr_partial_length = 0;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_msc_read_handler(uint32_t lba, uint32_t num_blocks);		//Called in an ISR.
 static void prv_msc_write_handler(uint32_t lba, uint32_t num_blocks);		//Called in an ISR.
-
 /**
  * prv_msc_write_complete_handler
  * 		returns: true if this was the last transfer of the entire write.

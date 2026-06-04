@@ -95,9 +95,7 @@ void system_task_init()
 	/* Start all the tasks. */
 	system_blink_run(1000);
 
-	pwr_monitor_run(1);
-
-	usb_connect(USB_FS_EEPROM);
+	pwr_monitor_run(3);
 
 	/* Set up the display and input device callbacks for LVGL. */
    	static touch_info_t touch_data;						//Where the touch data will be stored.
@@ -106,6 +104,8 @@ void system_task_init()
 	disp_init();										//LVGL display bindings.
 	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
 	touch_scr_run(p_touch_data);						//Runs the touch screen task.
+
+	system_run_runtime_stats_task();
 
 	/* Load the menu screen. */
 	app_gauges_run();
@@ -132,8 +132,8 @@ void system_init()
 
 	/*Enable the caches.*/
 #if SYS_ENABLE_DATA_CACHE == 1
-	//SCB_EnableDCache();
-	//SCB_EnableICache();
+	SCB_EnableDCache();
+	SCB_EnableICache();
 #endif
 	/* Configure the IO pins for I2C. */
 	io_set_output_type(GPIOD, GPIO_PIN12_Msk, IO_OUTPUT_TYPE_OPEN_DRAIN);
@@ -191,11 +191,12 @@ bool system_blink_stop(uint32_t block_time_ms)
 void vApplicationTickHook()
 {
 	lv_tick_inc(pdTICKS_TO_MS(1));
-	timer_inc(1);
+	timer_ms_inc(1);
 }
 
 void system_set_lcd_backlight(bool on)
 {
+	/* TODO: Edit this so the whole buck converter is disabled when off. */
 	if (on)
 	{
 		io_set_pin_mux(GPIOB, GPIO_PIN14_Msk, GPIO_AFR_AF2);
@@ -220,3 +221,5 @@ void system_set_can_transc(bool on)
 		io_pin_out_set(GPIOK, GPIO_PIN2_Msk);
 	}
 }
+
+

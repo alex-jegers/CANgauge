@@ -28,7 +28,8 @@
 #include "system_mem.h"
 
 /**********		DEFINES		**********/
-#define SYS_ENABLE_DATA_CACHE		0
+#define SYS_ENABLE_CACHE		1
+
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
@@ -57,11 +58,11 @@ bool system_blink_stop(uint32_t block_time_ms);
 void system_set_lcd_backlight(bool on);
 /**
  * system_set_can_transc:
+ * desc: enable/disable CAN transceivers.
  * params: 
  *      on: true for on, false for off.
  */
 void system_set_can_transc(bool on);
-
 
 #endif /* CORE_SYSTEM_CM7_SYSTEM_H_ */
 
