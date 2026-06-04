@@ -20,5 +20,9 @@ void timer_disable_pwm_output(TIM_TypeDef* timer, uint32_t channel);
 uint32_t timer_set_pwm_freq(TIM_TypeDef* timer, uint32_t freq_in_hz);
 void timer_set_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t duty_cycle, uint32_t channel);
 uint32_t timer_get_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t channel);
+void timer_enable_compare_interrupt(TIM_TypeDef* timer);
+void timer_enable_update_interrupt(TIM_TypeDef* timer);
+
+void timer_set_tim13_int_handler(void (*func)());
 
 #endif /* DRIVERS_TIMERS_STM32_TIMER12_H_ */
