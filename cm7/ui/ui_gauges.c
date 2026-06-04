@@ -43,6 +43,8 @@ static lv_event_cb_t prv_settings_firmware_update_btn_event_cb = NULL;
 static void prv_settings_firmware_update_btn_event(lv_event_t* e);
 void ui_set_settings_firmware_update_btn_event_cb(lv_event_cb_t func) { prv_settings_firmware_update_btn_event_cb = func; }
 
+static lv_obj_t* prv_settings_data_trsnf_btn;
+void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func) { lv_obj_add_event_cb(prv_settings_data_trsnf_btn, func, LV_EVENT_RELEASED, NULL); }
 
 /*** VIEW BUTTON. ***/
 static lv_obj_t* prv_view_btn;
@@ -183,6 +185,8 @@ static void prv_init_settings_screen()
 	prv_settings_firmware_update_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Update Firmware", LV_FONT_DEFAULT);
 	lv_obj_add_event_cb(prv_settings_firmware_update_btn, prv_settings_firmware_update_btn_event, LV_EVENT_RELEASED, NULL);
 
+	prv_settings_data_trsnf_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Transfer Data", LV_FONT_DEFAULT);
+
 	/* Make a button to go back. */
 	prv_settings_back_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Back", LV_FONT_DEFAULT);
 	lv_obj_add_event_cb(prv_settings_back_btn, prv_settings_back_btn_event, LV_EVENT_RELEASED, NULL);
@@ -200,10 +204,10 @@ static void prv_view_btn_event(lv_event_t* e)
 		return;
 	}
 
-	if (_gauge != NULL)
-	{
-		lv_screen_load(_gauge_scr);
-	}
+//	if (_gauge != NULL)
+//	{
+//		lv_screen_load(_gauge_scr);
+//	}
 }
 
 void prv_load_settings_screen()
@@ -756,4 +760,9 @@ void ui_set_settings_btn_event_cb(lv_event_cb_t func)
 void ui_set_settings_back_btn_event_cb(lv_event_cb_t func)
 {
 	prv_settings_back_btn_event_cb = func;
+}
+
+void ui_load_gauge_screen()
+{
+	lv_screen_load(_gauge_scr);
 }

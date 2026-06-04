@@ -27,6 +27,7 @@ void ui_gauges_create_gauge_btn(const char* name);			//TODO: Remove, obsolete.
 void ui_gauges_create_gauge_checkbox(const char* name);
 void ui_gauges_create_gauge(const char* name, const char* units, int32_t min, int32_t max, uint8_t gauge_idx);
 void ui_gauges_set_number_of_gauges(uint8_t num_gauges);
+void ui_load_gauge_screen();
 
 /**
  * Callbacks for UI element events.
@@ -41,7 +42,7 @@ void ui_set_settings_btn_event_cb(lv_event_cb_t func);					//The button to load 
 void ui_set_settings_back_btn_event_cb(lv_event_cb_t func);				//The back button within the settings screen is pressed.
 void ui_gauges_set_view_btn_cb(lv_event_cb_t func);
 void ui_set_settings_firmware_update_btn_event_cb(lv_event_cb_t func);	//The button to start a firmware update.
-
+void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func);		//Used to connect the EEPROM file system over USB.
 
 #ifdef __cplusplus
 } /*extern "C"*/
