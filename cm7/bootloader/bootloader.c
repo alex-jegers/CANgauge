@@ -67,15 +67,14 @@ static void prv_msgbox_close()
 void btldr_init()
 {
 	ui_set_settings_firmware_update_btn_event_cb(btldr_firmware_btn_cb);
-	prv_mutex_file_ready = xSemaphoreCreateMutex();
-	assert( prv_mutex_file_ready != NULL );
-	BaseType_t res = xSemaphoreTake(prv_mutex_file_ready, 0);
-	assert( res );
 }
 
 TaskFunction_t btldr_task()
 {
-
+	prv_mutex_file_ready = xSemaphoreCreateMutex();
+	assert( prv_mutex_file_ready != NULL );
+	BaseType_t res = xSemaphoreTake(prv_mutex_file_ready, 0);
+	assert( res );
 	while (1)
 	{
 		FIL file;
