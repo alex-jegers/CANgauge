@@ -30,7 +30,7 @@ static void lcd_lvgl_disp_flush(lv_display_t* display, const lv_area_t* area, ui
 	uint32_t addr = (uint32_t)lv_display_get_buf_active(display)->data;
 	if (is_last == 1) {
 		LTDC->ICR = LTDC_ICR_CRRIF;
-#if SYS_ENABLE_DATA_CACHE == 1
+#if SYS_ENABLE_CACHE == 1
 		SCB_CleanDCache();
 #endif
 		// wait for VSYNC to avoid tearing
@@ -55,7 +55,7 @@ void disp_init()
 	disp = lv_display_create(LTDC_SCREEN_SIZE_X_px, LTDC_SCREEN_SIZE_Y_px);
 
 	/*Set up the buffers.*/
-	lv_display_set_buffers(disp, (void*)&ltdc_lvgl_buffer1, (void*)&ltdc_lvgl_buffer2, LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px * LTDC_BYTES_PER_PIXEL, LV_DISPLAY_RENDER_MODE_FULL);
+	lv_display_set_buffers(disp, (void*)&ltdc_lvgl_buffer1, (void*)&ltdc_lvgl_buffer2, LTDC_SCREEN_SIZE_X_px * LTDC_SCREEN_SIZE_Y_px * LTDC_BYTES_PER_PIXEL, LV_DISPLAY_RENDER_MODE_DIRECT);
 
 	/*Set the display flush callback.*/
 	lv_display_set_flush_cb(disp, lcd_lvgl_disp_flush);

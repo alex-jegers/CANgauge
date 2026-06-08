@@ -131,7 +131,7 @@ void system_init()
 	prv_lcd_bl_init();
 
 	/*Enable the caches.*/
-#if SYS_ENABLE_DATA_CACHE == 1
+#if SYS_ENABLE_CACHE == 1
 	SCB_EnableDCache();
 	SCB_EnableICache();
 #endif

@@ -24,12 +24,10 @@ static void prv_high_freq_timer_tick_int()
 TaskFunction_t prv_runtime_stats_task()
 {
 	static char* buf[500];
-	uint32_t counter = 0;
 	while (1)
 	{
 		vTaskDelay(5000);
 		vTaskGetRunTimeStats(buf);
-		counter++;
 	}
 }
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/

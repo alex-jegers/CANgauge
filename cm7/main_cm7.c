@@ -24,7 +24,7 @@
 int main(void)
 {
 	/* Configures the clocks to run at full speed in full power mode. */
-	rcc_main_clock_config();
+ 	rcc_main_clock_config();
 
 	/* Initializes the external SDRAM. */
 	fmc_init_sdram();
@@ -42,17 +42,6 @@ int main(void)
 
 	/* Should never reach here. */
    	while(1);
-}
-
-/* Include in main.c */
-#include <stdio.h>
-
-/* Redirect printf to SWV */
-int _write(int file, char *ptr, int len) {
-  int i;
-  for (i = 0; i < len; i++)
-    ITM_SendChar((*ptr++));
-  return len;
 }
 
 

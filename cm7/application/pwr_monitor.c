@@ -15,8 +15,8 @@
 /**********		STATIC VARIABLES		**********/
 TaskHandle_t task_handle_battery_monitor = NULL;
 static uint32_t prv_measurement = 0;
-static uint32_t prv_low_threshold = 0x9700;
-static uint32_t prv_high_threshold = 0xA1BC;
+static uint32_t prv_low_threshold = 0x6fb4;
+static uint32_t prv_high_threshold = 0x9133;
 static uint32_t prv_rolling_avg = 0;
 static uint32_t prv_rolling_avg_buffer[20];
 
@@ -98,7 +98,7 @@ static void prv_pwr_monitor_task()
     while (1)
     {
     	/* If we're lower than the threshold. */
-    	if (prv_measurement < prv_low_threshold)
+    	 if (prv_measurement < prv_low_threshold)
     	{
             /* Check if were in higher power mode, if yes, need to change. */
             if (pwr_get_current_vos_mode() == PWR_VOS_MODE_SCALE_0)
