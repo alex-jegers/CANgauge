@@ -23,7 +23,7 @@
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-const char* prv_version = "v0.4.1";
+const char* prv_version = "v0.4.3";
 static bool prv_task_run = false;
 static TaskHandle_t prv_gauges_task_handle;
 static EventGroupHandle_t prv_event_group = NULL;
@@ -202,6 +202,8 @@ static void prv_task_gauges()
 	                                        pdMS_TO_TICKS(500)); //Block time.
 		if ((rtn & EVENT_BITS_QUERY_TRANSMITTING) != 0)
 		{
+			static float last_value[4];		//Use this to see if the value changed, if it didn't we dont change the gauge value,
+			//then it wont get rendered and we get better lcd performance.
 			for (uint8_t d = 0; d < 4; d++)
 			{
 				if (active_param[d] == NULL)
@@ -217,11 +219,17 @@ static void prv_task_gauges()
 				float offset = active_param[d]->offset;
 				float processed_val = ((float)raw_value * scale) + offset;
 
+				if (processed_val == last_value[d])
+				{
+					continue;
+				}
+
 				if (lv_port_take_lvgl_mutex(portMAX_DELAY))
 				{
 					ui_gauges_set_gauge_value(processed_val, d);
 					lv_port_give_lvgl_mutex();
 				}
+				last_value[d] = processed_val;
 			}
 
 		}
