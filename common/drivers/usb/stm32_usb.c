@@ -4,98 +4,44 @@
 #include "assert.h"
 #include "stdlib.h"
 
-/**********		STATIC FUNCTION DECLRATIONS		**********/
-void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len);
-void prv_wait_for_tx_fifo_flush();
-void prv_wait_for_idle();
-void usb_ep_out_int_handler(uint8_t ep, uint32_t ir);
-void usb_ep_in_int_handler(uint8_t ep, uint32_t ir);
+static volatile usb_dev_descriptor_t usb_device_descriptor =
+{
+	.bLength = 0x12,
+	.bDescriptorType = 0x01,
+	.bcdUSB = 0x0200,
+	.bDeviceClass = 0x00,
+	.bDeviceSubClass = 0x00,
+	.bDeviceProtocol = 0x00,
+	.bMaxPacketSize0 = 64,
+	.idVendor = 0x0000,
+	.idProduct = 0xa5a5,
+	.bcdDevice = 0x0200,
+	.iManufacturer = 0x00,
+	.iProduct = 0x00,
+	.iSerialNumber = 0x00,
+	.bNumConfigurations = 1,
+};
 
+/**********		STATIC FUNCTION DECLRATIONS		**********/
+static void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len);
+static void prv_wait_for_tx_fifo_flush();
+static void prv_wait_for_idle();
+static void usb_ep_out_int_handler(uint8_t ep, uint32_t ir);
+static void usb_ep_in_int_handler(uint8_t ep, uint32_t ir);
+static void usb_handle_get_descriptor();
 /**
  * this handles an interrupt for a new RX.
  */
-void usb_rx_fifo_handler(uint32_t grxstsp);
+static void usb_rx_fifo_handler(uint32_t grxstsp);
 
 /**
  * usb_reset_handler:
  * 		desc: handles an interrupt for a USB reset.
  */
-void usb_reset_handler();
+static void usb_reset_handler();
+
 /**********		STATIC FUNCTION DEFINITIONS		**********/
-void usb_write_fifo1(volatile uint32_t* fifo, void* data, uint8_t len)
-{
-	USBx_INEP(1)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos) | len;
-	USBx_INEP(1)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
-
-
-	uint32_t fifoWord;
-    uint32_t* buffer = (uint32_t*)data;
-    uint8_t remains = len;
-    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
-    {
-        switch (remains)
-        {
-            case 0:
-                break;
-            case 1:
-                fifoWord = *buffer & 0xFF;
-                *fifo = fifoWord;
-                break;
-            case 2:
-                fifoWord = *buffer & 0xFFFF;
-                *fifo = fifoWord;
-                break;
-            case 3:
-                fifoWord = *buffer & 0xFFFFFF;
-                *fifo = fifoWord;
-                break;
-            default:
-                *fifo = *buffer;
-                break;
-        }
-    }
-    /* We're only using EP0 right now so set up that endpoint to transmit. */
-	//USBx_INEP(1)->DIEPCTL |= USB_OTG_DIEPCTL_CNAK;
-
-}
-
-void usb_write(volatile uint32_t* fifo, void* data, uint8_t len)
-{
-	USBx_INEP(0)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos) | len;
-	USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
-
-	uint32_t fifoWord;
-    uint32_t* buffer = (uint32_t*)data;
-    uint8_t remains = len;
-    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
-    {
-        switch (remains)
-        {
-            case 0:
-                break;
-            case 1:
-                fifoWord = *buffer & 0xFF;
-                *fifo = fifoWord;
-                break;
-            case 2:
-                fifoWord = *buffer & 0xFFFF;
-                *fifo = fifoWord;
-                break;
-            case 3:
-                fifoWord = *buffer & 0xFFFFFF;
-                *fifo = fifoWord;
-                break;
-            default:
-                *fifo = *buffer;
-                break;
-        }
-    }
-    /* We're only using EP0 right now so set up that endpoint to transmit. */
-	//USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
-
-}
-
-void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len)
+static void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len)
 {
 
 	/* We're only using EP0 right now so set up that endpoint to transmit. */
@@ -130,16 +76,16 @@ void prv_usb_write_stall(volatile uint32_t* fifo, void* data, uint8_t len)
     }
 }
 
-void prv_wait_for_tx_fifo_flush()
+static void prv_wait_for_tx_fifo_flush()
 {
 	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) != 0) {}
 }
-void prv_wait_for_idle()
+static void prv_wait_for_idle()
 {
 	while ((USB_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0) {}
 }
 
-void usb_ep_out_int_handler(uint8_t ep, uint32_t ir)
+static void usb_ep_out_int_handler(uint8_t ep, uint32_t ir)
 {
 	//"OUT EP: %x\nRequest Type: %d\n",ir,usb_setup_struct.bRequest
 
@@ -168,7 +114,7 @@ void usb_ep_out_int_handler(uint8_t ep, uint32_t ir)
 	USBx_OUTEP(ep)->DOEPINT = ir;		//Clear the interrupts.
 }
 
-void usb_ep_in_int_handler(uint8_t ep, uint32_t ir)
+static void usb_ep_in_int_handler(uint8_t ep, uint32_t ir)
 {
 	//"IN EP: %x\n",ir
 	if ((ir & USB_OTG_DIEPINT_XFRC) == USB_OTG_DIEPINT_XFRC)
@@ -290,12 +236,12 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 
 }
 
-void usb_handle_get_descriptor()
+static void usb_handle_get_descriptor()
 {
 	usb_desc_types_t desc_type = usb_setup_struct.wValue >> 8;		//Get the upper 8 bits (USB2.0, 9.4.3).
 	if (desc_type == USB_DESC_TYPE_DEVICE)
 	{
-		usb_write(USB_DFIFO(0), (void*)&usb_device_descriptor, 0x12);
+		usb_write(USB_DFIFO(0), (volatile void*)&usb_device_descriptor, 0x12);
 	}
 	else if (desc_type == USB_DESC_TYPE_CONFIGURATION)
 	{
@@ -374,7 +320,7 @@ void usb_handle_get_descriptor()
 	}
 }
 
-void usb_reset_handler()
+static void usb_reset_handler()
 {
     USB_FS_DEVICE->DCTL &= ~USB_OTG_DCTL_RWUSIG;	//Clearing the remote wakeup signaling bit.
 	
@@ -533,6 +479,79 @@ uint16_t usb_get_frame_number()
 uint32_t usb_read(uint8_t ep)
 {
 	return *USB_DFIFO(ep);
+}
+
+void usb_write_fifo1(volatile uint32_t* fifo, volatile void* data, uint8_t len)
+{
+	USBx_INEP(1)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos) | len;
+	USBx_INEP(1)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
+
+
+	uint32_t fifoWord;
+	volatile uint32_t* buffer = (uint32_t*)data;
+    uint8_t remains = len;
+    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
+    {
+        switch (remains)
+        {
+            case 0:
+                break;
+            case 1:
+                fifoWord = *buffer & 0xFF;
+                *fifo = fifoWord;
+                break;
+            case 2:
+                fifoWord = *buffer & 0xFFFF;
+                *fifo = fifoWord;
+                break;
+            case 3:
+                fifoWord = *buffer & 0xFFFFFF;
+                *fifo = fifoWord;
+                break;
+            default:
+                *fifo = *buffer;
+                break;
+        }
+    }
+    /* We're only using EP0 right now so set up that endpoint to transmit. */
+	//USBx_INEP(1)->DIEPCTL |= USB_OTG_DIEPCTL_CNAK;
+
+}
+
+void usb_write(volatile uint32_t* fifo, volatile void* data, uint8_t len)
+{
+	USBx_INEP(0)->DIEPTSIZ = (1 << USB_OTG_DIEPTSIZ_PKTCNT_Pos) | len;
+	USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
+
+	uint32_t fifoWord;
+    volatile uint32_t* buffer = (volatile uint32_t*)data;
+    uint8_t remains = len;
+    for (uint8_t idx = 0; idx < len; idx += 4, remains -= 4, buffer++)
+    {
+        switch (remains)
+        {
+            case 0:
+                break;
+            case 1:
+                fifoWord = *buffer & 0xFF;
+                *fifo = fifoWord;
+                break;
+            case 2:
+                fifoWord = *buffer & 0xFFFF;
+                *fifo = fifoWord;
+                break;
+            case 3:
+                fifoWord = *buffer & 0xFFFFFF;
+                *fifo = fifoWord;
+                break;
+            default:
+                *fifo = *buffer;
+                break;
+        }
+    }
+    /* We're only using EP0 right now so set up that endpoint to transmit. */
+	//USBx_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
+
 }
 
 void OTG_FS_EP1_OUT_IRQHandler()

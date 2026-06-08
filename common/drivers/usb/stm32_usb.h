@@ -109,7 +109,7 @@ typedef struct __attribute__((packed))
 	uint8_t iManufacturer;		//Index
 	uint8_t iProduct;			//Index
 	uint8_t iSerialNumber;		//Index
-	uint8_t bNumConfigurations;		
+	uint8_t bNumConfigurations;
 }usb_dev_descriptor_t;
 
 typedef struct __attribute__((packed))
@@ -157,7 +157,7 @@ typedef struct __attribute__((packed))
 
 /**********		DEFINES		**********/
 #define USB_FS			USB2_OTG_FS								//Bc typing out all that is getting to be a pain in the ass.
-#define USB_FS_DEVICE  	((USB_OTG_DeviceTypeDef *) 0x40080800)	//Bc this didnt even exist.
+#define USB_FS_DEVICE  	((__IO USB_OTG_DeviceTypeDef *) 0x40080800)	//Bc this didnt even exist.
 
 /* Better named defines that what STM provides. */
 #define USB_DCFG_DSPD_HS					0x0 << USB_OTG_DCFG_DSPD_Pos
@@ -171,16 +171,16 @@ typedef struct __attribute__((packed))
 #define USB_DIEPTX_FIFO_0_START_ADDR		(USB_NON_PRDC_TX_FIFO_START_ADDR + USB_NON_PRDC_TX_FIFO_SIZE)
 
 #define USB_OTG_PCGCCTL    					*(__IO uint32_t *)((uint32_t)USB2_OTG_FS_PERIPH_BASE + USB_OTG_PCGCCTL_BASE)
-#define USBx_INEP(i)    					((USB_OTG_INEndpointTypeDef *)(USB2_OTG_FS_PERIPH_BASE\
+#define USBx_INEP(i)    					((__IO USB_OTG_INEndpointTypeDef*)(USB2_OTG_FS_PERIPH_BASE\
                                                        + USB_OTG_IN_ENDPOINT_BASE + ((i) * USB_OTG_EP_REG_SIZE)))
 
-#define USBx_OUTEP(i)   					((USB_OTG_OUTEndpointTypeDef *)(USB2_OTG_FS_PERIPH_BASE\
+#define USBx_OUTEP(i)   					((__IO USB_OTG_OUTEndpointTypeDef *)(USB2_OTG_FS_PERIPH_BASE\
                                                         + USB_OTG_OUT_ENDPOINT_BASE + ((i) * USB_OTG_EP_REG_SIZE)))
-#define USB_DFIFO(i)   						(uint32_t*)(USB2_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + ((i) * USB_OTG_FIFO_SIZE))
+#define USB_DFIFO(i)   						(__IO uint32_t*)(USB2_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + ((i) * USB_OTG_FIFO_SIZE))
 
 #define USB_LANG_ID_ENGLISH_USA					0x0409
 
-#define usb_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk
+#define usb_clear_gintsts_bit(msk)					USB_FS->GINTSTS = msk; while (USB_FS->GINTSTS & msk){}
 #define prv_clear_doepintx_bit(ep, msk)				USBx_OUTEP(ep)->DOEPINT = msk
 #define prv_clear_diepintx_bit(ep, msk)				USBx_OUTEP(ep)->DIEPINT = msk
 #define usb_set_gintmsk()							USB_FS->GAHBCFG |= USB_OTG_GAHBCFG_GINT_Msk
@@ -192,23 +192,6 @@ typedef struct __attribute__((packed))
 /**********		STATIC VARIABLES		**********/
 static usb_setup_packet_t usb_setup_struct;
 static uint16_t usb_device_status = 0;
-static usb_dev_descriptor_t usb_device_descriptor = 
-{
-	.bLength = 0x12,
-	.bDescriptorType = 0x01,
-	.bcdUSB = 0x0200,
-	.bDeviceClass = 0x00,
-	.bDeviceSubClass = 0x00,
-	.bDeviceProtocol = 0x00,
-	.bMaxPacketSize0 = 64,
-	.idVendor = 0x0000,
-	.idProduct = 0xa5a5,
-	.bcdDevice = 0x0200,
-	.iManufacturer = 0x00,
-	.iProduct = 0x00,
-	.iSerialNumber = 0x00,
-	.bNumConfigurations = 1,
-};
 
 static usb_config_descriptor_t usb_configuration_descriptor =
 {
@@ -222,7 +205,7 @@ static usb_config_descriptor_t usb_configuration_descriptor =
 	.bMaxPower = 150,
 };
 
-static usb_interface_descriptor_t usb_interface_descriptor = 
+static usb_interface_descriptor_t usb_interface_descriptor =
 {
 	.bLength = 0x9,
 	.bDescriptorType = USB_DESC_TYPE_INTERFACE,		//4
@@ -235,7 +218,7 @@ static usb_interface_descriptor_t usb_interface_descriptor =
 	.iInterface = 0x00,
 };
 
-static usb_endpoint_descriptor_t usb_endpoint_descriptor_IN1 = 
+static usb_endpoint_descriptor_t usb_endpoint_descriptor_IN1 =
 {
 	.bLength = 0x07,
 	.bDescriptorType = USB_DESC_TYPE_ENDPOINT,
@@ -245,7 +228,7 @@ static usb_endpoint_descriptor_t usb_endpoint_descriptor_IN1 =
 	.bInterval = 0
 };
 
-static usb_endpoint_descriptor_t usb_endpoint_descriptor_OUT1 = 
+static usb_endpoint_descriptor_t usb_endpoint_descriptor_OUT1 =
 {
 	.bLength = 0x07,
 	.bDescriptorType = USB_DESC_TYPE_ENDPOINT,
@@ -283,8 +266,8 @@ void usb_init_core();
  */
 uint16_t usb_get_frame_number();
 
-void usb_write(volatile uint32_t* fifo, void* data, uint8_t len);
-void usb_write_fifo1(volatile uint32_t* fifo, void* data, uint8_t len);
+void usb_write(volatile uint32_t* fifo, volatile void* data, uint8_t len);
+void usb_write_fifo1(volatile uint32_t* fifo, volatile void* data, uint8_t len);
 uint32_t usb_read(uint8_t ep);
 
 

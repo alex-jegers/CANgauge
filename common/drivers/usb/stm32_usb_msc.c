@@ -334,11 +334,11 @@ void usb_msc_handle_data(uint32_t length)
 	/* Check if it's a CBW. */
 	if (length == 31)
 	{
-		uint8_t* dest_addr = (uint8_t*)&usb_msc_cbw_struct;
+		volatile uint8_t* dest_addr = (uint8_t*)&usb_msc_cbw_struct;
 		uint32_t offset = 8;
 		while (offset--)
 		{
-			*(uint32_t*)dest_addr = *(uint32_t*)USB_DFIFO(0);
+			*(volatile uint32_t*)dest_addr = *(volatile uint32_t*)USB_DFIFO(0);
 			dest_addr += 4;
 		}
 		usb_msc_handle_cbw();
