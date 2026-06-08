@@ -120,7 +120,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
 
-	timer_inc(1);
+	timer_ms_inc(1);
 	lv_tick_inc(1);
 
 	io_pin_out_tgl(GPIOK, GPIO_PIN2_Msk);

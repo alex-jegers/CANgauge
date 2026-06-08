@@ -50,7 +50,6 @@ void usb_watchdog_run();
 void usb_msc_task();
 void usb_msc_task_run();
 
-
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif

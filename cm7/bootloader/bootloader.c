@@ -34,9 +34,20 @@ SYS_MEM_REGION_RAM_EXE static void btldr_reprogram();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void btldr_firmware_btn_cb(lv_event_t* e)
 {
+	/* Connect to USB. */
 	usb_connect(USB_FS_RAM);
+
+	/* Load the message box. */
 	msg_box = ui_helpers_show_msgbox("Waiting for file upload.", "Done.", &prv_file_ready);
 	ui_helpers_add_msgbox_close_btn(msg_box, prv_msgbox_close);
+
+	/* Create the mutex. */
+	prv_mutex_file_ready = xSemaphoreCreateMutex();
+	assert( prv_mutex_file_ready != NULL );
+	BaseType_t res = xSemaphoreTake(prv_mutex_file_ready, 0);
+	assert( res );
+
+	/* Start the task. */
 	xTaskCreate(btldr_task, "BOOTLDR", 500, NULL, 4, &prv_btldr_task_handle);
 }
 
@@ -67,15 +78,10 @@ static void prv_msgbox_close()
 void btldr_init()
 {
 	ui_set_settings_firmware_update_btn_event_cb(btldr_firmware_btn_cb);
-	prv_mutex_file_ready = xSemaphoreCreateMutex();
-	assert( prv_mutex_file_ready != NULL );
-	BaseType_t res = xSemaphoreTake(prv_mutex_file_ready, 0);
-	assert( res );
 }
 
 TaskFunction_t btldr_task()
 {
-
 	while (1)
 	{
 		FIL file;

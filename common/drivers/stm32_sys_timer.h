@@ -10,8 +10,12 @@
 
 #include "stm32h745xx.h"
 
-void timer_inc(uint32_t time_in_ms);
+void timer_ms_inc(uint32_t time_in_ms);
 uint32_t timer_get_time_ms();
 void timer_delay_ms(uint32_t time_ms);
+
+void timer_us_inc(uint32_t time_in_us);
+uint32_t timer_get_time_us();
+void timer_delay_us(uint32_t time_us);
 
 #endif /* DRIVERS_STM32_TIMER_H_ */

@@ -65,7 +65,7 @@ static void prv_task_can_transmit()
                 prv_handles[i].last_time_sent = current_time_ms;
                 
                 time_till_next = prv_min_time_between_msg_ms;
-                restart_position = i;
+                restart_position = i + 1;
                 break;
             }
             else
@@ -103,13 +103,13 @@ static void prv_delete_handle(can_transmit_handle_t* hndl)
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_msg_ms)
+BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_msg_ms)
 {
     prv_min_time_between_msg_ms = min_time_between_msg_ms;
     prv_event_group = xEventGroupCreate();
     xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
     prv_task_run = true;
-    xTaskCreate(prv_task_can_transmit, "CAN_TRANSMIT", 300, NULL, 2, &prv_task_handle);
+    return xTaskCreate(prv_task_can_transmit, "CAN_TRANSMIT", 300, NULL, 3, &prv_task_handle);
 }
 
 bool can_transmit_stop(uint32_t block_time_ms)

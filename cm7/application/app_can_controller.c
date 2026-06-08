@@ -286,7 +286,7 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf)
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void app_can_controller_run(uint8_t (*data_storage)[176][10])
+BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 {
 	prv_task_run = true;
 
@@ -307,7 +307,7 @@ void app_can_controller_run(uint8_t (*data_storage)[176][10])
 											| EVENT_BITS_INIT_DONE);
 
 	/* Create the task. */
-	xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 2, prv_task_handle);
+	return xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 3, prv_task_handle);
 	
 }
 

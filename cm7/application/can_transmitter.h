@@ -26,7 +26,7 @@ typedef struct
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-void can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_msg_ms);
+BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_msg_ms);
 bool can_transmit_stop(uint32_t block_time_ms);
 
 can_transmit_handle_t* can_transmit_create_msg();

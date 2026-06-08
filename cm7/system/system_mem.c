@@ -4,8 +4,6 @@
 #include "drivers/drivers.h"
 #include <string.h>
 
-#include "file_system/fatfs/ff.h"
-#include "file_system/fatfs/diskio.h"
 /**********		DEFINES		**********/
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
@@ -51,28 +49,18 @@ void sys_mem_init_file_systems()
 	SYS_MEM_REGION_EXTERN_RAM static uint8_t work_ram[4096];
 	memset(work_ram, 0, 4096);
 	res = f_mkfs("1:", &params, &work_ram, 4096);
-	assert(res == FR_OK);
-
-	// Give a work area to each drive
 	res = f_mount(&fs_ram, "1:", 0);
-	assert(res == FR_OK);
 
 	/* Create a directory called firmware in the RAM FS. */
 	res = f_mkdir("1:/Firmware");
-	assert(res == FR_OK);
-	res = f_mkdir("1:/Other");
-	assert(res == FR_OK);
 
-	FIL file;
-	res = f_open(&file, "1:/other/test", FA_WRITE | FA_CREATE_NEW);
-	uint32_t bw = 0;
-	res = f_write(&file, "Hello, World!\r\n", 15, &bw);
-	assert( res == FR_OK );
-	assert( bw == 15 );
-	f_close(&file);
 
-	/* Check if there's already a file system. */
+	/* Setup the EEPROM File System. */
+	/* Check if there's already a file system in EEPROM. */
 	res = f_mount(&fs_eeprom, "0:", 0);
+	FATFS* fs_ptr;
+	uint32_t free_clusters;
+	res = f_getfree("0:", &free_clusters, &fs_ptr);
 	if (res != FR_OK)
 	{
 		/* Create a file system if there isnt one. */
@@ -83,16 +71,11 @@ void sys_mem_init_file_systems()
 	}
 	/* Check if the config file is already there. */
 	FIL temp;
-	res = f_open(&temp, "0:/Settings/System Data.txt", FA_READ);
+	res = f_open(&temp, SYS_MEM_CONFIG_FILE_PATH, FA_READ);
 	if (res != FR_OK)
 	{
-		/* Create the directories if not. */
-		res = f_mkdir("0:/Settings");
-		assert(res == FR_OK);
-		res = f_open(&temp, "0:/Settings/System Data.txt", FA_WRITE | FA_CREATE_NEW);
-		assert(res == FR_OK);
-		res = f_mkdir("0:/Data Logs");
-		assert(res == FR_OK);
+		res = f_open(&temp, SYS_MEM_CONFIG_FILE_PATH, FA_WRITE | FA_CREATE_NEW);
+		assert(res == FR_OK || res == FR_EXIST);
 	}
 	f_close(&temp);
 }

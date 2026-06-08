@@ -7,7 +7,7 @@
 
 
 #include "drivers/stm32_timer.h"
-#include "drivers/stm32_rcc.h"
+#include "drivers/drivers.h"
 
 
 
@@ -15,11 +15,17 @@
 #define TIM_CCMR1_OC2M_PWM_MODE1		0x6 << 12
 
 
+static void (*prv_tim13_int_handler)() = NULL;
+
 void timer_init(TIM_TypeDef* timer)
 {
 	if (timer == TIM12)
 	{
 		RCC->APB1LENR |= RCC_APB1LENR_TIM12EN;
+	}
+	if (timer == TIM13)
+	{
+		RCC->APB1LENR |= RCC_APB1LENR_TIM13EN;
 	}
 }
 
@@ -118,3 +124,30 @@ uint32_t timer_get_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t channel)
 	}
 }
 
+void timer_enable_compare_interrupt(TIM_TypeDef* timer)
+{
+	timer->DIER |= TIM_DIER_CC1IE;
+}
+
+void timer_enable_update_interrupt(TIM_TypeDef* timer)
+{
+	timer->DIER |= TIM_DIER_UIE;
+}
+
+void timer_set_tim13_int_handler(void (*func)())
+{
+	prv_tim13_int_handler = func;
+}
+
+void TIM8_UP_TIM13_IRQHandler()
+{
+	if (prv_tim13_int_handler != NULL)
+	{
+		prv_tim13_int_handler();
+	}
+
+	TIM13->SR = ~(TIM_SR_UIF
+				| TIM_SR_CC1IF
+				| TIM_SR_CC1OF);
+	while (TIM13->SR & (TIM_SR_UIF | TIM_SR_CC1IF | TIM_SR_CC1OF)) {}
+}

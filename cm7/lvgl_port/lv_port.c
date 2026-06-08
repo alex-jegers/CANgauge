@@ -51,7 +51,7 @@ void lv_port_run()
     lv_init();  
 
     prv_run = true;
-    xTaskCreate(prv_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, &prv_task_handle);              
+    xTaskCreate(prv_task_lvgl_timer_update, "LVGL_TASK_HANDLER", 1500, NULL, 2, &prv_task_handle);
 }
 
 bool lv_port_take_lvgl_mutex(uint32_t block_time_ms)

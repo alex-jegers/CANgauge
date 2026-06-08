@@ -24,7 +24,7 @@ extern "C" {
  * desc:
  * 
  */
-void app_can_controller_run();
+BaseType_t app_can_controller_run();
 bool app_can_controller_stop(uint32_t block_time_ms);
 uint32_t can_controller_get_data(uint8_t pid, uint8_t first_byte, uint8_t num_params);
 bool app_can_sniffer_running();
