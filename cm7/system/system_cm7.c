@@ -105,7 +105,7 @@ void system_task_init()
 	indev_init(&p_touch_data);							//LVGL input device callback (touch screen).
 	touch_scr_run(p_touch_data);						//Runs the touch screen task.
 
-	system_run_runtime_stats_task();
+	//system_run_runtime_stats_task();
 
 	/* Load the menu screen. */
 	app_gauges_run();

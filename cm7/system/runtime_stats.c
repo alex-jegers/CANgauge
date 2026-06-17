@@ -11,7 +11,7 @@
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-TaskHandle_t prv_runtime_stats_handle = NULL;
+static TaskHandle_t prv_runtime_stats_handle = NULL;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_high_freq_timer_tick_int();
 

@@ -30,6 +30,13 @@ BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_
 bool can_transmit_stop(uint32_t block_time_ms);
 
 can_transmit_handle_t* can_transmit_create_msg();
+
+/**
+ * can_transmit_create_high_priority_msg
+ * 		desc: creates an inactive handle with a default period of ONE_SHOT.
+ * 				Will get transmitted first on the next cycle after being activated.
+ */
+can_transmit_handle_t* can_transmit_create_high_priority_msg();
 bool can_transmit_set_period(can_transmit_handle_t* hndl, uint32_t period_ms);
 
 /**
