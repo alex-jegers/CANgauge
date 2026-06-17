@@ -38,6 +38,19 @@ void touch_scr_run(touch_info_t* p_touch_data);
  */
 bool touch_scr_stop(uint32_t block_time_ms);
 
+/**
+ * touch_scr_set_touched_cb:
+ * desc:
+ *      adds a function callback that will be called when the screen is touched.
+ */
+void touch_scr_set_touched_cb(void (*func)());
+
+/**
+ * touch_scr_clear_touched_cb:
+ * desc:
+ *      removes the function callback that is called when the screen is touched.
+ */
+void touch_scr_clear_touched_cb(void (*func)());
 
 
 

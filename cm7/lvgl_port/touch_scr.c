@@ -70,6 +70,7 @@ typedef struct
 static touch_info_t touch_info;
 static bool prv_run = false;
 static EventGroupHandle_t prv_event_group;
+static void (*prv_scr_touched_cb)();
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_init();
@@ -157,6 +158,13 @@ static void prv_task_update(touch_info_t* p_touch_data)
 			i2c_bus_reset(I2C4);
 		}
 		*p_touch_data = touch_info;
+		if (touch_info.touch_num > 0)
+		{
+			if (prv_scr_touched_cb != NULL)
+			{
+				prv_scr_touched_cb();
+			}
+		}
 		vTaskDelay(CST830_REFRESH_PERIOD_MS);
 
 	}
@@ -191,3 +199,12 @@ bool touch_scr_stop(uint32_t block_time_ms)
 }
 
 
+void touch_scr_set_touched_cb(void (*func)())
+{
+	prv_scr_touched_cb = func;
+}
+
+void touch_scr_clear_touched_cb(void (*func)())
+{
+	prv_scr_touched_cb = NULL;
+}
