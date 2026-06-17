@@ -33,7 +33,7 @@ void ui_load_gauge_screen();
  * Callbacks for UI element events.
  */
 void ui_gauges_set_gauge_select_btn_cb(void (*func)(lv_event_t* e));	//The buttons that select a gauge (to be replaced with checkboxes.
-void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e));				//When a gauge itself is pressed.
+void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e));				//When the gauge screen itself is pressed.
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func);						//When the main screen is loaded.
 void ui_set_brightness_slider_event_cb(lv_event_cb_t func);				//The brightness slider is interacted with.
 void ui_set_settings_scr_load_event_cb(lv_event_cb_t func);				//The settings screen loads.

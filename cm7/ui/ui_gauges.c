@@ -2,6 +2,7 @@
 #include "ui_gauges.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <math.h>
 
 /**********		DEFINES		**********/
 #define GAUGE_SELECT_CONTAINER_Y_POS	0
@@ -331,6 +332,7 @@ static void _gauge_anim_map(void* obj, int32_t val)
 
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl, uint8_t gauge_idx)
 {
+	lv_obj_set_scrollbar_mode(_gauge_scr, LV_SCROLLBAR_MODE_OFF);
 	/**
 	 * Determine the scaling factor and if we need a second, hidden gauge.
 	 * If gauges have less than 100 tick marks the needle motion isn't smooth going from tick to tick.
@@ -376,7 +378,14 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			start = (index * 180) + 103;
 			break;
 
-		case 3: case 4:
+		case 3: //Break into thirds.
+			span = 100;			//120 degrees per gauge.
+			if (gauge_idx == 0) {  start = 210; }
+			else if (gauge_idx == 1) { start = -30; }
+			else if (gauge_idx == 2) { start = 90; }
+			start += 10;
+			break;
+		case 4:
 			/** 
 			*	Want:
 			*	Index 0 --> Rotated 180.
@@ -411,24 +420,40 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	{
 		_gauge[gauge_idx] = ui_helpers_create_gauge(_gauge_scr, min_val, max_val, span, start, &_gauge_needle[gauge_idx]);
 	}
-	
-	/* Set the event callback. */
-	lv_obj_add_event_cb(_gauge[gauge_idx], prv_gauge_pressed_hanlder, LV_EVENT_RELEASED, NULL);
 
 	/* Make the label that shows the data. */
 	_gauge_data_lbl[gauge_idx] = lv_label_create(_gauge_scr);
-	int32_t data_lbl_pos_y = 80;
+	int32_t data_lbl_pos_y = 0;
 	int32_t data_lbl_pos_x = 0;
+	lv_font_t* data_font = &lv_font_montserrat_42;
 	if (prv_num_gauges == 2)
 	{
 		data_lbl_pos_y = 0;
-		if (gauge_idx == 0) { data_lbl_pos_x = -65; }
-		else { data_lbl_pos_x = 65; }
+		data_lbl_pos_x = 75;
+		data_font = &lv_font_montserrat_42;
+		if (gauge_idx == 0) { data_lbl_pos_x *= -1; }
 	}
-	else if (prv_num_gauges >= 3)
+	else if (prv_num_gauges == 3)
+	{
+		/* This is for 1 & 2. X is just the negative of the other. */
+		data_lbl_pos_x = 80;
+		data_lbl_pos_y = 20;
+		switch (gauge_idx)
+		{
+		case 0:
+			data_lbl_pos_x = 0;
+			data_lbl_pos_y = -65;
+			break;
+		case 2:
+			data_lbl_pos_x *= -1;
+			break;
+		}
+	}
+	else if (prv_num_gauges == 4)
 	{
 		data_lbl_pos_x = -60;
 		data_lbl_pos_y = -65;
+		data_font = &lv_font_montserrat_34;
 		switch (gauge_idx)
 		{
 		case 0:
@@ -447,90 +472,112 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	}
 	lv_obj_align(_gauge_data_lbl[gauge_idx], LV_ALIGN_CENTER, data_lbl_pos_x, data_lbl_pos_y);
 	lv_label_set_text(_gauge_data_lbl[gauge_idx], "");
-	lv_obj_set_style_text_font(_gauge_data_lbl[gauge_idx], &lv_font_montserrat_34, LV_PART_MAIN);
+	lv_obj_set_style_text_font(_gauge_data_lbl[gauge_idx], data_font, LV_PART_MAIN);
 	lv_obj_set_style_text_color(_gauge_data_lbl[gauge_idx], UI_COLOR_WHITE, LV_PART_MAIN);
 	lv_obj_set_style_text_align(_gauge_data_lbl[gauge_idx], LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
 	
 	/* Make the label that says what is being displayed. */
-	_gauge_info_lbl[gauge_idx] = lv_label_create(_gauge_scr);
-	int32_t desc_lbl_pos_y = 140;
+	_gauge_info_lbl[gauge_idx] = lv_arclabel_create(_gauge_scr);
+	int32_t desc_lbl_pos_y = 216;
 	int32_t desc_lbl_pos_x = 0;
-	int32_t desc_lbl_width = 200;
+	int32_t desc_lbl_width = 300;
+	int32_t desc_lbl_height = 120;
+	int32_t desc_lbl_angle_start = 270;
+	int32_t desc_lbl_span = 180;
+	lv_arclabel_dir_t desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
+	int8_t desc_lbl_letter_spacing = 4;
+	const int32_t desc_lbl_radius = 240;
 	if (prv_num_gauges == 2)
 	{
-		desc_lbl_pos_y = 35;
+		desc_lbl_pos_y = 0;
 		desc_lbl_width = 110;
-		if (gauge_idx == 0) { desc_lbl_pos_x = -65; }
-		else { desc_lbl_pos_x = 65; }
+		desc_lbl_pos_x = -220 + (220 * 2 * gauge_idx);	//-216 if first gauge, 216 if second gauge.
+		desc_lbl_angle_start = 180 * gauge_idx;			//0 if first gauge, 180 if second gauge.
+		desc_lbl_width = 120;
+		desc_lbl_height = 300;
 	}
-	else if (prv_num_gauges >= 3)
+	else if (prv_num_gauges == 3)
 	{
-		desc_lbl_width = 200;
-		desc_lbl_pos_x = -110;
-		desc_lbl_pos_y = -15;
+		desc_lbl_angle_start = (120 * gauge_idx) + 90;
+		desc_lbl_direction = LV_ARCLABEL_DIR_CLOCKWISE;
+		desc_lbl_pos_x = 0;
+		desc_lbl_pos_y = -220;
 		switch (gauge_idx)
 		{
 		case 0:
 			break;
 		case 1:
+			desc_lbl_pos_x = 190;
+			desc_lbl_pos_y = 110;
+			desc_lbl_height = 400;
+			desc_lbl_width = 300;
+			desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
+			break;
+		case 2:
+			desc_lbl_pos_x = -190;
+			desc_lbl_pos_y = 110;
+			desc_lbl_height = 400;
+			desc_lbl_width = 300;
+			desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
+			break;
+		}
+	}
+	else if (prv_num_gauges == 4)
+	{
+		desc_lbl_letter_spacing = 0;
+		desc_lbl_width = 300;
+		desc_lbl_height = 300;
+		desc_lbl_pos_x = -155;
+		desc_lbl_pos_y = -155;
+		switch (gauge_idx)
+		{
+		case 0:
+			desc_lbl_angle_start = 45;
+			desc_lbl_direction = LV_ARCLABEL_DIR_CLOCKWISE;
+			break;
+		case 1:
 			desc_lbl_pos_x *= -1;
+			desc_lbl_angle_start = 135;
+			desc_lbl_direction = LV_ARCLABEL_DIR_CLOCKWISE;
 			break;
 		case 2:
 			desc_lbl_pos_y *= -1;
+			desc_lbl_angle_start = -45;
 			break;
 		case 3:
 			desc_lbl_pos_x *= -1;
 			desc_lbl_pos_y *= -1;
+			desc_lbl_angle_start = -135;
 			break;
 		}
 	}
+
+	lv_obj_set_size(_gauge_info_lbl[gauge_idx], desc_lbl_width, desc_lbl_height);
 	lv_obj_align(_gauge_info_lbl[gauge_idx], LV_ALIGN_CENTER, desc_lbl_pos_x, desc_lbl_pos_y);
-	lv_label_set_text(_gauge_info_lbl[gauge_idx], primary_lbl);
-	lv_label_set_long_mode(_gauge_info_lbl[gauge_idx], LV_LABEL_LONG_MODE_SCROLL);
-	lv_obj_set_width(_gauge_info_lbl[gauge_idx], desc_lbl_width);
-	lv_obj_set_style_text_font(_gauge_info_lbl[gauge_idx], &lv_font_montserrat_24, LV_PART_MAIN);
+	lv_obj_set_style_text_letter_space(_gauge_info_lbl[gauge_idx], desc_lbl_letter_spacing, LV_PART_MAIN);
 	lv_obj_set_style_text_color(_gauge_info_lbl[gauge_idx], UI_COLOR_WHITE, LV_PART_MAIN);
-	lv_obj_set_style_text_align(_gauge_info_lbl[gauge_idx], LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+	lv_arclabel_set_text(_gauge_info_lbl[gauge_idx], primary_lbl);
+	float offset_y = sin((float)((float)desc_lbl_angle_start * 3.14 / 180.0));
+	float offset_x = cos((float)((float)desc_lbl_angle_start * 3.14 / 180.0));
+	lv_arclabel_set_center_offset_y(_gauge_info_lbl[gauge_idx], desc_lbl_radius * offset_y);
+	lv_arclabel_set_center_offset_x(_gauge_info_lbl[gauge_idx], desc_lbl_radius * offset_x);
+	lv_arclabel_set_angle_start(_gauge_info_lbl[gauge_idx], desc_lbl_angle_start);
+	lv_arclabel_set_radius(_gauge_info_lbl[gauge_idx], desc_lbl_radius);
+	lv_arclabel_set_text_vertical_align(_gauge_info_lbl[gauge_idx], LV_ARCLABEL_TEXT_ALIGN_CENTER);
+	lv_arclabel_set_text_horizontal_align(_gauge_info_lbl[gauge_idx], LV_ARCLABEL_TEXT_ALIGN_CENTER);
+	lv_arclabel_set_dir(_gauge_info_lbl[gauge_idx], desc_lbl_direction);
+	lv_obj_set_style_text_font(_gauge_info_lbl[gauge_idx], &lv_font_montserrat_24, LV_PART_MAIN);
 	lv_obj_move_foreground(_gauge_info_lbl[gauge_idx]);
+	/* For debugging. */
+	//lv_obj_set_style_border_color(_gauge_info_lbl[gauge_idx], UI_COLOR_WHITE, LV_PART_MAIN);
+	//lv_obj_set_style_border_width(_gauge_info_lbl[gauge_idx], 2, LV_PART_MAIN);
+	//lv_obj_set_style_border_opa(_gauge_info_lbl[gauge_idx], 255, LV_PART_MAIN);
 
 	/* Make the label that displays the units. */
 	gauge_units_lbl[gauge_idx] = lv_label_create(_gauge_scr);
-	int32_t units_lbl_pos_y = 180;
-	int32_t units_lbl_pos_x = 0;
+	int32_t units_lbl_pos_y = data_lbl_pos_y + 30;
+	int32_t units_lbl_pos_x = data_lbl_pos_x;
 
-	if (prv_num_gauges == 2)
-	{
-		units_lbl_pos_y = 60;
-		if (gauge_idx == 0)
-		{
-			units_lbl_pos_x = -65;
-
-		}
-		else
-		{
-			units_lbl_pos_x = 65;
-		}
-	}
-	else if (prv_num_gauges >= 3)
-	{
-		units_lbl_pos_x = -75;
-		units_lbl_pos_y = -35;
-		switch (gauge_idx)
-		{
-		case 0:
-			break;
-		case 1:
-			units_lbl_pos_x *= -1;
-			break;
-		case 2:
-			units_lbl_pos_y *= -1;
-			break;
-		case 3:
-			units_lbl_pos_x *= -1;
-			units_lbl_pos_y *= -1;
-			break;
-		}
-	}
 	lv_label_set_text(gauge_units_lbl[gauge_idx], secondary_lbl);
 	lv_obj_set_style_text_font(gauge_units_lbl[gauge_idx], &lv_font_montserrat_20, LV_PART_MAIN);
 	lv_obj_set_style_text_color(gauge_units_lbl[gauge_idx], UI_COLOR_WHITE, LV_PART_MAIN);
@@ -538,6 +585,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	lv_obj_align(gauge_units_lbl[gauge_idx], LV_ALIGN_CENTER, units_lbl_pos_x, units_lbl_pos_y);
 
 	index++;
+	/* Do this if were on the last gauge to be loaded in. */
 	if (gauge_idx == prv_num_gauges - 1)
 	{
 		/* Make a circle the same color as the background to cover up the inside of the needles. */
@@ -559,7 +607,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			}
 		}
 		/* Draw a line or 2 to divide the gauges. */
-		if (prv_num_gauges >= 2)
+		if (prv_num_gauges == 2 || prv_num_gauges == 4)
 		{
 
 			lv_obj_t* divider_line = lv_obj_create(_gauge_scr);
@@ -568,7 +616,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			lv_obj_set_style_border_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
 			lv_obj_center(divider_line);
 		}
-		if (prv_num_gauges >= 3)
+		if (prv_num_gauges == 4)
 		{
 
 			lv_obj_t* divider_line = lv_obj_create(_gauge_scr);
@@ -577,8 +625,57 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			lv_obj_set_style_border_color(divider_line, UI_COLOR_GRAY, LV_PART_MAIN);
 			lv_obj_center(divider_line);
 		}
+		if (prv_num_gauges == 3)
+		{
+			/*Create an array for the points of the line*/
+			static lv_point_precise_t line_points1[] = { {0, 200}, {0, 0} };
+			static lv_point_precise_t line_points2[] = { {0, 0}, {173, 100}, {346, 0} };
+
+			/*Create style*/
+			static lv_style_t style_line;
+			lv_style_init(&style_line);
+			lv_style_set_line_width(&style_line, 7);
+			lv_style_set_line_color(&style_line, UI_COLOR_GRAY);
+			lv_style_set_line_rounded(&style_line, true);
+
+			/*Create a line and apply the new style*/
+			lv_obj_t* line1; 
+			lv_obj_t* line2;
+			line1 = lv_line_create(_gauge_scr);
+			line2 = lv_line_create(_gauge_scr);
+			//lv_obj_set_size(line1, 400, 400);
+			//lv_obj_set_size(line2, 400, 400);
+			lv_line_set_points(line1, line_points1, 2);     /*Set the points*/
+			lv_line_set_points(line2, line_points2, 3);     /*Set the points*/
+			lv_obj_add_style(line1, &style_line, 0);
+			lv_obj_add_style(line2, &style_line, 0);
+			lv_obj_align(line1, LV_ALIGN_CENTER, 0, 100);
+			lv_obj_align(line2, LV_ALIGN_CENTER, 0, -50);
+			lv_obj_move_foreground(line1);
+			lv_obj_move_foreground(line2);
+
+			lv_obj_set_style_border_color(line1, UI_COLOR_RED, LV_PART_MAIN);
+			lv_obj_set_style_border_width(line1, 2, LV_PART_MAIN);
+			lv_obj_set_style_border_opa(line1, 255, LV_PART_MAIN);
+
+		}
 		index = 0;
 	}
+
+	/* Apply the event callback to all the children of _gauge_scr so
+	when anything on the screen is pressed it will fire the event and we can
+	close the gauge screen. */
+	lv_obj_add_event_cb(_gauge_scr, prv_gauge_pressed_hanlder, LV_EVENT_RELEASED, NULL);
+	for (uint32_t child = 0;; child++)
+	{
+		lv_obj_t* obj = lv_obj_get_child(_gauge_scr, child);
+		if (obj == NULL)
+		{
+			break;
+		}
+		lv_obj_add_event_cb(obj, prv_gauge_pressed_hanlder, LV_EVENT_RELEASED, NULL);
+	}
+	
 
 	if (ui_helpers_is_demo_mode())
 	{
