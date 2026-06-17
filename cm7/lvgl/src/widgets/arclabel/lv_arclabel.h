@@ -151,14 +151,14 @@ void lv_arclabel_set_radius(lv_obj_t * obj, uint32_t radius);
  * @param obj       pointer to an arc label object
  * @param x         the x offset
  */
-void lv_arclabel_set_center_offset_x(lv_obj_t * obj, uint32_t x);
+void lv_arclabel_set_center_offset_x(lv_obj_t * obj, int32_t x);
 
 /**
  * Set the center offset y for an arc label object.
  * @param obj       pointer to an arc label object
  * @param y         the y offset
  */
-void lv_arclabel_set_center_offset_y(lv_obj_t * obj, uint32_t y);
+void lv_arclabel_set_center_offset_y(lv_obj_t * obj, int32_t y);
 
 /**
  * Set the text vertical alignment for an arc label object.
