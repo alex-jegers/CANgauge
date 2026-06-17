@@ -83,14 +83,19 @@ lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max
 		major_tick_increment = total_tick_count;
 	}
 
+	if (angle_range < 120)
+	{
+		major_tick_increment = total_tick_count / 2;
+	}
+
 	/**
-	* If angle range is less than 90 the tick increment was already 
+	* If angle range is less than 120 the tick increment was already 
 	* determined above so skip this loop.
 	*/
-	while (angle_range > 90)
+	while (angle_range >= 120)
 	{
 		/* If were at 2, we cant go any lower so break.*/
-		if (major_tick_increment == 2)
+		if (major_tick_increment == 1)
 		{
 			break;
 		}
