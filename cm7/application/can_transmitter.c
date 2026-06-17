@@ -5,6 +5,8 @@
 
 /**********		DEFINES		**********/
 #define EVENT_BITS_TASK_STOPPED     0x1 << 0
+#define CAN_TX_NUM_HIGH_PRI_MSGS	3
+#define CAN_TX_NUM_MSGS				(32 - CAN_TX_NUM_HIGH_PRI_MSGS)
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -13,7 +15,8 @@ static TaskHandle_t prv_task_handle = NULL;
 static EventGroupHandle_t prv_event_group = NULL;
 static bool prv_task_run = false;
 
-static can_transmit_handle_t prv_handles[32];
+static can_transmit_handle_t prv_handles[32 - CAN_TX_NUM_HIGH_PRI_MSGS];
+static can_transmit_handle_t prv_high_pri_handles[CAN_TX_NUM_HIGH_PRI_MSGS];
 static uint32_t prv_min_time_between_msg_ms = 0;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -28,6 +31,18 @@ static void prv_task_can_transmit()
     while (prv_task_run)
     {
         current_time_ms = xTaskGetTickCount();
+
+        /* First check the high priority handles and see if any of them need to be transmitted. */
+        for (uint8_t x = 0; x < CAN_TX_NUM_HIGH_PRI_MSGS; x++)
+        {
+        	if (prv_high_pri_handles[x].active == true)
+        	{
+        		can_tx(FDCAN1, 32 - CAN_TX_NUM_HIGH_PRI_MSGS + x);
+        		xTaskDelayUntil(&current_time_ms, pdMS_TO_TICKS(prv_min_time_between_msg_ms));
+        		prv_delete_handle(&prv_high_pri_handles[x]);
+        		current_time_ms = xTaskGetTickCount();
+        	}
+        }
 
         static uint8_t restart_position = 0;
         uint8_t i = restart_position;
@@ -88,6 +103,8 @@ static void prv_task_can_transmit()
         vTaskDelayUntil(&current_time_ms, time_till_next);
         time_till_next = pdMS_TO_TICKS(500);
     }
+    /*** END OF TASK. ***/
+
     can_stop(FDCAN1);
     can_deinit(FDCAN1);
     xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
@@ -144,7 +161,7 @@ TaskHandle_t* can_transmit_get_task_handle()
 
 can_transmit_handle_t* can_transmit_create_msg()
 {
-    for (uint32_t i = 0; i < 32; i++)
+    for (uint32_t i = 0; i < CAN_TX_NUM_MSGS; i++)
     {
         if (prv_handles[i].buf == NULL)
         {
@@ -154,6 +171,21 @@ can_transmit_handle_t* can_transmit_create_msg()
     }
     return NULL;
 }
+
+can_transmit_handle_t* can_transmit_create_high_priority_msg()
+{
+    for (uint32_t i = 0; i < CAN_TX_NUM_HIGH_PRI_MSGS; i++)
+    {
+        if (prv_high_pri_handles[i].buf == NULL)
+        {
+        	prv_high_pri_handles[i].buf = can_get_tx_buffer(FDCAN1, 32 - CAN_TX_NUM_HIGH_PRI_MSGS + i);
+        	prv_high_pri_handles[i].period_ms = CAN_TRANSMIT_PERIOD_ONE_SHOT;
+            return &prv_high_pri_handles[i];
+        }
+    }
+    return NULL;
+}
+
 bool can_transmit_set_period(can_transmit_handle_t* hndl, uint32_t period_ms)
 {
     if (hndl->buf == NULL)
