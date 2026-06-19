@@ -31,6 +31,8 @@ void ui_set_settings_scr_load_event_cb(lv_event_cb_t func);				//The settings sc
 void ui_set_settings_back_btn_event_cb(lv_event_cb_t func);				//The back button within the settings screen is pressed.
 void ui_add_settings_firmware_update_btn_event_cb(lv_event_cb_t func);	//The button to start a firmware update.
 void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func);		//Used to connect the EEPROM file system over USB.
+bool ui_settings_set_pressure_units_dropdown(const char* units_str);	//Units_str must be PSI, kPa, or bar. Anything else will return false.
+bool ui_settings_set_temperature_units_dropdown(const char* units_str);	//Units_str must be C or F. Anything else will return false.
 
 #ifdef __cplusplus
 } /*extern "C"*/
