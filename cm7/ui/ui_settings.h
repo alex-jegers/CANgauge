@@ -1,0 +1,39 @@
+
+#ifndef _UI_SETTINGS_H_
+#define _UI_SETTINGS_H_
+
+#include "lvgl/lvgl.h"
+#include "ui_helpers.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**********     INCLUDES        **********/
+
+/**********     TYPEDEFS         **********/
+
+/**********     DEFINES      **********/
+
+/**********     GLOBAL VARIABLE DECLRATIONS     **********/
+
+/**********		GLOBAL FUNCTION DECLRATIONS		**********/
+/**
+ * name:
+ *      desc:
+ *      params:
+ *      returns:
+ */
+void ui_settings_load();
+void ui_settings_init();
+void ui_set_brightness_slider_event_cb(lv_event_cb_t func);				//The brightness slider is interacted with.
+void ui_set_settings_scr_load_event_cb(lv_event_cb_t func);				//The settings screen loads.
+void ui_set_settings_back_btn_event_cb(lv_event_cb_t func);				//The back button within the settings screen is pressed.
+void ui_add_settings_firmware_update_btn_event_cb(lv_event_cb_t func);	//The button to start a firmware update.
+void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func);		//Used to connect the EEPROM file system over USB.
+
+#ifdef __cplusplus
+} /*extern "C"*/
+#endif
+
+#endif  //_UI_SETTINGS_H_
