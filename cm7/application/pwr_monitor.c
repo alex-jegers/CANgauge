@@ -128,7 +128,7 @@ void pwr_monitor_run(uint8_t priority)
 		/* Trying to start the task but it's already running. */
 		assert(0);
 	}
-	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 128, NULL, priority, &task_handle_battery_monitor);
+	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 800 / 4, NULL, priority, &task_handle_battery_monitor);
 }
 
 void pwr_monitor_enter_low_pwr_mode()

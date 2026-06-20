@@ -77,7 +77,7 @@ static void prv_msgbox_close()
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void btldr_init()
 {
-	ui_set_settings_firmware_update_btn_event_cb(btldr_firmware_btn_cb);
+	ui_add_settings_firmware_update_btn_event_cb(btldr_firmware_btn_cb);
 }
 
 TaskFunction_t btldr_task()
