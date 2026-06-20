@@ -126,7 +126,7 @@ BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_
     prv_event_group = xEventGroupCreate();
     xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
     prv_task_run = true;
-    return xTaskCreate(prv_task_can_transmit, "CAN_TRANSMIT", 300, NULL, 3, &prv_task_handle);
+    return xTaskCreate(prv_task_can_transmit, "CAN_TRANSMIT", 900 / 4, NULL, 3, &prv_task_handle);
 }
 
 bool can_transmit_stop(uint32_t block_time_ms)

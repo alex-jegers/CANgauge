@@ -380,7 +380,7 @@ BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 											| EVENT_BITS_INIT_DONE);
 
 	/* Create the task. */
-	return xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 500, FDCAN1, 3, prv_task_handle);
+	return xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 1000 / 4, FDCAN1, 3, prv_task_handle);
 	
 }
 
@@ -431,8 +431,9 @@ uint32_t app_can_controller_get_can_id()
 	return prv_can_id;
 }
 
-void can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4)
+bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4)
 {
+	bool rtn_val = false;
 	/* Data byte 2 needs to be changed depending on the data being requested. */
 	can_tx_buffer_entry_t iso15765_query =
 	{
@@ -505,9 +506,10 @@ void can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 		can_transmit_set_msg_data(prv_current_data_query[num_pids - 1], &iso15765_query);
 		can_transmit_set_period(prv_current_data_query[num_pids - 1], 25);
 		can_transmit_set_active(prv_current_data_query[num_pids - 1]);
+		rtn_val = true;
 	}
 
-	return;
+	return rtn_val;
 }
 
 void can_uds_stop_query()
