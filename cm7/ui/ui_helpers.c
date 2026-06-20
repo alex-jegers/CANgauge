@@ -75,7 +75,15 @@ lv_obj_t* ui_helpers_create_checkbox_with_text(lv_obj_t* parent, char* text, lv_
 
 lv_obj_t* ui_helpers_create_gauge(lv_obj_t* parent, int32_t min_val, int32_t max_val, uint32_t angle_range, uint32_t angle_rotation, lv_obj_t** needle)
 {
-	uint32_t total_tick_count = abs(max_val - min_val);						
+	uint32_t total_tick_count = abs(max_val - min_val);
+	/* Make sure min and max are factors of 5 if there's more than 25 total ticks. */
+	if (total_tick_count >= 25)
+	{
+		max_val += (5 - (max_val % 5));
+		min_val -= (min_val % 5);
+		total_tick_count = abs(max_val - min_val);
+	}
+
 	uint32_t major_tick_increment = 1000;
 
 	if (angle_range < 90)
