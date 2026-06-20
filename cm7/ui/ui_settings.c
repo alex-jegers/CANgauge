@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "ui_settings.h"
+#include "ui_gauges.h"
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
@@ -25,8 +26,6 @@ static lv_obj_t* prv_settings_back_btn;					//Back button.
 static lv_event_cb_t prv_settings_back_btn_event_cb = NULL;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
-static void prv_settings_btn_handler(lv_event_t* e);
-
 static void prv_create_brightness_slider();
 static void prv_settings_back_btn_event(lv_event_t* e);
 /**********		STATIC FUNCTION DEFINITIONS		**********/
@@ -84,7 +83,8 @@ void ui_settings_init()
 	lv_obj_set_flex_flow(prv_settings_screen, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(prv_settings_screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 	lv_obj_set_style_pad_top(prv_settings_screen, 50, LV_PART_MAIN);
-	lv_obj_set_style_pad_row(prv_settings_screen, 30, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_row(prv_settings_screen, 20, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(prv_settings_screen, 50, LV_PART_MAIN);
 
 	/* Create the settings label. */
 	lv_obj_t* settings_lbl = lv_label_create(prv_settings_screen);
@@ -95,32 +95,32 @@ void ui_settings_init()
 	/* Create the brightness slider. */
 	prv_create_brightness_slider();
 
-	/* Pressure units dropdown box and label. */
-	lv_obj_t* pressure_units_container = lv_obj_create(prv_settings_screen);
-	lv_obj_set_size(pressure_units_container, 480, 50);
-	lv_obj_set_style_bg_opa(pressure_units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_border_width(pressure_units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_layout(pressure_units_container, LV_LAYOUT_FLEX);
-	lv_obj_set_flex_flow(pressure_units_container, LV_FLEX_FLOW_ROW);
-	lv_obj_set_flex_align(pressure_units_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
-	lv_obj_t* pressure_units_lbl = lv_label_create(pressure_units_container);
+	/* Pressure and temperature units dropdown box and label. */
+	lv_obj_t* units_container = lv_obj_create(prv_settings_screen);
+	lv_obj_set_size(units_container, 480, 150);
+	lv_obj_set_style_bg_opa(units_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(units_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_layout(units_container, LV_LAYOUT_FLEX);
+	lv_obj_set_flex_flow(units_container, LV_FLEX_FLOW_ROW_WRAP);
+	lv_obj_set_flex_align(units_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_set_style_pad_row(units_container, 50, LV_STATE_DEFAULT);
+	lv_obj_clear_flag(units_container, LV_OBJ_FLAG_SCROLLABLE);
+	lv_obj_set_scrollbar_mode(units_container, LV_SCROLLBAR_MODE_OFF);
+
+	lv_obj_t* pressure_units_lbl = lv_label_create(units_container);
 	lv_label_set_text_static(pressure_units_lbl, "Pressure Units: ");
 	lv_obj_set_style_text_color(pressure_units_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-	prv_pressure_units_dropdown = lv_dropdown_create(pressure_units_container);
-	lv_dropdown_set_options_static(prv_pressure_units_dropdown, "kPa\nPSI\nbar");
 
-	lv_obj_t* temp_units_container = lv_obj_create(prv_settings_screen);
-	lv_obj_set_size(temp_units_container, 480, 50);
-	lv_obj_set_style_bg_opa(temp_units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_border_width(temp_units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_layout(temp_units_container, LV_LAYOUT_FLEX);
-	lv_obj_set_flex_flow(temp_units_container, LV_FLEX_FLOW_ROW);
-	lv_obj_set_flex_align(temp_units_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
-	lv_obj_t* temp_units_lbl = lv_label_create(temp_units_container);
+	prv_pressure_units_dropdown = lv_dropdown_create(units_container);
+	lv_dropdown_set_options_static(prv_pressure_units_dropdown, "kPa\nPSI\nbar");
+	lv_obj_set_width(prv_pressure_units_dropdown, lv_pct(25));
+
+	lv_obj_t* temp_units_lbl = lv_label_create(units_container);
 	lv_label_set_text_static(temp_units_lbl, "Temperature Units: ");
 	lv_obj_set_style_text_color(temp_units_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-	prv_temperature_units_dropdown = lv_dropdown_create(temp_units_container);
+	prv_temperature_units_dropdown = lv_dropdown_create(units_container);
 	lv_dropdown_set_options_static(prv_temperature_units_dropdown, "C\nF");
+	lv_obj_set_width(prv_temperature_units_dropdown, lv_pct(25));
 
 	/* Make a firmware update button. */
 	prv_settings_firmware_update_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Update Firmware", LV_FONT_DEFAULT);
@@ -167,7 +167,7 @@ void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func)
 	lv_obj_add_event_cb(prv_settings_data_trsnf_btn, func, LV_EVENT_RELEASED, NULL); 
 }
 
-bool ui_settings_set_pressure_units_dropdown(const char* units_str)
+bool ui_settings_set_pressure_units_dropdown(char* units_str)
 {
 	int8_t option_index = lv_dropdown_get_option_index(prv_pressure_units_dropdown, units_str);
 	if (option_index == -1)
@@ -177,7 +177,23 @@ bool ui_settings_set_pressure_units_dropdown(const char* units_str)
 	lv_dropdown_set_selected(prv_pressure_units_dropdown, option_index);
 }
 
-bool ui_settings_set_temperature_units_dropdown(const char* units_str)
+bool ui_settings_set_temperature_units_dropdown(char* units_str)
 {
+	int8_t option_index = lv_dropdown_get_option_index(prv_temperature_units_dropdown, units_str);
+	if (option_index == -1)
+	{
+		return false;
+	}
+	lv_dropdown_set_selected(prv_temperature_units_dropdown, option_index);
+}
 
+void ui_settings_get_pressure_units_dropdown(char* buf)
+{
+	lv_dropdown_get_selected_str(prv_pressure_units_dropdown, buf, 0);
+
+}
+
+void ui_settings_get_temperature_units_dropdown(char* buf)
+{
+	lv_dropdown_get_selected_str(prv_temperature_units_dropdown, buf, 0);
 }

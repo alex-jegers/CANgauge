@@ -31,7 +31,8 @@ bool app_can_sniffer_running();
 bool app_can_controller_is_init(uint32_t block_time_ms);
 uint32_t app_can_controller_get_can_id();	//Will return zero if there is no UDS on CAN found (i.e. no response was returned in request for PID 0x00).
 void can_uds_stop_query();					//Stops all the queries for current data being sent on the bus.
-
+void can_uds_change_pressure_units(const char* units);
+void can_uds_change_temperature_units(const char* units);
 
 
 #ifdef __cplusplus

@@ -1,10 +1,11 @@
 /**********     INCLUDES        **********/
-#include <application/can_uds_def.h>
 #include "app_gauges_cm7.h"
 #include "applications_cm7.h"
+#include "application/can_uds_def.h"
 
 #include "ui/ui_gauges.h"
 #include "ui/ui_helpers.h"
+#include "ui/ui_settings.h"
 
 #include "drivers/drivers.h"
 
@@ -13,7 +14,7 @@
 #include "lvgl_port/lvgl_port_def.h"
 #include "bootloader/bootloader.h"
 
-#include "system/system_mem.h"
+#include "system/system_cm7.h"
 
 /**********		DEFINES		**********/
 #define EVENT_BITS_TASK_STOPPED			0x1 << 0		//Set when the task is stopped.
@@ -22,7 +23,8 @@
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
-const char* prv_version = "v0.4.4";
+const char* prv_version = VERSION;
+const char* prv_build = BUILD_TYPE_STR;
 static bool prv_task_run = false;
 static TaskHandle_t prv_gauges_task_handle;
 static EventGroupHandle_t prv_event_group = NULL;
@@ -30,16 +32,17 @@ static saej1979_current_data_t* active_param[4] = { NULL, NULL, NULL, NULL };
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_gauges();							//The FreeRTOS task.
-static void prv_load_gauges(const char *str[4], uint8_t num_gauges);
+static uint8_t prv_load_gauges(const char *str[4], uint8_t num_gauges);		//Sends the gauge data to the UI, must call ui_load_gauge_screen afterwards to display them. Returns the number of gauges submitted that were found on OBD.
 static void prv_create_gauge_select_btns();				//Creates the buttons on the GUI.
+static void prv_update_units();							//Updates the units for the gauges based on what's in the config file.
 
 static void prv_gauge_event_cb(lv_event_t* e);			//Handler for the gauge itself events.
-static void prv_gauge_scr_load_cb(lv_event_t* e);		//Handler for the gauge screen loading.
 static void prv_gauge_view_btn_cb(lv_event_t* e);		//Handler for a available being selected.
 static void prv_gauge_back_btn_cb(lv_event_t* e);		//Handler for if the back button is pressed.
+static void prv_refresh_btn_cb(lv_event_t* e);			//Handler for the refresh button being pressed.
 
 static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brightness slider being changed.
-static void prv_menu_scr_load_handler(lv_event_t* e);
+static void prv_settings_scr_load_handler(lv_event_t* e);
 
 static void prv_settings_btn_clicked_cb(lv_event_t* e);
 static void prv_settings_back_btn_clicked_cb(lv_event_t* e);
@@ -49,6 +52,8 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer 
 static void prv_task_gauges()
 {
 	/* Load the UI. */
+	ui_gauges_init();
+	ui_settings_init();
 	ui_gauges_load();
 
 	/* Turn on the CAN peripheral and set the baud rate. */
@@ -64,13 +69,13 @@ static void prv_task_gauges()
 
 	/* Set the LVGL event callbacks. */
 	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
-	ui_gauges_set_scr_load_cb(prv_gauge_scr_load_cb);		//The gauge screen loads (nothing programmed).
 	ui_gauges_set_view_btn_cb(prv_gauge_view_btn_cb);		//A gauge is selected (load the gauge and set the CAN getter).
     ui_set_brightness_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
-    ui_set_settings_scr_load_event_cb(prv_menu_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
+    ui_set_settings_scr_load_event_cb(prv_settings_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
     ui_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
     ui_set_settings_back_btn_event_cb(prv_settings_back_btn_clicked_cb);		//Start the gauges and CAN tasks again.
     ui_set_settings_data_trnsf_btn_event_cb(prv_data_trsnf_btn_handler);	//Connect the EEPROM file system to USB.
+    ui_add_refresh_btn_event_cb(prv_refresh_btn_cb);						//The refresh button is pressed (restart the CAN connection.
 
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
@@ -80,6 +85,8 @@ static void prv_task_gauges()
 	{
 		/* Do something if it fails. */
 	}
+
+	prv_update_units();
 
 	bool found_car = app_can_controller_get_can_id();
 
@@ -102,17 +109,17 @@ static void prv_task_gauges()
 	uint32_t tx_ecr = can_get_tx_error_counter(FDCAN1);
 	can_error_code_t ec = can_get_last_error_code(FDCAN1);
 	char* label = calloc(300, sizeof(uint8_t));
-	uint32_t str_size = sprintf(label, "PIDs 0x00: 0x%X\n \
-										PIDs 0x20: 0x%X\n \
-										PIDs 0x40: 0x%X\n \
-										PIDs 0x60: 0x%X\n \
-										CAN ID: 0x%X\n \
-										RX ECR: %d\n \
-										TX ECR: %d\n \
-										LEC: %d\n	\
-										%s",
+	uint32_t str_size = sprintf(label, "PIDs 0x00: 0x%X\n\
+										PIDs 0x20: 0x%X\n\
+										PIDs 0x40: 0x%X\n\
+										PIDs 0x60: 0x%X\n\
+										CAN ID: 0x%X\n\
+										RX ECR: %d\n\
+										TX ECR: %d\n\
+										LEC: %d\n\
+										%s - %s",
 										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id,
-										rx_ecr, tx_ecr, ec, prv_version);
+										rx_ecr, tx_ecr, ec, prv_version, prv_build);
 	realloc(label, str_size);
 
 	/* Write the diagnostic label to the screen. */
@@ -122,56 +129,40 @@ static void prv_task_gauges()
 	free(label);
 
 	/* Check to see if there's a config file with the last state. */
-	FIL last_state_file;
-	FRESULT res;
-	res = f_open(&last_state_file, SYS_MEM_CONFIG_FILE_PATH, FA_READ | FA_WRITE);
-	if (res == FR_OK) //The file exists.
+	char* line = calloc(250, 1);
+	uint32_t bytes_wr = sys_mem_get_config_data("LAST GAUGES STATE", line);
+	if (bytes_wr != 0)
 	{
-		char* line = malloc(500);
-		f_gets(line, 500, &last_state_file);
-		uint32_t str_size = strlen(line);
-		if (str_size != 0)
-		{
-			line = realloc(line, str_size);
-		}
-		assert( line != NULL );
-
+		realloc(line, bytes_wr);
 		char* split[5];		//Hold the strings from the config file.
 		char* sv_ptr;		//For strtok_r.
-		/* Check if there's a valid line. */
 		split[0] = strtok_r(line, ",", &sv_ptr);
-		if (split[0] == NULL)
+
+		/* Get each gauge PID. */
+		for (uint8_t i = 1; i < 5; i++)
 		{
-			uint8_t bw = f_puts("LAST GAUGES STATE,0,0,0,0,\n", &last_state_file);
-			assert( bw == 27 );
+			split[i] = strtok_r(NULL, ",", &sv_ptr);
 		}
-		else if(strcmp(split[0], "LAST GAUGES STATE") == 0)
+		uint8_t num_gauges = 0;
+		while (strcmp(split[num_gauges + 1], "0") != 0)
 		{
-			/* Get each gauge PID. */
-			for (uint8_t i = 1; i < 5; i++)
-			{
-				split[i] = strtok_r(NULL, ",", &sv_ptr);
-			}
-			uint8_t num_gauges = 0;
-			while (strcmp(split[num_gauges + 1], "0") != 0)
-			{
-				num_gauges++;
-				if (num_gauges == 4) { break; }
-			}
-			if (num_gauges != 0)
-			{
-				prv_load_gauges(&split[1], num_gauges);
-			}
-			free(line);
+			num_gauges++;
+			if (num_gauges == 4) { break; }
 		}
-		f_close(&last_state_file);
-
-
+		if (num_gauges != 0)
+		{
+			/* Load the gauge screen only if the gauges that were saved are currently being
+			 * supported.
+			 */
+			if (prv_load_gauges(&split[1], num_gauges) == num_gauges)
+			{
+				lv_port_take_lvgl_mutex(portMAX_DELAY);
+				ui_load_gauge_screen();
+				lv_port_give_lvgl_mutex();
+			}
+		}
 	}
-	else //Create the file.
-	{
-
-	}
+	free(line);
 
 	TickType_t last_wake_time = xTaskGetTickCount();		//This is for calculating delay time.
 
@@ -270,6 +261,31 @@ static void prv_create_gauge_select_btns()
 	}
 }
 
+static void prv_update_units()
+{
+	char buf[25];
+	char* split;
+	char pressure_units[4];
+	char temperature_units[2];
+
+	sys_mem_get_config_data("PRESSURE UNITS", buf);
+	split = sys_mem_csv_split(buf, 1);
+	strcpy(pressure_units, split);
+	sys_mem_get_config_data("TEMPERATURE UNITS", buf);
+	split = sys_mem_csv_split(buf, 1);
+	strcpy(temperature_units, split);
+
+	if (strcmp(pressure_units, "kPa"))
+	{
+		can_uds_change_pressure_units(pressure_units);
+	}
+	if (strcmp(temperature_units, "C"))
+	{
+		can_uds_change_temperature_units(temperature_units);
+	}
+
+}
+
 static void prv_gauge_event_cb(lv_event_t* e)
 {
 	/* Stop transmitting the requestor on CAN. */
@@ -277,35 +293,29 @@ static void prv_gauge_event_cb(lv_event_t* e)
 	xEventGroupClearBits(prv_event_group, EVENT_BITS_QUERY_TRANSMITTING);
 
 	/* Write to the save state file. */
-	FIL save_file;
-	UINT bw;
-	FRESULT res;
-	f_unlink(SYS_MEM_CONFIG_FILE_PATH);
 	const char* str = "LAST GAUGES STATE,0,0,0,0,\n";
-	uint32_t str_len = strlen(str);
-	res = f_open(&save_file, SYS_MEM_CONFIG_FILE_PATH, FA_WRITE | FA_CREATE_ALWAYS);
-	res = f_write(&save_file, str, str_len, &bw);
-	res = f_close(&save_file);
+	sys_mem_set_config_data(str);
 }
 
-static void prv_gauge_scr_load_cb()
+static uint8_t prv_load_gauges(const char* str[4], uint8_t num_gauges)
 {
-
-}
-
-static void prv_load_gauges(const char* str[4], uint8_t num_gauges)
-{
+	uint8_t rtn_val = 0;		//Returns how many of the gauges are available on the platform.
 	/* Tell the UI how many gauges were gonna load. */
 	ui_gauges_set_number_of_gauges(num_gauges);
 
 	/* Load the gauges into the UI and set the ISO15675 query on CAN. */
-	for (uint8_t g = 0; g < num_gauges; g++) {
+	for (uint8_t g = 0; g < num_gauges; g++)
+	{
 		const char *txt = str[g];
-		for (uint8_t i = 0; i < 176; i++) {
+		for (uint8_t i = 0; i < 176; i++)
+		{
 			saej1979_current_data_t *x = saej1979_get_current_data(i);
 
-			/* Check to see if this PID is supported. */
-			if (x->available == false) {
+			/* Check to see if this PID is supported on the current platform.
+			 * If it's not, we dont need to check if it's a match so go to the
+			 * next PID. */
+			if (x->available == false)
+			{
 				continue;
 			}
 
@@ -315,17 +325,20 @@ static void prv_load_gauges(const char* str[4], uint8_t num_gauges)
 				/* Cycle through the nested parameters. */
 				for (uint8_t idx = 0; idx < 8; idx++)
 				{
-					saej1979_current_data_t* y = x->nested[idx];
-					if (y == NULL) { continue; }
-					if (strcmp(y->name, txt) == 0)
+					saej1979_current_data_t* nested_x = x->nested[idx];
+					if (nested_x == NULL) { continue; }
+					/* Check to see if the current data element matches the label
+					 * and set x equal to the nested element if it does. */
+					if (strcmp(nested_x->name, txt) == 0)
 					{
-						x = y;
+						x = nested_x;
 						break;
 					}
 				}
 			}
 
-			/* Check to see if the checkbox text matches the PID text. */
+			/* Check to see if the checkbox text matches the PID text.
+			 * This was already checked if it's nested but whatevuh. */
 			if (strcmp(x->name, txt) == 0) {
 				/* For gauges on the right side of the screen we want to swap the min and max values. */
 				if ((g % 2) != 0) {
@@ -333,8 +346,8 @@ static void prv_load_gauges(const char* str[4], uint8_t num_gauges)
 				} else {
 					ui_gauges_create_gauge(txt, x->units, x->min, x->max, g);
 				}
-				active_param[g] = x;
-				//return;
+				active_param[g] = x;	//active_param tells the gauges task what's currently being displayed so it can process data.
+				rtn_val++;
 			}
 		}
 	}
@@ -343,9 +356,13 @@ static void prv_load_gauges(const char* str[4], uint8_t num_gauges)
 	uint8_t pid1 = (active_param[1] == NULL) ? 0 : active_param[1]->pid_code;
 	uint8_t pid2 = (active_param[2] == NULL) ? 0 : active_param[2]->pid_code;
 	uint8_t pid3 = (active_param[3] == NULL) ? 0 : active_param[3]->pid_code;
-	can_uds_set_current_data_query(pid0, pid1, pid2, pid3);
-	xEventGroupSetBits(prv_event_group, EVENT_BITS_QUERY_TRANSMITTING);
-	ui_load_gauge_screen();
+
+	/* Check if anything is being transmitted and set the transmitting event bits if there is. */
+	if (can_uds_set_current_data_query(pid0, pid1, pid2, pid3))
+	{
+		xEventGroupSetBits(prv_event_group, EVENT_BITS_QUERY_TRANSMITTING);
+	}
+	return rtn_val;
 }
 
 static void prv_gauge_view_btn_cb(lv_event_t* e)
@@ -408,21 +425,17 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 			strcat(save_str, ",0");
 		}
 	}
-	strcat(save_str, "\0");
+	strcat(save_str, ",");
 	str_len = strlen(save_str);		//Double check this.
 
-	FIL save_file;
-	UINT bw;
-	FRESULT res;
-	f_unlink(SYS_MEM_CONFIG_FILE_PATH);
-	res = f_open(&save_file, SYS_MEM_CONFIG_FILE_PATH, FA_WRITE | FA_CREATE_ALWAYS);
-	res = f_write(&save_file, save_str, str_len, &bw);
-	res = f_close(&save_file);
-	assert(res == FR_OK);
+	sys_mem_set_config_data(save_str);
 	free(save_str);
 
 	/* Load the gauges into the UI and set the ISO15675 query on CAN. */
-	prv_load_gauges(str, num_gauges);
+	if (prv_load_gauges(str, num_gauges) == num_gauges)
+	{
+		ui_load_gauge_screen();
+	}
 }
 
 static void prv_gauge_back_btn_cb(lv_event_t* e)
@@ -431,6 +444,13 @@ static void prv_gauge_back_btn_cb(lv_event_t* e)
 	can_transmit_stop(0);
 	app_can_controller_stop(0);
 	app_gauges_stop(0);
+}
+
+static void prv_refresh_btn_cb(lv_event_t* e)
+{
+	/* Stop the CAN and gauge tasks and restart them. */
+	/* Wait until all the tasks have been stopped. */
+	rcc_sw_reset();
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -448,7 +468,7 @@ void app_gauges_run()
 	xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 
 	/* Create the task. */
-	xTaskCreate(prv_task_gauges, "APP_GAUGES", 800, NULL, 4, prv_gauges_task_handle);
+	xTaskCreate(prv_task_gauges, "APP_GAUGES", 3000 / 4, NULL, 4, prv_gauges_task_handle);
 }
 
 bool app_gauges_stop(uint32_t block_time_ms)
@@ -490,16 +510,28 @@ static void prv_brightness_slider_handler(lv_event_t* e)
 
 }
 
-static void prv_menu_scr_load_handler(lv_event_t* e)
+static void prv_settings_scr_load_handler(lv_event_t* e)
 {
 	lv_event_code_t code = lv_event_get_code(e);
 
 	if (code == LV_EVENT_SCREEN_LOADED)
 	{
-			lv_obj_t** slider = lv_event_get_user_data(e);
-			uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
-			uint32_t slider_val = (timer_val - 5000) / 605;
-			lv_slider_set_value(*slider, slider_val, LV_ANIM_OFF);
+		/* Set the slider value. */
+		lv_obj_t** slider = lv_event_get_user_data(e);
+		uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
+		uint32_t slider_val = (timer_val - 5000) / 605;
+		lv_slider_set_value(*slider, slider_val, LV_ANIM_OFF);
+
+		/* Set the units dropdowns. */
+		char units_config_str[25];
+		char* units;
+		sys_mem_get_config_data("PRESSURE UNITS", units_config_str);
+		units = sys_mem_csv_split(units_config_str, 1);
+		ui_settings_set_pressure_units_dropdown(units);
+
+		sys_mem_get_config_data("TEMPERATURE UNITS", units_config_str);
+		units = sys_mem_csv_split(units_config_str, 1);
+		ui_settings_set_temperature_units_dropdown(units);
 	}
 
 }
@@ -510,6 +542,7 @@ static void prv_settings_btn_clicked_cb(lv_event_t* e)
 	can_transmit_stop(0);
 	app_can_controller_stop(0);
 	app_gauges_stop(portMAX_DELAY);
+	ui_gauges_delete();
 
 
 	/* Initialize the boot loader, this sets the function CB
@@ -520,6 +553,24 @@ static void prv_settings_btn_clicked_cb(lv_event_t* e)
 
 static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
 {
+	/* Write the backlight brigthness data to the config file. */
+	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
+    char config_str[25];
+    sprintf(config_str, "BRIGHTNESS,%lu,\n", timer_val);
+    sys_mem_set_config_data(config_str);
+
+    /* Write the units to the config file. */
+    char uints_str[5];
+    ui_settings_get_pressure_units_dropdown(uints_str);
+    sprintf(config_str, "PRESSURE UNITS,%s,\n,", uints_str);
+    sys_mem_set_config_data(config_str);
+
+    ui_settings_get_temperature_units_dropdown(uints_str);
+    sprintf(config_str, "TEMPERATURE UNITS,%s,\n,", uints_str);
+    sys_mem_set_config_data(config_str);
+
+
+	ui_settings_delete();
 	app_gauges_run();
 }
 

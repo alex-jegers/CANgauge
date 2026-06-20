@@ -103,3 +103,138 @@ uint8_t* sys_mem_get_ram_fs_ptr()
 {
 	return &system_mem_ram_file_system;
 }
+
+uint32_t sys_mem_get_config_data(const char* data_to_get, char* data_buf)
+{
+	uint32_t rtn_val = 0;
+	/* Try to open the config file. */
+	FIL config_file;
+	FRESULT res;
+	res = f_open(&config_file, SYS_MEM_CONFIG_FILE_PATH, FA_READ | FA_WRITE);
+	if (res == FR_OK) //The file exists.
+	{
+		char* line = calloc(250, 1);
+		char* line_copy = calloc(250, 1);
+		while (f_eof(&config_file) == 0)
+		{
+			/* Read a line. */
+			f_gets(line, 250, &config_file);
+			strcpy(line_copy, line);
+
+			/* Split it with ",". */
+			char* split;		//Hold the strings from the config file.
+			char* sv_ptr;		//For strtok_r.
+			split = strtok_r(line_copy, ",", &sv_ptr);
+
+			/* Check if it's a match. */
+			if (strcmp(split, data_to_get) == 0)
+			{
+				/* Copy the line to data_buf. */
+				uint32_t line_str_len = strlen(line);
+				memcpy(data_buf, line, line_str_len);
+				rtn_val = line_str_len;
+				break;
+			}
+		}
+		free(line);
+		free(line_copy);
+		f_close(&config_file);
+	}
+	if (rtn_val == 0)
+	{
+		//Do something if the file fails to open.
+		sys_mem_create_default_config_file();
+	}
+	return rtn_val;
+}
+
+void sys_mem_set_config_data(char* data)
+{
+	FIL current_file;
+	FIL new_file;
+	FRESULT res;
+	char* data_copy = calloc(250, 1);		//Make a copy of the data were writing to figure out what the header is.
+	strcpy(data_copy, data);
+
+	/* Split it with ",". */
+	char* data_header;	//Hold the strings from the config file.
+	char* sv_ptr;		//For strtok_r.a
+	data_header = strtok_r(data_copy, ",", &sv_ptr);
+
+	/* Figure out what the index of this header is, if it even exists. */
+	uint32_t line_counter = 0;
+	char* line = calloc(250, 1);
+	res = f_open(&current_file, SYS_MEM_CONFIG_FILE_PATH, FA_READ | FA_WRITE);
+	while (f_eof(&current_file) == 0)
+	{
+		/* Read a line. */
+		f_gets(line, 250, &current_file);
+
+		/* Split it with ",". */
+		char* split;		//Hold the strings from the config file.
+		char* sv_ptr;		//For strtok_r.
+		split = strtok_r(line, ",", &sv_ptr);
+
+		/* Check if it's a match. */
+		if (strcmp(split, data_header) == 0)
+		{
+			break;
+		}
+		line_counter++;
+	}
+
+	uint32_t line_to_skip = line_counter;
+	line_counter = 0;
+
+	/* Now copy everything from the old file to a new file except for the line we're overwriting. */
+	res = f_open(&new_file, "0:/temp", FA_WRITE | FA_CREATE_ALWAYS);
+	f_lseek(&current_file, 0);
+	while (f_eof(&current_file) == 0)
+	{
+		f_gets(line, 250, &current_file);
+		uint32_t line_len = strlen(line);
+		if (line_counter != line_to_skip && (line_len > 1))
+		{
+			f_puts(line, &new_file);
+		}
+		line_counter++;
+	}
+	/* Add the new data line to the end of the new file. */
+	f_putc('\n', &new_file);
+	f_puts(data, &new_file);
+
+	f_close(&current_file);
+	f_close(&new_file);
+	f_unlink(SYS_MEM_CONFIG_FILE_PATH);				//Unlink the current config file.
+	f_rename("0:/temp", SYS_MEM_CONFIG_FILE_PATH);	//Remane the temp file as the new config file.
+
+	free(data_copy);
+	free(line);
+}
+
+void sys_mem_create_default_config_file()
+{
+	FIL config_file;
+	FRESULT res;
+	f_unlink(SYS_MEM_CONFIG_FILE_PATH);		//Unlink the old one incase it's still there.
+	res = f_open(&config_file, SYS_MEM_CONFIG_FILE_PATH, FA_CREATE_ALWAYS | FA_WRITE);
+	const char* const config_str = "LAST GAUGES STATE,0,0,0,0,\nBRIGHTNESS,65535,\nPRESSURE UNITS,kPa,\nTEMPERATURE UNITS,C,\n";
+	uint32_t len = strlen(config_str);
+	uint32_t bw = 0;
+	f_write(&config_file, config_str, (UINT)len, (UINT*)&bw);
+	f_close(&config_file);
+}
+
+char* sys_mem_csv_split(char* str, uint32_t index)
+{
+	char* sv_ptr = NULL;
+	char* split = NULL;
+	uint32_t str_len = strlen(str);
+
+	split = strtok_r(str, ",", &sv_ptr);
+	for (uint32_t i = 0; i < index; i++)
+	{
+		split = strtok_r(NULL, ",", &sv_ptr);
+	}
+	return split;
+}
