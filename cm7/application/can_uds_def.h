@@ -37,8 +37,10 @@ struct saej1979_current_data_t
 /**
  * Sets the CAN frame that should be transmitted to get the ECU to return
  * data as per SAE J1979 Service 01. Unused PIDs should be set to 0xCC.
+ * Returns true if anything is being transmitted onto the CANbus, false
+ * if nothing is being sent.
  */
-void can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4);
+bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4);
 
 /** 
  * Returns a value that can be sent to the UI. 
