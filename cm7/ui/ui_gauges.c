@@ -30,6 +30,7 @@ static void prv_gauge_select_checkbox_handler(lv_event_t* e);
 static void prv_clear_btn_handler(lv_event_t* e);
 static void prv_settings_btn_handler(lv_event_t* e);
 static void prv_gauge_pressed_hanlder(lv_event_t* e);
+static void prv_settings_btn_handler(lv_event_t* e);
 
 /* External Event Handlers */
 static lv_event_cb_t settings_btn_cb = NULL;
@@ -345,7 +346,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 		desc_lbl_width = 110;
 		desc_lbl_pos_x = -220 + (220 * 2 * gauge_idx);	//-216 if first gauge, 216 if second gauge.
 		desc_lbl_angle_start = 180 * gauge_idx;			//0 if first gauge, 180 if second gauge.
-		desc_lbl_width = 120;
+		desc_lbl_width = 240;
 		desc_lbl_height = 300;
 	}
 	else if (prv_num_gauges == 3)
@@ -502,11 +503,6 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			lv_obj_align(line2, LV_ALIGN_CENTER, 0, -50);
 			lv_obj_move_foreground(line1);
 			lv_obj_move_foreground(line2);
-
-			lv_obj_set_style_border_color(line1, UI_COLOR_RED, LV_PART_MAIN);
-			lv_obj_set_style_border_width(line1, 2, LV_PART_MAIN);
-			lv_obj_set_style_border_opa(line1, 255, LV_PART_MAIN);
-
 		}
 	}
 
@@ -575,7 +571,7 @@ void ui_gauges_init()
 
 	/*BUTTON CONTAINER.*/
 	prv_gauge_select_btn_container = lv_obj_create(prv_main_scr);
-	lv_obj_set_size(prv_gauge_select_btn_container, 340, 280);
+	lv_obj_set_size(prv_gauge_select_btn_container, 400, 280);
 	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
 	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_GRAY, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(prv_gauge_select_btn_container, 0, LV_STATE_DEFAULT);
