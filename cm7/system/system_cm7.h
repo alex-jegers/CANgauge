@@ -27,6 +27,8 @@
 
 #include "system_mem.h"
 
+#include "version.h"
+
 /**********		DEFINES		**********/
 #define SYS_ENABLE_CACHE		1
 
