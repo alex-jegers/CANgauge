@@ -509,6 +509,18 @@ uint8_t can_read_from_fifo1(FDCAN_GlobalTypeDef* canbus, can_rx_buffer_entry_t* 
 	return fill_level;
 }
 
+uint32_t can_get_can_id(can_rx_buffer_entry_t* message)
+{
+	if (message->R0.bit.XTD == CAN_ID_STD)
+	{
+		return message->R0.bit.ID >> 18;
+	}
+	else
+	{
+		return message->R0.bit.ID;
+	}
+}
+
 can_error_code_t can_get_last_error_code(FDCAN_GlobalTypeDef* canbus)
 {
 	static can_error_code_t last_error_code = CAN_ERROR_CODE_NO_ERROR;	

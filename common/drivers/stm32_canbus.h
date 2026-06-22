@@ -111,6 +111,8 @@ bool can_check_for_rx_fifo1(FDCAN_GlobalTypeDef* canbus);
  */
 uint8_t can_read_from_fifo1(FDCAN_GlobalTypeDef* canbus, can_rx_buffer_entry_t* message);
 
+uint32_t can_get_can_id(can_rx_buffer_entry_t* message);
+
 /*Filter control*/
 void can_set_std_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_std_id_filter_t* filter);
 void can_set_ext_id_filter(FDCAN_GlobalTypeDef* canbus, uint8_t index, can_ext_id_filter_t* filter);		//returns 1 if list is full, 2 if ID is not a valid ID, 0 if no error.
