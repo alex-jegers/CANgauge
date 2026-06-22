@@ -34,6 +34,9 @@ SYS_MEM_REGION_RAM_EXE static void btldr_reprogram();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void btldr_firmware_btn_cb(lv_event_t* e)
 {
+	/* Stop the power monitor. */
+	pwr_monitor_suspend();
+
 	/* Connect to USB. */
 	usb_connect(USB_FS_RAM);
 
@@ -72,6 +75,7 @@ static void prv_msgbox_close()
 	vTaskDelete(prv_btldr_task_handle);
 	vSemaphoreDelete(prv_mutex_file_ready);
 	usb_disconnect();
+	pwr_monitor_resume();
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
@@ -92,24 +96,33 @@ TaskFunction_t btldr_task()
 
 		/* Try to open the file, do something to handle the error if it's not there. */
 		res = f_open(&file, "1:/Firmware/cangauge.bin", FA_READ);
-		assert( res == FR_OK );
+		if (res != FR_OK)
+		{
+			lv_port_take_lvgl_mutex(portMAX_DELAY);
+			lv_obj_delete(msg_box);
+			lv_obj_t* fail_msgbox = ui_helpers_show_msgbox("File not found. Canceling.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(fail_msgbox, prv_msgbox_close);
+			lv_port_give_lvgl_mutex();
+		}
+		else
+		{
+			/* Determine the file size and how much we need to adjust it so it's an even number of flash sectors. */
+			file_size = f_size(&file);
+			uint32_t remainder = file_size % 0x20000;			//0x20000 is the flash mem sector size.
+			uint32_t bytes_to_add = 0x20000 - remainder;	//Figure out how many bytes we need to add to make it a full sector.
+			file_size += bytes_to_add;
 
-		/* Determine the file size and how much we need to adjust it so it's an even number of flash sectors. */
-		file_size = f_size(&file);
-		uint32_t remainder = file_size % 0x20000;			//0x20000 is the flash mem sector size.
-		uint32_t bytes_to_add = 0x20000 - remainder;	//Figure out how many bytes we need to add to make it a full sector.
-		file_size += bytes_to_add;
+			/* Allocate memory to hold the binary data. */
+			firmware_buf = calloc(file_size, 1);
 
-		/* Allocate memory to hold the binary data. */
-		firmware_buf = calloc(file_size, 1);
+			/* Read the binary file into the buffer just created. */
+			uint32_t bytes_read = 0;
+			res = f_read(&file, firmware_buf, file_size, &bytes_read);
+			assert ( res == FR_OK );
 
-		/* Read the binary file into the buffer just created. */
-		uint32_t bytes_read = 0;
-		res = f_read(&file, firmware_buf, file_size, &bytes_read);
-		assert ( res == FR_OK );
+			btldr_reprogram();
 
-		btldr_reprogram();
-
-		vTaskDelete(NULL);
+			vTaskDelete(NULL);
+		}
 	}
 }

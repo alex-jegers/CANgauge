@@ -16,6 +16,8 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 void pwr_monitor_run(uint8_t priority);
+void pwr_monitor_suspend();
+void pwr_monitor_resume();
 void pwr_monitor_enter_low_pwr_mode();
 
 

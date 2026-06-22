@@ -132,6 +132,17 @@ void pwr_monitor_run(uint8_t priority)
 	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 800 / 4, NULL, priority, &task_handle_battery_monitor);
 }
 
+void pwr_monitor_suspend()
+{
+	xTimerStop(prv_timer, portMAX_DELAY);
+	vTaskSuspend(task_handle_battery_monitor);
+}
+
+void pwr_monitor_resume()
+{
+	vTaskResume(task_handle_battery_monitor);
+}
+
 void pwr_monitor_enter_low_pwr_mode()
 {
 	/* Stop all other tasks. */
