@@ -88,7 +88,7 @@ static void prv_task_gauges()
 
 	prv_update_units();
 
-	bool found_car = app_can_controller_get_can_id();
+	bool found_car = app_can_controller_get_query_can_id();
 
 	if (found_car == true)
 	{
@@ -104,7 +104,7 @@ static void prv_task_gauges()
 	uint32_t avail_pids_2 = can_controller_get_data(0x20, 0, 4);
 	uint32_t avail_pids_3 = can_controller_get_data(0x40, 0, 4);
 	uint32_t avail_pids_4 = can_controller_get_data(0x60, 0, 4);
-	uint32_t can_id = app_can_controller_get_can_id();
+	uint32_t can_id = app_can_controller_get_response_can_id();
 	uint32_t rx_ecr = can_get_rx_error_counter(FDCAN1);
 	uint32_t tx_ecr = can_get_tx_error_counter(FDCAN1);
 	can_error_code_t ec = can_get_last_error_code(FDCAN1);

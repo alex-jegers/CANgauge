@@ -22,7 +22,6 @@ typedef enum pci_flow_ctrl_t
 
 /**********		STATIC VARIABLES		**********/
 static bool prv_task_run = false;
-static bool prv_found_uds_on_obd = false;			//Set to whether or not a car was found on CAN.
 static bool prv_accept_consecutive_frames = true;	//Whether or not the gauge will accept consecutive UDS frames.
 
 /* Task handle. */
@@ -31,9 +30,9 @@ EventGroupHandle_t prv_event_group = NULL;
 SemaphoreHandle_t prv_rx_fifo1_counter = NULL;
 
 static uint8_t prv_can_data[176][11];
-static uint32_t prv_can_id = 0x00;
+static uint32_t prv_query_can_id = 0x00;
+static uint32_t prv_response_can_id = 0x00;			//The ID that the car responds with when were checking for an ECU present.
 static can_id_t prv_id_type = 0x00;
-static bool prv_found_uds = false;
 
 static uint8_t prv_flow_ctrl_ptr = 0;
 static uint8_t prv_flow_ctrl_remaining_bytes = 0;
@@ -41,7 +40,7 @@ static uint8_t prv_flow_ctrl_remaining_bytes = 0;
 static can_transmit_handle_t* prv_current_data_query[4] = { NULL, NULL, NULL, NULL };		//Holds pointers to the data currently being transmitted (up to 4 parameters at a time).
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_can_controller();
-static void prv_process_can_data(can_rx_buffer_entry_t* buf);
+static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf);
 /**
  * prv_get_available_pids:
  * desc:
@@ -66,7 +65,7 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf);
 static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 {
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
-	memset(prv_can_data, 0, 1760);
+	memset(prv_can_data, 0xFF, 1760);
 
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(64, 0);
@@ -95,33 +94,32 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	/* Check for an ECU at CAN ID 0x7DF. */
 	if (prv_uds_ecu_present(0x7DF, CAN_ID_STD))
 	{
-		prv_can_id = 0x7DF;
+		prv_query_can_id = 0x7DF;
 		prv_id_type = CAN_ID_STD;
 		
 	}
 	/* Check for an ECU at CAN ID 0x18DB33F1. */
 	else if (prv_uds_ecu_present(0x18DB33F1, CAN_ID_XTD))
 	{
-		prv_can_id = 0x18DB33F1;
+		prv_query_can_id = 0x18DB33F1;
 		prv_id_type = CAN_ID_XTD;
 	}
 	else
 	{
-		prv_can_id = 0x00;
+		prv_query_can_id = 0x00;
 		prv_task_run = false;
 	}
 
 	/* If the CAN ID isn't 0x00 (meaning it found an ECU, ask for all the other "available PIDs" PIDs.)*/
-	if (prv_can_id != 0x00)
+	if (prv_query_can_id != 0x00)
 	{
-		can_id_t can_id_type = (prv_can_id == 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
-		prv_get_available_pids(prv_can_id, can_id_type);		//This just requests the "available PIDs" PIDs.
+		can_id_t can_id_type = (prv_query_can_id == 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
+		prv_get_available_pids(prv_query_can_id, can_id_type);		//This just requests the "available PIDs" PIDs.
 		prv_update_available_uds_data();						//This organizes the raw data into the array in can_uds_def.h and sets available to true where applicable.
 	}
 
 	/* Set the event bits that initialization is done. */
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_INIT_DONE);
-	//prv_get_extra_pids();
 
 	while(prv_task_run == true)
 	{
@@ -138,7 +136,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	vTaskDelete(NULL);
 }
 
-static void prv_process_can_data(can_rx_buffer_entry_t* buf)
+static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 {
 			/* Determine if it's a single a frame, first frame, or consecutive frame. */
 			pci_flow_ctrl_t frame_type = prv_get_flow_ctrl_info(buf);
@@ -160,7 +158,7 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf)
 
 			if (frame_type == PCI_FLOW_CTRL_FF)
 			{
-				uint32_t id = buf->R0.bit.ID >> 18;
+				uint32_t id = can_get_can_id(buf);
 				id -= 8;
 				prv_flow_ctrl_remaining_bytes = ((buf->data[0] & 0x0F) << 8) | buf->data[1];
 				prv_flow_ctrl_ptr = buf->data[2];
@@ -177,7 +175,7 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf)
 
 				can_tx_buffer_entry_t fc_continue_sending_frame =
 				{
-					.T0.bit.ID = id, .T0.bit.XTD = CAN_ID_STD, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+					.T0.bit.ID = id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
 					.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
 					.data[0] = 0x30, .data[1] = 0xFF, .data[2] = 0x00, .data[3] = 0xCC,
 					.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
@@ -187,7 +185,7 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf)
 					fc_continue_sending_frame.data[0] = 0x32;
 				}
 				can_transmit_handle_t* tx_hndl = can_transmit_create_high_priority_msg();
-				if (tx_hndl == NULL) { return; }	//TODO: Handle this better, this would indicate an error.
+				if (tx_hndl == NULL) { return frame_type; }	//TODO: Handle this better, this would indicate an error.
 				can_transmit_set_msg_data(tx_hndl, &fc_continue_sending_frame);
 				can_transmit_set_active(tx_hndl);
 			}
@@ -214,6 +212,7 @@ static void prv_process_can_data(can_rx_buffer_entry_t* buf)
 				prv_can_data[prv_flow_ctrl_ptr][9] = j;
 				prv_can_data[prv_flow_ctrl_ptr][10] = k;	
 			}
+			return frame_type;
 }
 
 static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
@@ -255,6 +254,8 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 
 static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 {
+	static uint8_t recursions = 0;
+	bool rtn_val = false;
 	can_tx_buffer_entry_t tx_buf =
 	{
 		.T0.bit.ID = can_id, .T0.bit.XTD = id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
@@ -276,20 +277,30 @@ static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 		/* Response received. Process it and return true. */
 		can_rx_buffer_entry_t rx_buf;
 		can_read_from_fifo1(FDCAN1, &rx_buf);
-		prv_process_can_data(&rx_buf);
-		return true;
+		pci_flow_ctrl_t frame_type = prv_process_can_data(&rx_buf);
+		if (frame_type == PCI_FLOW_CTRL_SF)
+		{
+			prv_response_can_id = can_get_can_id(&rx_buf);
+			return true;
+		}
 	}
-	else
+	/* Only can reach here if rtn_val still == false. */
+	if (recursions < 5)
 	{
-		/* No response. Return false. */
-		return false;
+		recursions++;
+		return prv_uds_ecu_present(can_id, id_type);
 	}
+
+	/* No valid response after 5 attempts. Return false. */
+	recursions = 0;
+	return false;
+
 }
 static void prv_get_extra_pids(uint8_t pid)
 {
 	can_tx_buffer_entry_t tx_buf =
 	{
-		.T0.bit.ID = prv_can_id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+		.T0.bit.ID = prv_query_can_id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
 		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
 		.data[0] = 0x02, .data[1] = 0x01, .data[2] = 0x00, .data[3] = 0xCC,
 		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
@@ -426,9 +437,14 @@ bool app_can_controller_is_init(uint32_t block_time_ms )
 	return rtn & EVENT_BITS_INIT_DONE;
 }
 
-uint32_t app_can_controller_get_can_id()
+uint32_t app_can_controller_get_query_can_id()
 {
-	return prv_can_id;
+	return prv_query_can_id;
+}
+
+uint32_t app_can_controller_get_response_can_id()
+{
+	return prv_response_can_id;
 }
 
 bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, uint8_t pid4)
@@ -437,7 +453,7 @@ bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 	/* Data byte 2 needs to be changed depending on the data being requested. */
 	can_tx_buffer_entry_t iso15765_query =
 	{
-		.T0.bit.ID = prv_can_id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+		.T0.bit.ID = prv_query_can_id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
 		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
 		.data[0] = 0x02, .data[1] = 0x01, .data[2] = 0x00, .data[3] = 0xCC,
 		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
