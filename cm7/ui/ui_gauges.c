@@ -12,8 +12,8 @@
 /**********		STATIC VARIABLES		**********/
 static bool prv_is_init = false;
 static lv_obj_t* prv_gauge_select_checkboxes[4];	//Holds pointers to the gauge select checkboxes that are checked.
-static uint8_t prv_num_gauges = 0;					//Gets set before calling load gauge.
-static uint8_t prv_selected_gauges_count = 0;		//Tracks how many checkboxes are currently checked.
+static uint8_t prv_num_gauges = 0;					//Application sets this before calling load gauge.
+static uint8_t prv_selected_checkboxes_count = 0;		//Tracks how many checkboxes are currently checked.
 static lv_anim_t _gauge_demo_animation;				//Animation that runs in demo mode, used to test new gauges
 
 
@@ -57,6 +57,7 @@ static void _scr_load_handler(lv_event_t* e);
 static void _gauge_anim_map(void* obj, int32_t val);
 static void prv_deactivate_all_checkboxes();
 static void prv_activate_all_checkboxes();
+static void prv_clear_all_checkboxes();
 
 
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl, uint8_t gauge_idx);
@@ -70,9 +71,9 @@ static void prv_gauge_select_checkbox_handler(lv_event_t* e)
 
 	if (checked)
 	{
-		prv_gauge_select_checkboxes[prv_selected_gauges_count] = checkbox;
-		prv_selected_gauges_count++;
-		if (prv_selected_gauges_count == 4)
+		prv_gauge_select_checkboxes[prv_selected_checkboxes_count] = checkbox;
+		prv_selected_checkboxes_count++;
+		if (prv_selected_checkboxes_count >= 4)
 		{
 			//Deactivate all the checkboxes.
 			prv_deactivate_all_checkboxes();
@@ -81,7 +82,7 @@ static void prv_gauge_select_checkbox_handler(lv_event_t* e)
 	else
 	{
 		bool removed = false;
-		for (uint8_t i = 0; i < prv_selected_gauges_count; i++)
+		for (uint8_t i = 0; i < prv_selected_checkboxes_count; i++)
 		{
 			if (removed == true)
 			{
@@ -94,12 +95,12 @@ static void prv_gauge_select_checkbox_handler(lv_event_t* e)
 			}
 		}
 		/* If there was 4 selected, reactivate all the checkboxes. */
-		if (prv_selected_gauges_count == 4)
+		if (prv_selected_checkboxes_count == 4)
 		{
 			prv_activate_all_checkboxes();
 		}
-		prv_gauge_select_checkboxes[prv_selected_gauges_count - 1] = NULL;
-		prv_selected_gauges_count--;
+		prv_gauge_select_checkboxes[prv_selected_checkboxes_count - 1] = NULL;
+		prv_selected_checkboxes_count--;
 	}
 }
 
@@ -135,6 +136,11 @@ static void prv_activate_all_checkboxes()
 
 static void prv_clear_btn_handler(lv_event_t* e)
 {
+	prv_clear_all_checkboxes();
+}
+
+static void prv_clear_all_checkboxes()
+{
 	uint8_t counter = 0;
 	while (prv_gauge_select_checkboxes[counter] != NULL)
 	{
@@ -145,7 +151,7 @@ static void prv_clear_btn_handler(lv_event_t* e)
 		if (counter == 4) { break; }
 	}
 	prv_activate_all_checkboxes();
-	prv_selected_gauges_count = 0;
+	prv_selected_checkboxes_count = 0;
 }
 
 static void prv_gauge_pressed_hanlder(lv_event_t* e)
@@ -612,6 +618,7 @@ void ui_gauges_init()
 
 void ui_gauges_delete()
 {
+	prv_clear_all_checkboxes();
 	lv_obj_delete_async(prv_main_scr);
 	prv_is_init = false;
 
