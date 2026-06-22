@@ -38,7 +38,7 @@ static void btldr_firmware_btn_cb(lv_event_t* e)
 	usb_connect(USB_FS_RAM);
 
 	/* Load the message box. */
-	msg_box = ui_helpers_show_msgbox("Waiting for file upload.", "Done.", &prv_file_ready);
+	msg_box = ui_helpers_show_msgbox("Waiting for file upload.", "Done", &prv_file_ready);
 	ui_helpers_add_msgbox_close_btn(msg_box, prv_msgbox_close);
 
 	/* Create the mutex. */

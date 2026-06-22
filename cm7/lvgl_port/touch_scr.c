@@ -180,7 +180,7 @@ void touch_scr_run(touch_info_t* p_touch_data)
 {
 	prv_event_group = xEventGroupCreate();
 	xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
-	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 400 / 4, p_touch_data, 3, NULL);
+	xTaskCreate((TaskFunction_t)prv_task_update, "TOUCH_SCR", 800 / 4, p_touch_data, 3, NULL);
 }
 
 bool touch_scr_stop(uint32_t block_time_ms)
