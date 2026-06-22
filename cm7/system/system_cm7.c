@@ -39,11 +39,12 @@ static EventGroupHandle_t prv_event_group = NULL;
 
 /**********     STATIC FUNCTION DECLARATIONS     **********/
 
-static void prv_task_blink();
+static TaskFunction_t prv_task_blink();
+static TaskFunction_t prv_system_error_handler();
 static void prv_lcd_bl_init();
 
 /**********     STATIC FUNCTION DEFINITIONS     **********/
-void prv_task_blink(const uint32_t delay_time_ms)
+static TaskFunction_t prv_task_blink(const uint32_t delay_time_ms)
 {
 	/* Create the private event group if it hasnt been created yet. */
 	if (prv_event_group == NULL)

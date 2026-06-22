@@ -229,7 +229,6 @@ char* sys_mem_csv_split(char* str, uint32_t index)
 {
 	char* sv_ptr = NULL;
 	char* split = NULL;
-	uint32_t str_len = strlen(str);
 
 	split = strtok_r(str, ",", &sv_ptr);
 	for (uint32_t i = 0; i < index; i++)
