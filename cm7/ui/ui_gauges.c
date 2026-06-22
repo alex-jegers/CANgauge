@@ -142,6 +142,7 @@ static void prv_clear_btn_handler(lv_event_t* e)
 		lv_obj_remove_state(checkbox, LV_STATE_CHECKED);
 		prv_gauge_select_checkboxes[counter] = NULL;
 		counter++;
+		if (counter == 4) { break; }
 	}
 	prv_activate_all_checkboxes();
 	prv_selected_gauges_count = 0;
