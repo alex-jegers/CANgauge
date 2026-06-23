@@ -226,8 +226,8 @@ typedef enum
 #define CAN1_RX_FIFO1_ELEMENTS			64
 #define CAN1_TX_EVENT_FIFO_ELEMENTS		0				/*TODO: Need tx_event_fifo_t.*/
 #define CAN1_TX_BUFFER_ELEMENTS			32
-#define CAN1_STD_ID_FILTER_ELEMENTS		4
-#define CAN1_EXT_ID_FILTER_ELEMENTS		4
+#define CAN1_STD_ID_FILTER_ELEMENTS		16
+#define CAN1_EXT_ID_FILTER_ELEMENTS		16
 #define CAN1_TRIGGER_MEMORY_ELEMENTS	0				/*TODO: Need can_trigger_memory_t.*/
 
 #define CAN2_RX_BUFFER_ELEMENTS			64
