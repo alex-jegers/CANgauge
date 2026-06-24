@@ -20,10 +20,9 @@
 /* Includes ------------------------------------------------------------------*/
 #ifdef CORE_CM7
 
-#include "drivers/stm32_sys_timer.h"
 #include "stm32h7xx_it_cm7.h"
-#include "drivers/stm32_io.h"
-#include "lvgl/lvgl.h"
+#include "system/system_cm7.h"
+#include "application/error_handler.h"
 
 
 /******************************************************************************/
@@ -47,11 +46,12 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-
-  while (1)
-  {
-
-  }
+    uint32_t pc;
+    __asm__ volatile ("mov %0, pc" : "=r" (pc));
+    static char error_str[50];
+    sprintf(error_str, "LAST ERROR,HARDFAULT,%x, %s, %s\n", (unsigned int)pc, VERSION, BUILD_TYPE_STR);
+	BaseType_t high_pri_task_woken = error_handler_log_from_isr(error_str);
+	portYIELD_FROM_ISR(high_pri_task_woken);
 }
 
 /**
@@ -120,10 +120,6 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
 
-	timer_ms_inc(1);
-	lv_tick_inc(1);
-
-	io_pin_out_tgl(GPIOK, GPIO_PIN2_Msk);
 }
 
 

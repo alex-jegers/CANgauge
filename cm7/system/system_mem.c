@@ -218,7 +218,7 @@ void sys_mem_create_default_config_file()
 	FRESULT res;
 	f_unlink(SYS_MEM_CONFIG_FILE_PATH);		//Unlink the old one incase it's still there.
 	res = f_open(&config_file, SYS_MEM_CONFIG_FILE_PATH, FA_CREATE_ALWAYS | FA_WRITE);
-	const char* const config_str = "LAST GAUGES STATE,0,0,0,0,\nBRIGHTNESS,65535,\nPRESSURE UNITS,kPa,\nTEMPERATURE UNITS,C,\n";
+	const char* const config_str = "LAST GAUGES STATE,0,0,0,0,\nBRIGHTNESS,65535,\nPRESSURE UNITS,kPa,\nTEMPERATURE UNITS,C,\nLAST ERROR,NONE,\n";
 	uint32_t len = strlen(config_str);
 	uint32_t bw = 0;
 	f_write(&config_file, config_str, (UINT)len, (UINT*)&bw);

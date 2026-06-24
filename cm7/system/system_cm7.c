@@ -103,6 +103,8 @@ void system_task_init()
 	/* Initialize the file systems. This has to come after I2C init bc EEPROM uses I2C. */
 	sys_mem_init_file_systems();
 
+	error_handler_run();
+
 	/* This has to come after the file system because we save the screen brightness in the config file. */
 	prv_lcd_bl_init();
 
@@ -126,7 +128,17 @@ void system_task_init()
 	app_gauges_run();
 	//lv_demo_benchmark();
 
-
+	char last_error_str[50];
+	memset(last_error_str, 0, 50 * sizeof(char));
+	sys_mem_get_config_data("LAST ERROR", last_error_str);
+	char* error_code_str = sys_mem_csv_split(last_error_str, 1);
+	if (strcmp((const char*)error_code_str, "NONE") != 0)
+	{
+		sys_mem_get_config_data("LAST ERROR", last_error_str);
+		lv_obj_t* error_msgbox = ui_helpers_show_msgbox(last_error_str, NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(error_msgbox, NULL);
+		sys_mem_set_config_data("LAST ERROR,NONE,\n");
+	}
 
 	vTaskDelete(NULL);
 }
