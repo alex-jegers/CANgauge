@@ -1,0 +1,3 @@
+[submodule "FreeRTOS_CM7"]
+	path = FreeRTOS_CM7
+	url = https://github.com/alex-jegers/FreeRTOS-Kernel_ARM
