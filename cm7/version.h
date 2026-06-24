@@ -19,7 +19,7 @@ extern "C" {
 	#define BUILD_TYPE_STR		"Dbg Ofast"
 #endif
 
-#define VERSION					"v1.0.2"
+#define VERSION					"v1.1.0"
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
@@ -29,6 +29,7 @@ extern "C" {
  *      params:
  *      returns:
  */
+
 
 
 
