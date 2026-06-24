@@ -194,13 +194,33 @@ static void _gauge_anim_map(void* obj, int32_t val)
 static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lbl, const char* secondary_lbl, uint8_t gauge_idx)
 {
 	lv_obj_set_scrollbar_mode(_gauge_scr, LV_SCROLLBAR_MODE_OFF);
+	lv_obj_remove_flag(_gauge_scr, LV_OBJ_FLAG_SCROLLABLE);
+
 	/**
 	 * Determine the scaling factor and if we need a second, hidden gauge.
 	 * If gauges have less than 100 tick marks the needle motion isn't smooth going from tick to tick.
 	 * If a gauge has more than 500 tick marks performance starts to degrade bc LVGL tries to render
 	 * all 500 tick marks even if the minor ticks arent visible.
 	 */
+
 	int32_t number_of_ticks = abs(max_val - min_val);
+
+	/* Make sure min and max are factors of 5 if there's more than 25 total ticks. */
+	if (number_of_ticks >= 25)
+	{
+		if (max_val > min_val)
+		{
+			max_val += (5 - (max_val % 5));
+			min_val -= (min_val % 5);
+		}
+		else
+		{
+			min_val += (5 - (min_val % 5));
+			max_val -= (max_val % 5);
+		}
+		number_of_ticks = abs(max_val - min_val);
+	}
+
 	int32_t og_max = max_val;
 	int32_t og_min = min_val;
 	_gauge_scaling_factor[gauge_idx] = 1.0;
