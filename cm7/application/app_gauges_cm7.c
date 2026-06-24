@@ -51,11 +51,6 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
 {
-	/* Load the UI. */
-	ui_gauges_init();
-	ui_settings_init();
-	ui_gauges_load();
-
 	/* Turn on the CAN peripheral and set the baud rate. */
 	can_init(FDCAN1);
 	can_set_baud_rate(FDCAN1, CAN_BAUD_500K);
@@ -467,6 +462,11 @@ void app_gauges_run()
 	/* Clear the TASK_STOPPED bit. */
 	xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 
+	/* Load the UI. */
+	ui_gauges_init();
+	ui_settings_init();
+	ui_gauges_load();
+
 	/* Create the task. */
 	xTaskCreate(prv_task_gauges, "APP_GAUGES", 3000 / 4, NULL, 4, prv_gauges_task_handle);
 }
@@ -562,11 +562,11 @@ static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
     /* Write the units to the config file. */
     char uints_str[5];
     ui_settings_get_pressure_units_dropdown(uints_str);
-    sprintf(config_str, "PRESSURE UNITS,%s,\n,", uints_str);
+    sprintf(config_str, "PRESSURE UNITS,%s,\n", uints_str);
     sys_mem_set_config_data(config_str);
 
     ui_settings_get_temperature_units_dropdown(uints_str);
-    sprintf(config_str, "TEMPERATURE UNITS,%s,\n,", uints_str);
+    sprintf(config_str, "TEMPERATURE UNITS,%s,\n", uints_str);
     sys_mem_set_config_data(config_str);
 
 

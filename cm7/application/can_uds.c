@@ -255,7 +255,6 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 {
 	static uint8_t recursions = 0;
-	bool rtn_val = false;
 	can_tx_buffer_entry_t tx_buf =
 	{
 		.T0.bit.ID = can_id, .T0.bit.XTD = id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
@@ -285,13 +284,13 @@ static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 		}
 	}
 	/* Only can reach here if rtn_val still == false. */
-	if (recursions < 5)
+	if (recursions < 2)
 	{
 		recursions++;
 		return prv_uds_ecu_present(can_id, id_type);
 	}
 
-	/* No valid response after 5 attempts. Return false. */
+	/* No valid response after 2 attempts. Return false. */
 	recursions = 0;
 	return false;
 
