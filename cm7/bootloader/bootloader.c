@@ -65,6 +65,7 @@ SYS_MEM_REGION_RAM_EXE static void btldr_reprogram()
 	uint8_t n_sectors = file_size / 0x20000;
 	for (uint8_t i = 0; i < n_sectors; i++)
 	{
+		GPIOB->ODR ^= GPIO_PIN15_Msk;	//Toggle the test LED. This is register level to avoid function calls to flash.
 		sys_mem_flash_write_sector(i, firmware_buf + (i * 0x20000));
 	}
 	rcc_sw_reset();
