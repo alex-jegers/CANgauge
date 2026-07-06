@@ -65,7 +65,7 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf);
 static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 {
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
-	memset(prv_can_data, 0xFF, 1760);
+	memset(prv_can_data, 0x00, 1760);
 
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(64, 0);
