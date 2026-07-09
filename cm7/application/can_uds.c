@@ -195,7 +195,7 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				uint8_t cfsn = buf->data[0] & 0xF;
 				if (cfsn > 1)
 				{
-					return;
+					return frame_type;
 				}
 				uint8_t e = buf->data[0x1];
 				uint8_t f = buf->data[0x2];
@@ -494,7 +494,7 @@ bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 
 	/* Determine how many PIDs are being passed in. */
 	int8_t num_pids = 4;
-	if (pid_arr[0] == 0) { return; }
+	if (pid_arr[0] == 0) { return false; }
 	else if (pid_arr[1] == 0) { num_pids = 1; }
 	else if (pid_arr[2] == 0) { num_pids = 2; }
 	else if (pid_arr[3] == 0) { num_pids = 3; }

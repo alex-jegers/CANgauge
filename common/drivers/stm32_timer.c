@@ -122,6 +122,7 @@ uint32_t timer_get_pwm_duty_cycle(TIM_TypeDef* timer, uint32_t channel)
 	{
 		return (0x0000FFFF) & ((timer->CCR2 * 65535) / auto_reload);
 	}
+	return 0;
 }
 
 void timer_enable_compare_interrupt(TIM_TypeDef* timer)

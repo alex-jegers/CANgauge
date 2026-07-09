@@ -206,7 +206,7 @@ void can_init(FDCAN_GlobalTypeDef* canbus)
 	can_init_clk();
 
 	/* Zero out the message RAM. 0x4000AC00 to 0x4000D3FF. */
-	memset(0x4000AC00, 0, 0x27FF);
+	memset((uint8_t*)0x4000AC00, 0, 0x27FF);
 
 	/*CAN1 multiplexing.*/
 	io_set_pin_mux(GPIOH, GPIO_PIN13_Msk, GPIO_AFR_AF9);

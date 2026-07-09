@@ -128,7 +128,7 @@ void fmc_init_sdram()
 	FMC_Bank5_6_R->SDRTR = 156;
 
 	/* Set it all to zeros. */
-	memset(0xD0000000, 0, 16000000);
+	memset((uint8_t*)0xD0000000, 0, 16000000);
 
 }
 

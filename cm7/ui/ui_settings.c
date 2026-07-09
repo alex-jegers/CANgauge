@@ -175,6 +175,7 @@ bool ui_settings_set_pressure_units_dropdown(char* units_str)
 		return false;
 	}
 	lv_dropdown_set_selected(prv_pressure_units_dropdown, option_index);
+	return true;
 }
 
 bool ui_settings_set_temperature_units_dropdown(char* units_str)
@@ -185,6 +186,7 @@ bool ui_settings_set_temperature_units_dropdown(char* units_str)
 		return false;
 	}
 	lv_dropdown_set_selected(prv_temperature_units_dropdown, option_index);
+	return true;
 }
 
 void ui_settings_get_pressure_units_dropdown(char* buf)

@@ -48,7 +48,7 @@ bool can_transmit_set_period(can_transmit_handle_t* hndl, uint32_t period_ms);
 bool can_transmit_set_msg_data(can_transmit_handle_t* hndl, can_tx_buffer_entry_t* buf);
 bool can_transmit_set_active(can_transmit_handle_t* hndl);
 bool can_transmit_set_inactive(can_transmit_handle_t* hndl);
-bool can_transmit_delete_handle(can_transmit_handle_t* hndl);
+void can_transmit_delete_handle(can_transmit_handle_t* hndl);
 
 TaskHandle_t* can_transmit_get_task_handle();
 

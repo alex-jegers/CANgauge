@@ -33,7 +33,7 @@ SYS_MEM_REGION_RAM_EXE bool flash_b2_unlock()
     return true;
 }
 
-SYS_MEM_REGION_RAM_EXE bool flash_b2_enable_write()
+SYS_MEM_REGION_RAM_EXE void flash_b2_enable_write()
 {
     FLASH->CR2 = FLASH_CR_PSIZE_64_BIT;
     FLASH->CR2 |= FLASH_CR_PG;
@@ -89,7 +89,7 @@ SYS_MEM_REGION_RAM_EXE bool flash_b1_unlock()
     return true;
 }
 
-SYS_MEM_REGION_RAM_EXE bool flash_b1_enable_write()
+SYS_MEM_REGION_RAM_EXE void flash_b1_enable_write()
 {
     FLASH->CR1 = FLASH_CR_PSIZE_64_BIT;
     FLASH->CR1 |= FLASH_CR_PG;

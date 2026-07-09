@@ -109,9 +109,9 @@ static void prv_task_gauges()
 										PIDs 0x40: 0x%X\n\
 										PIDs 0x60: 0x%X\n\
 										CAN ID: 0x%X\n\
-										RX ECR: %d\n\
-										TX ECR: %d\n\
-										LEC: %d\n\
+										RX ECR: %lu\n\
+										TX ECR: %lu\n\
+										LEC: %lu\n\
 										%s - %s",
 										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id,
 										rx_ecr, tx_ecr, ec, prv_version, prv_build);

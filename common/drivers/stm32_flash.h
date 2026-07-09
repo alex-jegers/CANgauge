@@ -16,7 +16,7 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 SYS_MEM_REGION_RAM_EXE bool flash_b2_unlock();
-SYS_MEM_REGION_RAM_EXE bool flash_b2_enable_write();
+SYS_MEM_REGION_RAM_EXE void flash_b2_enable_write();
 SYS_MEM_REGION_RAM_EXE void flash_b2_disable_write();
 SYS_MEM_REGION_RAM_EXE void flash_b2_lock();
 
@@ -40,7 +40,7 @@ SYS_MEM_REGION_RAM_EXE bool flash_b2_qw_status();
 SYS_MEM_REGION_RAM_EXE void flash_b2_force_write();
 
 SYS_MEM_REGION_RAM_EXE bool flash_b1_unlock();
-SYS_MEM_REGION_RAM_EXE bool flash_b1_enable_write();
+SYS_MEM_REGION_RAM_EXE void flash_b1_enable_write();
 SYS_MEM_REGION_RAM_EXE void flash_b1_disable_write();
 SYS_MEM_REGION_RAM_EXE void flash_b1_lock();
 

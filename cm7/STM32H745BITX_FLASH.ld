@@ -47,8 +47,8 @@ MEMORY
   RAM_D1 (xrw)   	: ORIGIN = 0x24000000, LENGTH =  512K	/*Frame buffer.*/
   FLASH  (rx)    	: ORIGIN = 0x08000000, LENGTH = 1024K   /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
   FLASH2 (rw)    	: ORIGIN = 0x08100000, LENGTH = 1024K
-  DTCMRAM (xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K	/*Stack.*/
-  RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K	/*CM7 heap and data.*/
+  DTCMRAM (xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K		/*Stack.*/
+  RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K		/*CM7 heap and data.*/
   RAM_D3 (xrw)   	: ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
   ITCMRAM (xrw)  	: ORIGIN = 0x000000ff, LENGTH = 64K		/*Bootloader functions*/
   EXT_RAM (xrw) 	: ORIGIN = 0x70000000, LENGTH = 16M

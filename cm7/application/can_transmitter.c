@@ -193,6 +193,7 @@ bool can_transmit_set_period(can_transmit_handle_t* hndl, uint32_t period_ms)
         return false;
     }
     hndl->period_ms = period_ms;
+    return true;
 }
 
 bool can_transmit_set_msg_data(can_transmit_handle_t* hndl, can_tx_buffer_entry_t* buf)
@@ -234,7 +235,7 @@ bool can_transmit_set_inactive(can_transmit_handle_t* hndl)
     return true;
 }
 
-bool can_transmit_delete_handle(can_transmit_handle_t* hndl)
+void can_transmit_delete_handle(can_transmit_handle_t* hndl)
 {
     prv_delete_handle(hndl);
 }

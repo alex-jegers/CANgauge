@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "stm32_usb.h"
+#include "stm32_usb_msc.h"
 #include "string.h"
 #include "assert.h"
 #include "stdlib.h"
@@ -144,7 +145,7 @@ void usb_rx_fifo_handler(uint32_t grxstsp)
 	if(packet_status == USB_PACKET_STS_SETUP_RECIEVED)
 	{
 		/***** Read the data into the setup struct. *****/
-		uint32_t* struct_addr = &usb_setup_struct;
+		uint32_t* struct_addr = (uint32_t*)&usb_setup_struct;
 		*struct_addr = *USB_DFIFO(0);
 		struct_addr++;
 		//Dynamic printf here: "Data: %x",*dest_addr

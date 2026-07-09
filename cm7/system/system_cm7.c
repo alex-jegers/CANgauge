@@ -188,7 +188,7 @@ void system_blink_run(const uint32_t delay_time_ms)
 		vTaskResume(prv_task_handle_blink);
 		return;
 	}
-	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 600 / 4, delay_time_ms, 4, &prv_task_handle_blink);
+	xTaskCreate((TaskFunction_t)prv_task_blink, "SYS_BLINK", 600 / 4, (void*)delay_time_ms, 4, &prv_task_handle_blink);
 
 }
 

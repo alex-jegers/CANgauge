@@ -3,7 +3,7 @@
 #include "ui_settings.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <math.h>
+#include <stdlib.h>
 
 /**********		DEFINES		**********/
 
