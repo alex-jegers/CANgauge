@@ -4,3 +4,6 @@
 [submodule "lvgl"]
 	path = lvgl
 	url = https://github.com/alex-jegers/lvgl
+[submodule "CANgauge-base"]
+	path = CANgauge-base
+	url = https://github.com/alex-jegers/CANgauge-base

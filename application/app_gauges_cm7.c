@@ -1,20 +1,10 @@
 /**********     INCLUDES        **********/
 #include "app_gauges_cm7.h"
 #include "applications_cm7.h"
+#include "application/bootloader/bootloader.h"
 #include "application/can_uds_def.h"
 
-#include "ui/ui_gauges.h"
-#include "ui/ui_helpers.h"
-#include "ui/ui_settings.h"
 
-#include "drivers/drivers.h"
-
-#include "lvgl.h"
-
-#include "lvgl_port/lvgl_port_def.h"
-#include "bootloader/bootloader.h"
-
-#include "system/system_cm7.h"
 
 /**********		DEFINES		**********/
 #define EVENT_BITS_TASK_STOPPED			0x1 << 0		//Set when the task is stopped.

@@ -7,12 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "drivers/stm32_canbus.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
+#include "cangauge.h"
 /**********     DEFINES      **********/
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/

@@ -3,7 +3,7 @@
 #define _UI_GAUGES_H_
 
 #include "lvgl/lvgl.h"
-#include "ui_helpers.h"
+#include "ui_helpers/ui_helpers.h"
 
 #ifdef __cplusplus
 extern "C" {

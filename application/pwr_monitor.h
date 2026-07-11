@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "system/system_cm7.h"
+#include "cangauge.h"
 
 
 /**********     DEFINES      **********/
