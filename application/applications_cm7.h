@@ -11,7 +11,7 @@ extern "C" {
 #include "application/app_gauges_cm7.h"
 #include "application/can_transmitter.h"
 #include "application/can_uds.h"
-#include "application/usb_task.h"
+#include "system/usb_task.h"
 
 /**********     DEFINES      **********/
 
