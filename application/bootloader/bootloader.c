@@ -1,7 +1,7 @@
 /**********     INCLUDES        **********/
 
 #include "bootloader.h"
-#include "ui/ui_gauges.h"
+#include "application/ui/ui_gauges.h"
 #include "file_system/fatfs/ff.h"
 #include "lvgl_port/lvgl_port_def.h"
 #include "lvgl/lvgl.h"

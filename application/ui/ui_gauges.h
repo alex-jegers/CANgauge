@@ -2,7 +2,7 @@
 #ifndef _UI_GAUGES_H_
 #define _UI_GAUGES_H_
 
-#include "lvgl/lvgl.h"
+#include "lvgl.h"
 #include "ui_helpers/ui_helpers.h"
 
 #ifdef __cplusplus
