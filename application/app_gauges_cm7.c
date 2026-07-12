@@ -3,7 +3,7 @@
 #include "applications_cm7.h"
 #include "application/bootloader/bootloader.h"
 #include "application/can_uds_def.h"
-
+#include "ui/ui_gauges.h"
 
 
 /**********		DEFINES		**********/
