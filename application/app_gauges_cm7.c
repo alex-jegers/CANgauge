@@ -4,6 +4,7 @@
 #include "application/bootloader/bootloader.h"
 #include "application/can_uds_def.h"
 #include "ui/ui_gauges.h"
+#include "ui/ui_settings.h"
 
 
 /**********		DEFINES		**********/

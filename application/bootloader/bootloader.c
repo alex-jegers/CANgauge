@@ -4,8 +4,9 @@
 #include "application/ui/ui_gauges.h"
 #include "file_system/fatfs/ff.h"
 #include "lvgl_port/lvgl_port_def.h"
-#include "lvgl/lvgl.h"
+#include "lvgl.h"
 #include "application/applications_cm7.h"
+#include "ui/ui_settings.h"
 
 /**********     TYPEDEFS         **********/
 

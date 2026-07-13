@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "pwr_monitor.h"
+#include "application/applications_cm7.h"
 #include <assert.h>
 
 /**********		DEFINES		**********/
