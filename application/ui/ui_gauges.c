@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 /**********		DEFINES		**********/
 
@@ -360,7 +361,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	_gauge_info_lbl[gauge_idx] = lv_arclabel_create(_gauge_scr);
 	int32_t desc_lbl_pos_y = 216;
 	int32_t desc_lbl_pos_x = 0;
-	int32_t desc_lbl_width = 300;
+	int32_t desc_lbl_width = 340;
 	int32_t desc_lbl_height = 120;
 	int32_t desc_lbl_angle_start = 270;
 	int32_t desc_lbl_span = 180;
@@ -373,8 +374,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 		desc_lbl_width = 110;
 		desc_lbl_pos_x = -220 + (220 * 2 * gauge_idx);	//-216 if first gauge, 216 if second gauge.
 		desc_lbl_angle_start = 180 * gauge_idx;			//0 if first gauge, 180 if second gauge.
-		desc_lbl_width = 240;
-		desc_lbl_height = 300;
+		desc_lbl_height = 340;
 	}
 	else if (prv_num_gauges == 3)
 	{
@@ -390,14 +390,14 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 			desc_lbl_pos_x = 190;
 			desc_lbl_pos_y = 110;
 			desc_lbl_height = 400;
-			desc_lbl_width = 300;
+			desc_lbl_width = 400;
 			desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
 			break;
 		case 2:
 			desc_lbl_pos_x = -190;
 			desc_lbl_pos_y = 110;
 			desc_lbl_height = 400;
-			desc_lbl_width = 300;
+			desc_lbl_width = 400;
 			desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
 			break;
 		}
