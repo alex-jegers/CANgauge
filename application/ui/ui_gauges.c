@@ -371,7 +371,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	if (prv_num_gauges == 2)
 	{
 		desc_lbl_pos_y = 0;
-		desc_lbl_width = 110;
+		desc_lbl_width = 150;
 		desc_lbl_pos_x = -220 + (220 * 2 * gauge_idx);	//-216 if first gauge, 216 if second gauge.
 		desc_lbl_angle_start = 180 * gauge_idx;			//0 if first gauge, 180 if second gauge.
 		desc_lbl_height = 340;
