@@ -17,12 +17,11 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 /**
- * name:
- *      desc:
- *      params:
- *      returns:
+ * name: btldr_init
+ *      desc: Assigns the function call back for the update firmware button.
+ *      params: none
+ *      returns: none
  */
-TaskFunction_t btldr_task();
 void btldr_init();
 
 
