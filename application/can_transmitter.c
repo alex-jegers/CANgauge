@@ -81,6 +81,12 @@ static void prv_task_can_transmit()
                 
                 time_till_next = prv_min_time_between_msg_ms;
                 restart_position = i + 1;
+
+                /* Make sure were not trying to restart at a value higher than possible. */
+                if (restart_position > CAN_TX_NUM_MSGS)
+                {
+                	restart_position = 0;
+                }
                 break;
             }
             else
@@ -94,7 +100,7 @@ static void prv_task_can_transmit()
                     time_till_next = next;
                 }   
             }
-        } while ((i = ((i + 1) % 32)) != restart_position);
+        } while ((i = ((i + 1) % CAN_TX_NUM_MSGS)) != restart_position);
 
         if (can_get_last_error_code(FDCAN1) == CAN_ERROR_CODE_ACK_ERROR)
         {
