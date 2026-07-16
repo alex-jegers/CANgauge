@@ -42,14 +42,6 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
 {
-	/* Turn on the CAN peripheral and set the baud rate. */
-	can_init(FDCAN1);
-	can_set_baud_rate(FDCAN1, CAN_BAUD_500K);
-	can_run(FDCAN1);
-
-	/* Start the CAN transmitter task. */
-	assert( can_transmit_run(FDCAN1, 15) == pdPASS );
-
 	/* Start the CAN receiver task. */
 	assert( app_can_controller_run() == pdPASS );
 
@@ -199,10 +191,6 @@ static void prv_task_gauges()
 	/****************************************/
 
 	/* Stop running. */
-	app_can_controller_stop(portMAX_DELAY);
-	can_transmit_stop(portMAX_DELAY);
-	can_stop(FDCAN1);
-	can_deinit();
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 
 	/* Delete the task. */
@@ -424,14 +412,6 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 	}
 }
 
-static void prv_gauge_back_btn_cb(lv_event_t* e)
-{
-	/* Wait until all the tasks have been stopped. */
-	can_transmit_stop(0);
-	app_can_controller_stop(0);
-	app_gauges_stop(0);
-}
-
 static void prv_refresh_btn_cb(lv_event_t* e)
 {
 	/* Stop the CAN and gauge tasks and restart them. */
@@ -459,7 +439,7 @@ void app_gauges_run()
 	ui_gauges_load();
 
 	/* Create the task. */
-	xTaskCreate(prv_task_gauges, "APP_GAUGES", 3000 / 4, NULL, 4, prv_gauges_task_handle);
+	xTaskCreate(prv_task_gauges, "APP_GAUGES", 3000 / 4, NULL, 4, &prv_gauges_task_handle);
 }
 
 bool app_gauges_stop(uint32_t block_time_ms)
@@ -485,6 +465,12 @@ bool app_gauges_stop(uint32_t block_time_ms)
     {
         return pdFALSE;
     }
+}
+
+void app_gauges_hard_stop()
+{
+	vTaskDelete(prv_gauges_task_handle);
+	prv_gauges_task_handle = NULL;
 }
 
 static void prv_brightness_slider_handler(lv_event_t* e)
@@ -529,10 +515,11 @@ static void prv_settings_scr_load_handler(lv_event_t* e)
 
 static void prv_settings_btn_clicked_cb(lv_event_t* e)
 {
-	/* Wait until all the tasks have been stopped. */
-	can_transmit_stop(0);
-	app_can_controller_stop(0);
-	app_gauges_stop(portMAX_DELAY);
+	/* Wait until the gauges task have been stopped. */
+	if (app_gauges_stop(pdMS_TO_TICKS(500)) == pdFALSE)
+	{
+		app_gauges_hard_stop();
+	}
 	ui_gauges_delete();
 
 

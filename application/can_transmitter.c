@@ -113,6 +113,7 @@ static void prv_task_can_transmit()
 
     can_stop(FDCAN1);
     can_deinit(FDCAN1);
+    prv_task_handle = NULL;
     xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
     vTaskDelete(NULL);
 }
@@ -128,6 +129,11 @@ static void prv_delete_handle(can_transmit_handle_t* hndl)
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_msg_ms)
 {
+	/* Check if the task already exists and do nothing if it does. */
+	if (prv_task_handle != NULL)
+	{
+		return pdTRUE;
+	}
     prv_min_time_between_msg_ms = min_time_between_msg_ms;
     prv_event_group = xEventGroupCreate();
     xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);

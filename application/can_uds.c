@@ -67,6 +67,14 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
 	memset(prv_can_data, 0x00, 1760);
 
+	/* Turn on the CAN peripheral and set the baud rate. */
+	can_init(FDCAN1);
+	can_set_baud_rate(FDCAN1, CAN_BAUD_500K);
+	can_run(FDCAN1);
+
+	/* Start the CAN transmitter task. */
+	assert( can_transmit_run(FDCAN1, 15) == pdPASS );
+
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(64, 0);
 
@@ -132,6 +140,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	}
 	can_stop(FDCAN1);
 	can_deinit(FDCAN1);
+	prv_task_handle = NULL;
 	xEventGroupSetBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
 	vTaskDelete(NULL);
 }
@@ -380,6 +389,11 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf)
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 {
+	/* Check if the task already exists and do nothing if it does. */
+	if (prv_task_handle != NULL)
+	{
+		return pdTRUE;
+	}
 	prv_task_run = true;
 
 	if (prv_event_group == NULL)
@@ -390,7 +404,7 @@ BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 											| EVENT_BITS_INIT_DONE);
 
 	/* Create the task. */
-	return xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 1000 / 4, FDCAN1, 3, prv_task_handle);
+	return xTaskCreate(prv_task_can_controller, "CAN_CONTROLLER", 1000 / 4, FDCAN1, 3, &prv_task_handle);
 	
 }
 
