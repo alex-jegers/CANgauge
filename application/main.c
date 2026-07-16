@@ -26,6 +26,9 @@ int main(void)
 	/* Creates a task to finish the rest of the system initialization. */
    	xTaskCreate(system_task_init, "SYS_INIT", 650, NULL, 5, NULL);
 
+   	/* Enable the battery monitor. */
+   	pwr_monitor_run(3);
+
 	/* Load the menu screen. */
 	system_set_ui_init_cb(app_gauges_run);
 

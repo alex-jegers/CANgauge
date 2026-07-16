@@ -12,6 +12,7 @@ extern "C" {
 #include "application/can_transmitter.h"
 #include "application/can_uds.h"
 #include "system/usb_task.h"
+#include "application/pwr_monitor.h"
 
 /**********     DEFINES      **********/
 
