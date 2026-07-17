@@ -18,6 +18,12 @@ typedef enum pci_flow_ctrl_t
 	PCI_FLOW_CTRL_FC,				//Flow control.
 }pci_flow_ctrl_t;
 
+typedef enum uds_service_type_t		//The lower 6 bits of byte 1 in the UDS response.
+{
+	UDS_SERVICE_TYPE_CURRENT_DATA 	= 0x01,
+	UDS_SERVICE_TYPE_INFO			= 0x09,
+}uds_service_type_t;
+
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
 /**********		STATIC VARIABLES		**********/
@@ -29,7 +35,8 @@ TaskHandle_t prv_task_handle;
 EventGroupHandle_t prv_event_group = NULL;
 SemaphoreHandle_t prv_rx_fifo1_counter = NULL;
 
-static uint8_t prv_can_data[176][11];
+static uint8_t prv_current_data[0xB0][11];
+static uint8_t prv_infotype_data[0x78][11];
 static uint32_t prv_query_can_id = 0x00;
 static uint32_t prv_response_can_id = 0x00;			//The ID that the car responds with when were checking for an ECU present.
 static can_id_t prv_id_type = 0x00;
@@ -59,13 +66,16 @@ static void prv_get_extra_pids(uint8_t pid);			//Will populate a nested PIDs ava
 static bool prv_update_available_uds_data();			//Checks to see if the CAN controller task found UDS data, returns false if there's nothing there.
 static void prv_fifo1_int_handler();
 static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf);
+static uds_service_type_t prv_get_service_type(can_rx_buffer_entry_t* buf);
+static uint8_t prv_get_consecutive_frame_number(can_rx_buffer_entry_t* buf);
+static void prv_get_vin();
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 
 static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 {
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
-	memset(prv_can_data, 0x00, 1760);
+	memset(prv_current_data, 0x00, 1760);
 
 	/* Turn on the CAN peripheral and set the baud rate. */
 	can_init(FDCAN1);
@@ -97,8 +107,6 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	saej1979_ext_filter.F1.bit.EFID2 = 0x18DAF1FF;
 	can_set_ext_id_filter(FDCAN1, 0, &saej1979_ext_filter);
 
-	vTaskDelay(pdMS_TO_TICKS(2000));		//Why is this here? Dont know that i need this.
-
 	/* Check for an ECU at CAN ID 0x7DF. */
 	if (prv_uds_ecu_present(0x7DF, CAN_ID_STD))
 	{
@@ -124,6 +132,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 		can_id_t can_id_type = (prv_query_can_id == 0x7DF) ? CAN_ID_STD : CAN_ID_XTD;
 		prv_get_available_pids(prv_query_can_id, can_id_type);		//This just requests the "available PIDs" PIDs.
 		prv_update_available_uds_data();						//This organizes the raw data into the array in can_uds_def.h and sets available to true where applicable.
+		prv_get_vin();
 	}
 
 	/* Set the event bits that initialization is done. */
@@ -150,19 +159,44 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			/* Determine if it's a single a frame, first frame, or consecutive frame. */
 			pci_flow_ctrl_t frame_type = prv_get_flow_ctrl_info(buf);
 
+			uds_service_type_t service = prv_get_service_type(buf);
+			
+			uint8_t a = 0;
+			uint8_t b = 0;
+			uint8_t c = 0;
+			uint8_t d = 0;
+			uint8_t e = 0;
+			uint8_t f = 0;
+			uint8_t g = 0;
+			uint8_t h = 0;
+			uint8_t i = 0;
+			uint8_t j = 0;
+			uint8_t k = 0;
 			if (frame_type == PCI_FLOW_CTRL_SF)
 			{
 				uint8_t pid = buf->data[0x2];
-				uint8_t a = buf->data[0x3];
-				uint8_t b = buf->data[0x4];
-				uint8_t c = buf->data[0x5];
-				uint8_t d = buf->data[0x6];
-				uint8_t e = buf->data[0x7];
-				prv_can_data[pid][0] = a;
-				prv_can_data[pid][1] = b;
-				prv_can_data[pid][2] = c;
-				prv_can_data[pid][3] = d;
-				prv_can_data[pid][4] = e;
+				a = buf->data[0x3];
+				b = buf->data[0x4];
+				c = buf->data[0x5];
+				d = buf->data[0x6];
+				e = buf->data[0x7];
+				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
+				{			
+					prv_current_data[pid][0] = a;
+					prv_current_data[pid][1] = b;
+					prv_current_data[pid][2] = c;
+					prv_current_data[pid][3] = d;
+					prv_current_data[pid][4] = e;
+				}
+				else if (service == UDS_SERVICE_TYPE_INFO)
+				{
+					prv_infotype_data[pid][0] = a;
+					prv_infotype_data[pid][1] = b;
+					prv_infotype_data[pid][2] = c;
+					prv_infotype_data[pid][3] = d;
+					prv_infotype_data[pid][4] = e;
+				}
+
 			}
 
 			if (frame_type == PCI_FLOW_CTRL_FF)
@@ -173,14 +207,24 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				prv_flow_ctrl_ptr = buf->data[2];
 				uint8_t pid = buf->data[0x3];
 				prv_flow_ctrl_ptr = pid;
-				uint8_t a = buf->data[0x4];
-				uint8_t b = buf->data[0x5];
-				uint8_t c = buf->data[0x6];
-				uint8_t d = buf->data[0x7];
-				prv_can_data[pid][0] = a;
-				prv_can_data[pid][1] = b;
-				prv_can_data[pid][2] = c;
-				prv_can_data[pid][3] = d;
+				a = buf->data[0x4];
+				b = buf->data[0x5];
+				c = buf->data[0x6];
+				d = buf->data[0x7];
+				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
+				{
+					prv_current_data[pid][0] = a;
+					prv_current_data[pid][1] = b;
+					prv_current_data[pid][2] = c;
+					prv_current_data[pid][3] = d;
+				}
+				else if (service == UDS_SERVICE_TYPE_INFO)
+				{
+					prv_infotype_data[pid][0] = a;
+					prv_infotype_data[pid][1] = b;
+					prv_infotype_data[pid][2] = c;
+					prv_infotype_data[pid][3] = d;
+				}
 
 				can_tx_buffer_entry_t fc_continue_sending_frame =
 				{
@@ -201,25 +245,35 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 
 			if (frame_type == PCI_FLOW_CTRL_CF)
 			{
-				uint8_t cfsn = buf->data[0] & 0xF;
-				if (cfsn > 1)
+				uint8_t cfsn = prv_get_consecutive_frame_number(buf);
+				uint32_t offset = cfsn * 7;
+				e = buf->data[0x1];
+				f = buf->data[0x2];
+				g = buf->data[0x3];
+				h = buf->data[0x4];
+				i = buf->data[0x5];
+				j = buf->data[0x6];
+				k = buf->data[0x7];
+				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
 				{
-					return frame_type;
+					prv_current_data[prv_flow_ctrl_ptr][4 + offset] = e;
+					prv_current_data[prv_flow_ctrl_ptr][5 + offset] = f;
+					prv_current_data[prv_flow_ctrl_ptr][6 + offset] = g;
+					prv_current_data[prv_flow_ctrl_ptr][7 + offset] = h;
+					prv_current_data[prv_flow_ctrl_ptr][8 + offset] = i;
+					prv_current_data[prv_flow_ctrl_ptr][9 + offset] = j;
+					prv_current_data[prv_flow_ctrl_ptr][10 + offset] = k;
 				}
-				uint8_t e = buf->data[0x1];
-				uint8_t f = buf->data[0x2];
-				uint8_t g = buf->data[0x3];
-				uint8_t h = buf->data[0x4];
-				uint8_t i = buf->data[0x5];
-				uint8_t j = buf->data[0x6];
-				uint8_t k = buf->data[0x7];
-				prv_can_data[prv_flow_ctrl_ptr][4] = e;
-				prv_can_data[prv_flow_ctrl_ptr][5] = f;
-				prv_can_data[prv_flow_ctrl_ptr][6] = g;
-				prv_can_data[prv_flow_ctrl_ptr][7] = h;
-				prv_can_data[prv_flow_ctrl_ptr][8] = i;
-				prv_can_data[prv_flow_ctrl_ptr][9] = j;
-				prv_can_data[prv_flow_ctrl_ptr][10] = k;	
+				else if (service == UDS_SERVICE_TYPE_INFO)
+				{
+					prv_infotype_data[prv_flow_ctrl_ptr][4 + offset] = e;
+					prv_infotype_data[prv_flow_ctrl_ptr][5 + offset] = f;
+					prv_infotype_data[prv_flow_ctrl_ptr][6 + offset] = g;
+					prv_infotype_data[prv_flow_ctrl_ptr][7 + offset] = h;
+					prv_infotype_data[prv_flow_ctrl_ptr][8 + offset] = i;
+					prv_infotype_data[prv_flow_ctrl_ptr][9 + offset] = j;
+					prv_infotype_data[prv_flow_ctrl_ptr][10 + offset] = k;
+				}	
 			}
 			return frame_type;
 }
@@ -263,7 +317,6 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 
 static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 {
-	static uint8_t recursions = 0;
 	can_tx_buffer_entry_t tx_buf =
 	{
 		.T0.bit.ID = can_id, .T0.bit.XTD = id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
@@ -292,17 +345,7 @@ static bool prv_uds_ecu_present(uint32_t can_id, can_id_t id_type)
 			return true;
 		}
 	}
-	/* Only can reach here if rtn_val still == false. */
-	if (recursions < 2)
-	{
-		recursions++;
-		return prv_uds_ecu_present(can_id, id_type);
-	}
-
-	/* No valid response after 2 attempts. Return false. */
-	recursions = 0;
 	return false;
-
 }
 static void prv_get_extra_pids(uint8_t pid)
 {
@@ -386,6 +429,44 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf)
 	return (buf->data[0] & 0xF0) >> 4;
 }
 
+static uds_service_type_t prv_get_service_type(can_rx_buffer_entry_t* buf)
+{
+	return (buf->data[1] & 0x3F);
+}
+
+static uint8_t prv_get_consecutive_frame_number(can_rx_buffer_entry_t* buf)
+{
+	return (buf->data[0] & 0x0F);
+}
+
+static void prv_get_vin()
+{
+		can_tx_buffer_entry_t tx_buf =
+	{
+		.T0.bit.ID = prv_query_can_id, .T0.bit.XTD = prv_id_type, .T0.bit.RTR = CAN_RTR_DATA_FRAME,
+		.T1.bit.DLC = 8, .T1.bit.EFC = 0, .T1.bit.BRS = 0, .T1.bit.FDF = 0,
+		.data[0] = 0x02, .data[1] = 0x09, .data[2] = 0x02, .data[3] = 0xCC,
+		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
+	};
+
+	can_transmit_handle_t* x = can_transmit_create_msg();
+	can_transmit_set_msg_data(x, &tx_buf);
+	can_transmit_set_period(x, CAN_TRANSMIT_PERIOD_ONE_SHOT);
+	can_transmit_set_active(x);
+
+	/* Wait a second to see if we get a response.*/
+	uint8_t counter = 3;
+	while (( xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE ) && ( counter > 0 ))
+	{
+
+		/* Response received. Process it and return true. */
+		can_rx_buffer_entry_t rx_buf;
+		can_read_from_fifo1(FDCAN1, &rx_buf);
+		prv_process_can_data(&rx_buf);
+		counter--;
+	}
+}
+
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 {
@@ -431,7 +512,7 @@ uint32_t can_controller_get_data(uint8_t pid, uint8_t first_byte, uint8_t num_pa
 	uint32_t raw_value = 0;
 	for (uint8_t i = 0; i < num_params; i++)
 	{
-		raw_value |= prv_can_data[pid][i + first_byte] << ((num_params - (i+1)) * 8);
+		raw_value |= prv_current_data[pid][i + first_byte] << ((num_params - (i+1)) * 8);
 	}
 	return raw_value;
 }
