@@ -19,6 +19,8 @@ static can_transmit_handle_t prv_handles[32 - CAN_TX_NUM_HIGH_PRI_MSGS];
 static can_transmit_handle_t prv_high_pri_handles[CAN_TX_NUM_HIGH_PRI_MSGS];
 static uint32_t prv_min_time_between_msg_ms = 0;
 
+static SemaphoreHandle_t prv_create_msg_mutex = NULL;
+
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_can_transmit();
 static void prv_delete_handle(can_transmit_handle_t* hndl);
@@ -28,6 +30,7 @@ static void prv_task_can_transmit()
 {
     static uint32_t current_time_ms = 0;
     static uint32_t time_till_next = pdMS_TO_TICKS(500);
+
     while (prv_task_run)
     {
         current_time_ms = xTaskGetTickCount();
@@ -135,6 +138,7 @@ BaseType_t can_transmit_run(FDCAN_GlobalTypeDef* can, uint32_t min_time_between_
 		return pdTRUE;
 	}
     prv_min_time_between_msg_ms = min_time_between_msg_ms;
+    assert( (prv_create_msg_mutex = xSemaphoreCreateMutex()) != NULL );
     prv_event_group = xEventGroupCreate();
     xEventGroupClearBits(prv_event_group, EVENT_BITS_TASK_STOPPED);
     prv_task_run = true;
@@ -173,27 +177,40 @@ TaskHandle_t* can_transmit_get_task_handle()
 
 can_transmit_handle_t* can_transmit_create_msg()
 {
-    for (uint32_t i = 0; i < CAN_TX_NUM_MSGS; i++)
+    if (prv_create_msg_mutex == NULL) { return NULL; }
+    if (xSemaphoreTake(prv_create_msg_mutex, pdMS_TO_TICKS(500)) == pdTRUE)
     {
-        if (prv_handles[i].buf == NULL)
+        for (uint32_t i = 0; i < CAN_TX_NUM_MSGS; i++)
         {
-            prv_handles[i].buf = can_get_tx_buffer(FDCAN1, i);
-            return &prv_handles[i];
+            if (prv_handles[i].buf == NULL)
+            {
+                prv_handles[i].buf = can_get_tx_buffer(FDCAN1, i);
+                xSemaphoreGive(prv_create_msg_mutex);
+                return &prv_handles[i];
+            }
         }
+        xSemaphoreGive(prv_create_msg_mutex);
     }
+
     return NULL;
 }
 
 can_transmit_handle_t* can_transmit_create_high_priority_msg()
 {
-    for (uint32_t i = 0; i < CAN_TX_NUM_HIGH_PRI_MSGS; i++)
+    if (prv_create_msg_mutex == NULL) { return NULL; }
+    if (xSemaphoreTake(prv_create_msg_mutex, pdMS_TO_TICKS(500)) == pdTRUE)
     {
-        if (prv_high_pri_handles[i].buf == NULL)
+        for (uint32_t i = 0; i < CAN_TX_NUM_HIGH_PRI_MSGS; i++)
         {
-        	prv_high_pri_handles[i].buf = can_get_tx_buffer(FDCAN1, 32 - CAN_TX_NUM_HIGH_PRI_MSGS + i);
-        	prv_high_pri_handles[i].period_ms = CAN_TRANSMIT_PERIOD_ONE_SHOT;
-            return &prv_high_pri_handles[i];
+            if (prv_high_pri_handles[i].buf == NULL)
+            {
+            	prv_high_pri_handles[i].buf = can_get_tx_buffer(FDCAN1, 32 - CAN_TX_NUM_HIGH_PRI_MSGS + i);
+            	prv_high_pri_handles[i].period_ms = CAN_TRANSMIT_PERIOD_ONE_SHOT;
+                xSemaphoreGive(prv_create_msg_mutex);
+                return &prv_high_pri_handles[i];
+            }
         }
+     xSemaphoreGive(prv_create_msg_mutex);
     }
     return NULL;
 }
