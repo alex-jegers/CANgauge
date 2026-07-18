@@ -246,7 +246,7 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			if (frame_type == PCI_FLOW_CTRL_CF)
 			{
 				uint8_t cfsn = prv_get_consecutive_frame_number(buf);
-				uint32_t offset = cfsn * 7;
+				uint32_t offset = (cfsn - 1) * 7;
 				e = buf->data[0x1];
 				f = buf->data[0x2];
 				g = buf->data[0x3];
