@@ -341,7 +341,8 @@ static void prv_save_vin_to_file()
 								vin, avail_pids_current_data[0], avail_pids_current_data[1],
 								avail_pids_current_data[2], avail_pids_current_data[3],
 								avail_pids_current_data[4], avail_pids_current_data[5]);
-
+	char* save_str_realloc = (char*)realloc(save_str, str_len);
+	free(save_str);
 	res = f_puts(save_str, &vin_file);
 	assert( lv_port_take_lvgl_mutex(500) );
 	if (res == FR_OK)
