@@ -145,7 +145,7 @@ void pwr_monitor_enter_low_pwr_mode()
 {
 	/* Stop all other tasks. */
 	app_gauges_stop(portMAX_DELAY);
-	app_can_controller_stop(pdMS_TO_TICKS(1000));
+	can_uds_stop(pdMS_TO_TICKS(1000));
 	can_transmit_stop(pdMS_TO_TICKS(1000));
 	lv_port_stop(pdMS_TO_TICKS(1000));
 	system_blink_stop(portMAX_DELAY);
