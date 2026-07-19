@@ -26,10 +26,9 @@ static void prv_task_gauges();							//The FreeRTOS task.
 static uint8_t prv_load_gauges(const char *str[4], uint8_t num_gauges);		//Sends the gauge data to the UI, must call ui_load_gauge_screen afterwards to display them. Returns the number of gauges submitted that were found on OBD.
 static void prv_create_gauge_select_btns();				//Creates the buttons on the GUI.
 static void prv_update_units();							//Updates the units for the gauges based on what's in the config file.
-
+static void prv_save_vin_to_file();
 static void prv_gauge_event_cb(lv_event_t* e);			//Handler for the gauge itself events.
 static void prv_gauge_view_btn_cb(lv_event_t* e);		//Handler for a available being selected.
-static void prv_gauge_back_btn_cb(lv_event_t* e);		//Handler for if the back button is pressed.
 static void prv_refresh_btn_cb(lv_event_t* e);			//Handler for the refresh button being pressed.
 
 static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brightness slider being changed.
@@ -43,7 +42,7 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer 
 static void prv_task_gauges()
 {
 	/* Start the CAN receiver task. */
-	assert( app_can_controller_run() == pdPASS );
+	assert( can_uds_run() == pdPASS );
 
 	/* Set the LVGL event callbacks. */
 	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
@@ -66,7 +65,7 @@ static void prv_task_gauges()
 
 	prv_update_units();
 
-	bool found_car = app_can_controller_get_query_can_id();
+	bool found_car = can_uds_get_query_can_id();
 
 	if (found_car == true)
 	{
@@ -78,11 +77,11 @@ static void prv_task_gauges()
 	}
 
 	/* Print out bus info, for debugging. */
-	uint32_t avail_pids_1 = can_controller_get_data(0x00, 0, 4);
-	uint32_t avail_pids_2 = can_controller_get_data(0x20, 0, 4);
-	uint32_t avail_pids_3 = can_controller_get_data(0x40, 0, 4);
-	uint32_t avail_pids_4 = can_controller_get_data(0x60, 0, 4);
-	uint32_t can_id = app_can_controller_get_response_can_id();
+	uint32_t avail_pids_1 = can_uds_get_raw_current_data(0x00, 0, 4);
+	uint32_t avail_pids_2 = can_uds_get_raw_current_data(0x20, 0, 4);
+	uint32_t avail_pids_3 = can_uds_get_raw_current_data(0x40, 0, 4);
+	uint32_t avail_pids_4 = can_uds_get_raw_current_data(0x60, 0, 4);
+	uint32_t can_id = can_uds_get_response_can_id();
 	uint32_t rx_ecr = can_get_rx_error_counter(FDCAN1);
 	uint32_t tx_ecr = can_get_tx_error_counter(FDCAN1);
 	can_error_code_t ec = can_get_last_error_code(FDCAN1);
@@ -105,6 +104,9 @@ static void prv_task_gauges()
 	ui_helpers_add_text_to_act_scr(label, LV_ALIGN_CENTER, 0, 425);
 	lv_port_give_lvgl_mutex();
 	free(label);
+
+	/* Save the VIN data. */
+	prv_save_vin_to_file();
 
 	/* Check to see if there's a config file with the last state. */
 	char* line = calloc(250, 1);
@@ -166,7 +168,7 @@ static void prv_task_gauges()
 				uint8_t current_pid = active_param[d]->pid_code;
 				uint8_t num_params = active_param[d]->data_bytes;
 				uint8_t first_byte = active_param[d]->first_byte;
-				uint32_t raw_value = can_controller_get_data(current_pid, first_byte, num_params);
+				uint32_t raw_value = can_uds_get_raw_current_data(current_pid, first_byte, num_params);
 
 				float scale = active_param[d]->scale;
 				float offset = active_param[d]->offset;
@@ -202,7 +204,7 @@ static void prv_create_gauge_select_btns()
 {
 	for (uint8_t i = 0; i < 176; i++)
 	{
-		saej1979_current_data_t* y = saej1979_get_current_data(i);
+		saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(i);
 		if ((y->available == true) && ((y->min != y->max) || (y->nested != NULL)))
 		{
 			const char* txt;
@@ -260,6 +262,103 @@ static void prv_update_units()
 
 }
 
+static void prv_save_vin_to_file()
+{
+	/* Get the VIN from the raw data storage. */
+	char vin[17];
+	for (uint8_t i = 0; i < 17; i++)
+	{
+		vin[i] = (char)can_uds_get_raw_infotype_data(0x2, i, 1);
+	}
+
+	/* Check to see if the VIN file exists or not. */
+	FIL vin_file;
+	FRESULT res;
+	res = f_open(&vin_file, "0:/VIN Info.txt/", FA_READ | FA_WRITE);
+	if (res != FR_OK)
+	{
+		/* If the file doesnt exist, create a new one. */
+		f_close(&vin_file);
+		res = f_open(&vin_file, "0:/VIN Info.txt/", FA_READ | FA_WRITE | FA_CREATE_NEW);
+		if (res != FR_OK)
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to save VIN to file. 1", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return;
+		}
+		const char* vin_file_header = "VIN,Srvc0x1 PID0x00,Srvc0x1 PID0x20,Srvc0x1 PID0x40,Srvc0x1 PID0x60,Srvc0x1 PID0x80,Srvc0x1 PID0xA0,Srvc0x9 PID0x00,Srvc0x9 PID0x20,\n\0";
+		res = f_puts(vin_file_header, &vin_file);
+		if (res != FR_OK)
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to save VIN to file. 2", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return;
+		}
+	}
+
+	/* Check to see if this VIN is already saved. */
+	f_lseek(&vin_file, 0);			//Move pointer to start of file.
+	char* line = calloc(160, 1);		//Allocate memory to read from the file.
+	if (line == NULL) { rcc_sw_reset(); }
+	f_gets(line, 160, &vin_file);	//Read the header line (dont care).
+	while (f_eof(&vin_file) != true)
+	{
+		f_gets(line, 160, &vin_file);		//Read a VIN line.
+		char* split;
+		char* sv_ptr;
+		split = strtok_r(line,",", &sv_ptr);	//Split the string with "," to get the VIN.
+		if (strcmp(split, vin) == 0)
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("VIN already saved.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return;//This VIN is already saved.
+		}
+	}
+	free(line);
+	/* If we reached this point, this VIN is not saved and the file pointer is
+	 * at the end of the file so we can save this VIN and data. */
+	if (strlen(vin) == 0)
+	{
+		assert( lv_port_take_lvgl_mutex(500) );
+		lv_obj_t* msg_box = ui_helpers_show_msgbox("No VIN found", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+		lv_port_give_lvgl_mutex();
+		return;
+	}
+	unsigned int avail_pids_current_data[6];
+	char* save_str = calloc(160, 1);
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		avail_pids_current_data[i] = can_uds_get_raw_current_data(0x20 * i, 0, 4);
+	}
+	uint32_t str_len = sprintf(save_str, "%s,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,\n\0",
+								vin, avail_pids_current_data[0], avail_pids_current_data[1],
+								avail_pids_current_data[2], avail_pids_current_data[3],
+								avail_pids_current_data[4], avail_pids_current_data[5]);
+
+	res = f_puts(save_str, &vin_file);
+	assert( lv_port_take_lvgl_mutex(500) );
+	if (res == FR_OK)
+	{
+		lv_obj_t* msg_box = ui_helpers_show_msgbox(save_str, NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+	}
+	else
+	{
+		lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to save VIN to file.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+	}
+	lv_port_give_lvgl_mutex();
+
+	f_close(&vin_file);
+}
+
 static void prv_gauge_event_cb(lv_event_t* e)
 {
 	/* Stop transmitting the requestor on CAN. */
@@ -283,7 +382,7 @@ static uint8_t prv_load_gauges(const char* str[4], uint8_t num_gauges)
 		const char *txt = str[g];
 		for (uint8_t i = 0; i < 176; i++)
 		{
-			saej1979_current_data_t *x = saej1979_get_current_data(i);
+			saej1979_current_data_t *x = saej1979_get_current_data_lut_by_pid(i);
 
 			/* Check to see if this PID is supported on the current platform.
 			 * If it's not, we dont need to check if it's a match so go to the
