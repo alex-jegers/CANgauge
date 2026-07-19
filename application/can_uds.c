@@ -7,7 +7,7 @@
 
 /**********		DEFINES		**********/
 #define EVENT_BITS_TASK_STOPPED			0x1 << 0
-#define EVENT_BITS_INIT_DONE			0x1 << 1
+#define EVENT_BITS_INIT_DONE				0x1 << 1
 
 /**********		TYPEDEFS 		**********/
 typedef enum pci_flow_ctrl_t
@@ -16,12 +16,14 @@ typedef enum pci_flow_ctrl_t
 	PCI_FLOW_CTRL_FF,				//First frame.
 	PCI_FLOW_CTRL_CF,				//Consecutive frame.
 	PCI_FLOW_CTRL_FC,				//Flow control.
+	PCI_FLOW_CTRL_INVALID = 0xFF,
 }pci_flow_ctrl_t;
 
 typedef enum uds_service_type_t		//The lower 6 bits of byte 1 in the UDS response.
 {
 	UDS_SERVICE_TYPE_CURRENT_DATA 	= 0x01,
 	UDS_SERVICE_TYPE_INFO			= 0x09,
+	UDS_SERVICE_TYPE_INVALID			= 0xFF,
 }uds_service_type_t;
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
@@ -35,14 +37,15 @@ TaskHandle_t prv_task_handle;
 EventGroupHandle_t prv_event_group = NULL;
 SemaphoreHandle_t prv_rx_fifo1_counter = NULL;
 
-static uint8_t prv_current_data[0xB0][11];
-static uint8_t prv_infotype_data[0x78][11];
+static uint8_t prv_current_data[0xB0][24];
+static uint8_t prv_infotype_data[0x78][24];
 static uint32_t prv_query_can_id = 0x00;
 static uint32_t prv_response_can_id = 0x00;			//The ID that the car responds with when were checking for an ECU present.
 static can_id_t prv_id_type = 0x00;
 
 static uint8_t prv_flow_ctrl_ptr = 0;
 static uint8_t prv_flow_ctrl_remaining_bytes = 0;
+static uds_service_type_t prv_flow_ctrl_last_service = UDS_SERVICE_TYPE_INVALID;
 
 static can_transmit_handle_t* prv_current_data_query[4] = { NULL, NULL, NULL, NULL };		//Holds pointers to the data currently being transmitted (up to 4 parameters at a time).
 /**********		STATIC FUNCTION DECLRATIONS		**********/
@@ -83,7 +86,7 @@ static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	can_run(FDCAN1);
 
 	/* Start the CAN transmitter task. */
-	assert( can_transmit_run(FDCAN1, 15) == pdPASS );
+	assert( can_transmit_run(FDCAN1, 10) == pdPASS );
 
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(64, 0);
@@ -160,6 +163,10 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			pci_flow_ctrl_t frame_type = prv_get_flow_ctrl_info(buf);
 
 			uds_service_type_t service = prv_get_service_type(buf);
+			if (service == UDS_SERVICE_TYPE_INVALID)
+			{
+				service = prv_flow_ctrl_last_service;
+			}
 			
 			uint8_t a = 0;
 			uint8_t b = 0;
@@ -202,7 +209,8 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			if (frame_type == PCI_FLOW_CTRL_FF)
 			{
 				uint32_t id = can_get_can_id(buf);
-				id -= 8;
+				id -= 8;		//TODO: Fix for extended IDs.
+				prv_flow_ctrl_last_service = prv_get_service_type(buf);
 				prv_flow_ctrl_remaining_bytes = ((buf->data[0] & 0x0F) << 8) | buf->data[1];
 				prv_flow_ctrl_ptr = buf->data[2];
 				uint8_t pid = buf->data[0x3];
@@ -246,6 +254,7 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			if (frame_type == PCI_FLOW_CTRL_CF)
 			{
 				uint8_t cfsn = prv_get_consecutive_frame_number(buf);
+				if (cfsn > 2) { return frame_type; }		//Dont have enough memory allocated to store more than 2 consecutive frames for any given PID.
 				uint32_t offset = (cfsn - 1) * 7;
 				e = buf->data[0x1];
 				f = buf->data[0x2];
@@ -373,8 +382,8 @@ static void prv_get_extra_pids(uint8_t pid)
 		can_read_from_fifo1(FDCAN1, &rx_buf);
 		prv_process_can_data(&rx_buf);
 
-		saej1979_current_data_t* x = saej1979_get_current_data(pid);
-		uint8_t bit_mask = can_controller_get_data(pid, 0, 1);
+		saej1979_current_data_t* x = saej1979_get_current_data_lut_by_pid(pid);
+		uint8_t bit_mask = can_uds_get_raw_current_data(pid, 0, 1);
 		for (uint8_t i = 0; i < 8; i++)
 		{
 			if ((1 << i) & bit_mask)
@@ -394,11 +403,12 @@ static bool prv_update_available_uds_data()
 	/* Check the available PID parameters (0x00, 0x20, 0x40, 0x60, 0x80.) */
 	for (uint8_t x = 0; x < 0x80; x += 0x20)
 	{
-		uint32_t available_pids_1 = can_controller_get_data(x, 0, 4);
+		uint32_t available_pids_1 = can_uds_get_raw_current_data(x, 0, 4);
 		for (int8_t i = 31; i >= 0; i--)
 		{
 			uint8_t this_pid = 32 - i + x;
-			saej1979_current_data_t* y = saej1979_get_current_data(this_pid);
+			saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(this_pid);
+			/* Check if the bit is set in the available PIDs bitmask. */
 			if ((available_pids_1 & (1 << i)) != 0)
 			{
 				y->available = true;
@@ -431,7 +441,19 @@ static pci_flow_ctrl_t prv_get_flow_ctrl_info(can_rx_buffer_entry_t* buf)
 
 static uds_service_type_t prv_get_service_type(can_rx_buffer_entry_t* buf)
 {
-	return (buf->data[1] & 0x3F);
+	pci_flow_ctrl_t flow_ctrl = prv_get_flow_ctrl_info(buf);
+	switch (flow_ctrl) {
+		case PCI_FLOW_CTRL_SF:
+			return (buf->data[1] & 0x3F);
+			break;
+		case PCI_FLOW_CTRL_FF:
+			return (buf->data[2] & 0x3F);
+			break;
+		default:
+			return UDS_SERVICE_TYPE_INVALID;		//Anything else doesnt have the service code in it.
+			break;
+	}
+
 }
 
 static uint8_t prv_get_consecutive_frame_number(can_rx_buffer_entry_t* buf)
@@ -468,7 +490,7 @@ static void prv_get_vin()
 }
 
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
-BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
+BaseType_t can_uds_run(uint8_t (*data_storage)[176][10])
 {
 	/* Check if the task already exists and do nothing if it does. */
 	if (prv_task_handle != NULL)
@@ -489,7 +511,7 @@ BaseType_t app_can_controller_run(uint8_t (*data_storage)[176][10])
 	
 }
 
-bool app_can_controller_stop(uint32_t block_time_ms)
+bool can_uds_stop(uint32_t block_time_ms)
 {
     prv_task_run = false;
 
@@ -507,12 +529,22 @@ bool app_can_controller_stop(uint32_t block_time_ms)
     return rtn & EVENT_BITS_TASK_STOPPED;
 }
 
-uint32_t can_controller_get_data(uint8_t pid, uint8_t first_byte, uint8_t num_params)
+uint32_t can_uds_get_raw_current_data(uint8_t pid, uint8_t first_byte, uint8_t num_params)
 {
 	uint32_t raw_value = 0;
 	for (uint8_t i = 0; i < num_params; i++)
 	{
 		raw_value |= prv_current_data[pid][i + first_byte] << ((num_params - (i+1)) * 8);
+	}
+	return raw_value;
+}
+
+uint32_t can_uds_get_raw_infotype_data(uint8_t pid, uint8_t first_byte, uint8_t num_params)
+{
+	uint32_t raw_value = 0;
+	for (uint8_t i = 0; i < num_params; i++)
+	{
+		raw_value |= prv_infotype_data[pid][i + first_byte] << ((num_params - (i+1)) * 8);
 	}
 	return raw_value;
 }
@@ -531,12 +563,12 @@ bool app_can_controller_is_init(uint32_t block_time_ms )
 	return rtn & EVENT_BITS_INIT_DONE;
 }
 
-uint32_t app_can_controller_get_query_can_id()
+uint32_t can_uds_get_query_can_id()
 {
 	return prv_query_can_id;
 }
 
-uint32_t app_can_controller_get_response_can_id()
+uint32_t can_uds_get_response_can_id()
 {
 	return prv_response_can_id;
 }
@@ -614,7 +646,7 @@ bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 		}
 		/* Add the CAN message, set its transmit period, and activate it. */
 		can_transmit_set_msg_data(prv_current_data_query[num_pids - 1], &iso15765_query);
-		can_transmit_set_period(prv_current_data_query[num_pids - 1], 25);
+		can_transmit_set_period(prv_current_data_query[num_pids - 1], 10);
 		can_transmit_set_active(prv_current_data_query[num_pids - 1]);
 		rtn_val = true;
 	}

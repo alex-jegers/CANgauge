@@ -543,7 +543,7 @@ int32_t can_uds_process_raw_data(can_rx_buffer_entry_t* input)
 	return 0;
 }
 
-saej1979_current_data_t* saej1979_get_current_data(uint8_t pid)
+saej1979_current_data_t* saej1979_get_current_data_lut_by_pid(uint8_t pid)
 {
 	return saej1979_current_data_arr[pid];
 }
@@ -569,7 +569,7 @@ void can_uds_change_pressure_units(const char* units)
 
 	for (uint8_t i = 0; i < 176; i++)
 	{
-		saej1979_current_data_t* y = saej1979_get_current_data(i);
+		saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(i);
 		if (y->units == kpa)
 		{
 			y->min *= conversion;
@@ -613,7 +613,7 @@ void can_uds_change_temperature_units(const char* units)
 
 	for (uint8_t i = 0; i < 176; i++)
 	{
-		saej1979_current_data_t* y = saej1979_get_current_data(i);
+		saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(i);
 		if (y->units == celsius)
 		{
 			y->min *= conversion;

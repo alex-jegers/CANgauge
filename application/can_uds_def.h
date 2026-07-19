@@ -48,9 +48,13 @@ bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 */
 int32_t can_uds_process_raw_data(can_rx_buffer_entry_t* input);
 
+/** saej1979_get_current_data_lut_by_pid
+ * 		desc: Returns a current data LUT element. The LUT includes info like the scale and offset needed
+ * 			to be applied to the raw data, which position the first byte is in, how many data bytes to
+ * 			include, etc.
+ */
+saej1979_current_data_t* saej1979_get_current_data_lut_by_pid(uint8_t pid);
 
-saej1979_current_data_t* saej1979_get_current_data(uint8_t pid);
-saej1979_current_data_t* saej1979_get_current_data_by_name(const char* name);
 
 #ifdef __cplusplus
 } /*extern "C"*/
