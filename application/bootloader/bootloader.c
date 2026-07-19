@@ -1,6 +1,7 @@
 /**********     INCLUDES        **********/
 #include "bootloader.h"
 #include "ui/ui_settings.h"
+#include "application/pwr_monitor.h"
 
 /**********     TYPEDEFS         **********/
 
