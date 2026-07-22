@@ -49,7 +49,7 @@ static uds_service_type_t prv_flow_ctrl_last_service = UDS_SERVICE_TYPE_INVALID;
 
 static can_transmit_handle_t* prv_current_data_query[4] = { NULL, NULL, NULL, NULL };		//Holds pointers to the data currently being transmitted (up to 4 parameters at a time).
 /**********		STATIC FUNCTION DECLRATIONS		**********/
-static void prv_task_can_controller();
+static TaskFunction_t prv_task_can_controller();
 static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf);
 /**
  * prv_get_available_pids:
@@ -75,7 +75,7 @@ static void prv_get_vin();
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 
-static void prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
+static TaskFunction_t prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 {
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
 	memset(prv_current_data, 0x00, 1760);
@@ -297,8 +297,8 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 		.data[4] = 0xCC, .data[5] = 0xCC, .data[6] = 0xCC, .data[7] = 0xCC,
 	};
 
-	/* Request PIDs 0x00, 0x20, 0x40, 0x60, 0x80. */
-	for (uint8_t i = 0; i < 0xA0; i += 0x20)
+	/* Request PIDs 0x00, 0x20, 0x40, 0x60, 0x80, 0xA0 with service 01. */
+	for (uint8_t i = 0; i < 0xA1; i += 0x20)
 	{
 		tx_buf.data[2] = i;
 		can_transmit_handle_t* avail_pids = can_transmit_create_msg();
@@ -308,9 +308,9 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 	}
 
 	/* Wait for up to a second to see if anything gets recieved. */
-	for (uint8_t i = 0; i < 5; i++)
+	for (uint8_t i = 0; i < 6; i++)
 	{
-		if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE)
+		if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(500)) == pdTRUE)
 		{
 			can_rx_buffer_entry_t rx_buf;
 			can_read_from_fifo1(FDCAN1, &rx_buf);
@@ -320,6 +320,32 @@ static bool prv_get_available_pids(uint32_t can_id, can_id_t id_type)
 		{
 			return false;
 		}	
+	}
+
+	/* Request PIDs 0x00, 0x20, 0x40, 0x60 with service 09. */
+	tx_buf.data[1] = 0x09;
+	for (uint8_t i = 0; i < 0x61; i += 0x20)
+	{
+		tx_buf.data[2] = i;
+		can_transmit_handle_t* avail_pids = can_transmit_create_msg();
+		can_transmit_set_msg_data(avail_pids, &tx_buf);
+		can_transmit_set_period(avail_pids, CAN_TRANSMIT_PERIOD_ONE_SHOT);
+		can_transmit_set_active(avail_pids);
+	}
+
+	/* Wait for up to a second to see if anything gets recieved. */
+	for (uint8_t i = 0; i < 4; i++)
+	{
+		if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(500)) == pdTRUE)
+		{
+			can_rx_buffer_entry_t rx_buf;
+			can_read_from_fifo1(FDCAN1, &rx_buf);
+			prv_process_can_data(&rx_buf);
+		}
+		else if (i == 0)	//Only return false if we dont get a response to 0x00.
+		{
+			return false;
+		}
 	}
 	return true;
 }
@@ -375,7 +401,7 @@ static void prv_get_extra_pids(uint8_t pid)
 	can_transmit_set_active(x);
 
 	/* Wait a second to see if we get a response.*/
-	if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE)
+	if (xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(250)) == pdTRUE)
 	{
 		/* Response received. Process it and return true. */
 		can_rx_buffer_entry_t rx_buf;
@@ -478,7 +504,7 @@ static void prv_get_vin()
 
 	/* Wait a second to see if we get a response.*/
 	uint8_t counter = 3;
-	while (( xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(1000)) == pdTRUE ) && ( counter > 0 ))
+	while (( xSemaphoreTake(prv_rx_fifo1_counter, pdMS_TO_TICKS(500)) == pdTRUE ) && ( counter > 0 ))
 	{
 
 		/* Response received. Process it and return true. */
