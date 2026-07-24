@@ -86,7 +86,7 @@ static TaskFunction_t prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
 	can_run(FDCAN1);
 
 	/* Start the CAN transmitter task. */
-	assert( can_transmit_run(FDCAN1, 10) == pdPASS );
+	assert( can_transmit_run(FDCAN1, 15) == pdPASS );
 
 	/* Create counting semaphores to count how many CAN messages have been receieved. */
 	prv_rx_fifo1_counter = xSemaphoreCreateCounting(64, 0);
@@ -672,7 +672,7 @@ bool can_uds_set_current_data_query(uint8_t pid1, uint8_t pid2, uint8_t pid3, ui
 		}
 		/* Add the CAN message, set its transmit period, and activate it. */
 		can_transmit_set_msg_data(prv_current_data_query[num_pids - 1], &iso15765_query);
-		can_transmit_set_period(prv_current_data_query[num_pids - 1], 10);
+		can_transmit_set_period(prv_current_data_query[num_pids - 1], 15);
 		can_transmit_set_active(prv_current_data_query[num_pids - 1]);
 		rtn_val = true;
 	}
