@@ -110,7 +110,7 @@ static void prv_task_can_transmit()
             prv_task_run = false;
         }
         vTaskDelayUntil(&current_time_ms, time_till_next);
-        time_till_next = pdMS_TO_TICKS(500);
+        time_till_next = prv_min_time_between_msg_ms;//pdMS_TO_TICKS(500);
     }
     /*** END OF TASK. ***/
 
