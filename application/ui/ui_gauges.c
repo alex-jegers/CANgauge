@@ -206,18 +206,18 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 
 	int32_t number_of_ticks = abs(max_val - min_val);
 
-	/* Make sure min and max are factors of 5 if there's more than 25 total ticks. */
+	/* Make sure min and max are factors of 10 if there's more than 25 total ticks. */
 	if (number_of_ticks >= 25)
 	{
 		if (max_val > min_val)
 		{
-			max_val += (5 - (max_val % 5));
-			min_val -= (min_val % 5);
+			max_val -= (max_val % 10);
+			min_val -= (min_val % 10);
 		}
 		else
 		{
-			min_val += (5 - (min_val % 5));
-			max_val -= (max_val % 5);
+			min_val -= (min_val % 10);
+			max_val -= (max_val % 10);
 		}
 		number_of_ticks = abs(max_val - min_val);
 	}
@@ -362,7 +362,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	int32_t desc_lbl_pos_y = 216;
 	int32_t desc_lbl_pos_x = 0;
 	int32_t desc_lbl_width = 340;
-	int32_t desc_lbl_height = 120;
+	int32_t desc_lbl_height = 340;
 	int32_t desc_lbl_angle_start = 270;
 	int32_t desc_lbl_span = 180;
 	lv_arclabel_dir_t desc_lbl_direction = LV_ARCLABEL_DIR_COUNTER_CLOCKWISE;
@@ -371,7 +371,7 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	if (prv_num_gauges == 2)
 	{
 		desc_lbl_pos_y = 0;
-		desc_lbl_width = 150;
+		desc_lbl_width = 340;
 		desc_lbl_pos_x = -220 + (220 * 2 * gauge_idx);	//-216 if first gauge, 216 if second gauge.
 		desc_lbl_angle_start = 180 * gauge_idx;			//0 if first gauge, 180 if second gauge.
 		desc_lbl_height = 340;

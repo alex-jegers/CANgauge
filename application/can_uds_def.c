@@ -34,6 +34,7 @@ const float c_to_f = 1.8;			//Only the scale needs to be adjusted because they'r
 
 
 
+
 /*** Generated with current_data_array_generator_script.py. ***/
 static saej1979_current_data_t saej1979_mass_air_flow_nest_pid_0 = {.name = "Mass Air Flow A", .pid_code = 0x66, .scale = 0.03125, .offset = 0, .data_bytes = 2, .first_byte = 1,  .min = 0, .max = 2040, .units = g_per_s, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_mass_air_flow_nest_pid_1 = {.name = "Mass Air Flow B", .pid_code = 0x66, .scale = 0.03125, .offset = 0, .data_bytes = 2, .first_byte = 3,  .min = 0, .max = 2040, .units = g_per_s, .available = false, .nested = NULL};
@@ -53,12 +54,12 @@ static saej1979_current_data_t* saej1979_engine_coolant_temp_nest[8] = {
 &saej1979_engine_coolant_temp_nest_pid_1,
 };
 
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_0 = {.name = "Intake Air Temp B1 S1", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_1 = {.name = "Intake Air Temp B1 S2", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 2,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_2 = {.name = "Intake Air Temp B1 S3", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 3,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_3 = {.name = "Intake Air Temp B2 S1", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 4,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_4 = {.name = "Intake Air Temp B2 S2", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 5,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_5 = {.name = "Intake Air Temp B2 S3", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 6,  .min = -20, .max = 100, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_0 = {.name = "Intake Air Temp B1 S1", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 1,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_1 = {.name = "Intake Air Temp B1 S2", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 2,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_2 = {.name = "Intake Air Temp B1 S3", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 3,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_3 = {.name = "Intake Air Temp B2 S1", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 4,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_4 = {.name = "Intake Air Temp B2 S2", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 5,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_intake_air_temp_nest_pid_5 = {.name = "Intake Air Temp B2 S3", .pid_code = 0x68, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 6,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
 
 
 static saej1979_current_data_t* saej1979_intake_air_temp_nest[8] = {
@@ -217,10 +218,10 @@ static saej1979_current_data_t* saej1979_turbo_temp_b_nest[8] = {
 &saej1979_turbo_temp_b_nest_pid_3,
 };
 
-static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_0 = {.name = "Charge Air Temp B1 S1", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 80, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_1 = {.name = "Charge Air Temp B1 S2", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 2,  .min = -20, .max = 80, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_2 = {.name = "Charge Air Temp B2 S1", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 3,  .min = -20, .max = 80, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_3 = {.name = "Charge Air Temp B2 S2", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 4,  .min = -20, .max = 80, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_0 = {.name = "Charge Air Temp B1 S1", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 1,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_1 = {.name = "Charge Air Temp B1 S2", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 2,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_2 = {.name = "Charge Air Temp B2 S1", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 3,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_charge_air_cooler_temp_nest_pid_3 = {.name = "Charge Air Temp B2 S2", .pid_code = 0x77, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 4,  .min = -10, .max = 70, .units = celsius, .available = false, .nested = NULL};
 
 
 static saej1979_current_data_t* saej1979_charge_air_cooler_temp_nest[8] = {
@@ -271,28 +272,28 @@ static saej1979_current_data_t saej1979_current_data_pid_2 = {.name = "Freeze Fr
 static saej1979_current_data_t saej1979_current_data_pid_3 = {.name = "Fuel system status ", .pid_code = 0x03, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_4 = {.name = "Calculated Load Value", .pid_code = 0x04, .scale = 0.3915686, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 100, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_5 = {.name = "Engine Coolant Temperature", .pid_code = 0x05, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 0,  .min = -40, .max = 215, .units = celsius, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_6 = {.name = "Short Term Fuel Trim - B1", .pid_code = 0x06, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_7 = {.name = "Long Term Fuel Trim - B1", .pid_code = 0x07, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_8 = {.name = "Short Term Fuel Trim - B2", .pid_code = 0x08, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_9 = {.name = "Long Term Fuel Trim - B2", .pid_code = 0x09, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_6 = {.name = "Short Term Fuel Trim B1", .pid_code = 0x06, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_7 = {.name = "Long Term Fuel Trim B1", .pid_code = 0x07, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_8 = {.name = "Short Term Fuel Trim B2", .pid_code = 0x08, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_9 = {.name = "Long Term Fuel Trim B2", .pid_code = 0x09, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_10 = {.name = "Fuel Pressure (gauge)", .pid_code = 0x0A, .scale = 3, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 765, .units = kpa, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_11 = {.name = "Abs. Intake Manifold Pressure", .pid_code = 0x0B, .scale = 1, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 255, .units = kpa, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_12 = {.name = "Engine RPM", .pid_code = 0x0C, .scale = 0.25, .offset = 0, .data_bytes = 2, .first_byte = 0,  .min = 0, .max = 10000, .units = rpm, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_13 = {.name = "Vehicle Speed", .pid_code = 0x0D, .scale = 1, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 255, .units = kph, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_14 = {.name = "Ignition Timing Angle", .pid_code = 0x0E, .scale = 0.5, .offset = -64, .data_bytes = 1, .first_byte = 0,  .min = -60, .max = 60, .units = degrees, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_14 = {.name = "Ignition Timing Angle", .pid_code = 0x0E, .scale = 0.5, .offset = -60, .data_bytes = 1, .first_byte = 0,  .min = -60, .max = 60, .units = degrees, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_15 = {.name = "Intake Air Temp", .pid_code = 0x0F, .scale = 1, .offset = -40, .data_bytes = 1, .first_byte = 0,  .min = -20, .max = 160, .units = celsius, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_16 = {.name = "Mass Air Flow Rate", .pid_code = 0x10, .scale = 0.01, .offset = 0, .data_bytes = 2, .first_byte = 0,  .min = 0, .max = 655, .units = g_per_s, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_17 = {.name = "Abs. Throttle Position", .pid_code = 0x11, .scale = 0.3915686, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 100, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_18 = {.name = "Commanded Secondary Air Status", .pid_code = 0x12, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_19 = {.name = "Location of oxygen sensors", .pid_code = 0x13, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_20 = {.name = "Short Term Fuel Trim B1 S1", .pid_code = 0x14, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_21 = {.name = "Short Term Fuel Trim B1 S2", .pid_code = 0x15, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_22 = {.name = "Short Term Fuel Trim B1 S3", .pid_code = 0x16, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_23 = {.name = "Short Term Fuel Trim B1 S4", .pid_code = 0x17, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_24 = {.name = "Short Term Fuel Trim B2 S1", .pid_code = 0x18, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_25 = {.name = "Short Term Fuel Trim B2 S2", .pid_code = 0x19, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_26 = {.name = "Short Term Fuel Trim B2 S3", .pid_code = 0x1A, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_27 = {.name = "Short Term Fuel Trim B2 S4", .pid_code = 0x1B, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_20 = {.name = "O2 Sensor Voltage B1 S1", .pid_code = 0x14, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_21 = {.name = "O2 Sensor Voltage B1 S2", .pid_code = 0x15, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_22 = {.name = "O2 Sensor Voltage B1 S3", .pid_code = 0x16, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_23 = {.name = "O2 Sensor Voltage B1 S4", .pid_code = 0x17, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_24 = {.name = "O2 Sensor Voltage B2 S1", .pid_code = 0x18, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_25 = {.name = "O2 Sensor Voltage B2 S2", .pid_code = 0x19, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_26 = {.name = "O2 Sensor Voltage B2 S3", .pid_code = 0x1A, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_27 = {.name = "O2 Sensor Voltage B2 S4", .pid_code = 0x1B, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_28 = {.name = "OBD requirements for vehicle or engine", .pid_code = 0x1C, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_29 = {.name = "Location of oxygen sensors", .pid_code = 0x1D, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_30 = {.name = "Auxiliary Input Status", .pid_code = 0x1E, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
@@ -350,10 +351,10 @@ static saej1979_current_data_t saej1979_current_data_pid_81 = {.name = "Type of 
 static saej1979_current_data_t saej1979_current_data_pid_82 = {.name = "Alcohol Fuel Percentage", .pid_code = 0x52, .scale = 0.3915686, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 100, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_83 = {.name = "Abs Evap System Vapor Pressure", .pid_code = 0x53, .scale = 0.005, .offset = 0, .data_bytes = 2, .first_byte = 0,  .min = 0, .max = 330, .units = kpa, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_84 = {.name = "Evap System Vapor Pressure", .pid_code = 0x54, .scale = 0, .offset = 0, .data_bytes = 0, .first_byte = 0,  .min = 0, .max = 0, .units = NULL, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_85 = {.name = "Short Term Secondary Fuel Trim B1", .pid_code = 0x55, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_86 = {.name = "Long Term Secondary Fuel Trim B1", .pid_code = 0x56, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_87 = {.name = "Short Term Secondary  Fuel Trim B2 ", .pid_code = 0x57, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
-static saej1979_current_data_t saej1979_current_data_pid_88 = {.name = "Long Term Secondary Fuel Trim B2", .pid_code = 0x58, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_85 = {.name = "Secondary STFT B1", .pid_code = 0x55, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_86 = {.name = "Secondary LTFT B1", .pid_code = 0x56, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_87 = {.name = "Secondary STFT B2", .pid_code = 0x57, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
+static saej1979_current_data_t saej1979_current_data_pid_88 = {.name = "Secondary LTFT B2", .pid_code = 0x58, .scale = 0.78125, .offset = -100, .data_bytes = 1, .first_byte = 1,  .min = -20, .max = 20, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_89 = {.name = "Fuel Rail Pressure (absolute)", .pid_code = 0x59, .scale = 10, .offset = 0, .data_bytes = 2, .first_byte = 0,  .min = 0, .max = 655350, .units = kpa, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_90 = {.name = "Relative Accel Pedal Position", .pid_code = 0x5A, .scale = 0.3915686, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 100, .units = percent, .available = false, .nested = NULL};
 static saej1979_current_data_t saej1979_current_data_pid_91 = {.name = "Hybrid Battery Charge Remain.", .pid_code = 0x5B, .scale = 0.3915686, .offset = 0, .data_bytes = 1, .first_byte = 0,  .min = 0, .max = 100, .units = percent, .available = false, .nested = NULL};
@@ -626,6 +627,7 @@ static saej1979_current_data_t* saej1979_current_data[179] = {
 
 
 /*** Generated with current_data_array_generator_script.py. ***/
+
 
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/

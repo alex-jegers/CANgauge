@@ -169,7 +169,7 @@ static void prv_task_gauges()
 	                                        pdMS_TO_TICKS(500)); //Block time.
 		if ((rtn & EVENT_BITS_QUERY_TRANSMITTING) != 0)
 		{
-			static float last_value[4];		//Use this to see if the value changed, if it didn't we dont change the gauge value,
+			//static float last_value[4];		//Use this to see if the value changed, if it didn't we dont change the gauge value,
 			//then it wont get rendered and we get better lcd performance.
 			for (uint8_t d = 0; d < 4; d++)
 			{
@@ -196,7 +196,7 @@ static void prv_task_gauges()
 					ui_gauges_set_gauge_value(processed_val, d);
 					lv_port_give_lvgl_mutex();
 				}
-				last_value[d] = processed_val;
+				//last_value[d] = processed_val;
 			}
 
 		}
