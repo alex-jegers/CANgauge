@@ -21,7 +21,7 @@ static TimerHandle_t prv_timer = NULL;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_adc_interrupt_handler();
 static void prv_pwr_monitor_task();
-static TimerCallbackFunction_t prv_pwr_monitor_timer_cb();
+static void prv_pwr_monitor_timer_cb();
 static void prv_scr_touched();
 
 
@@ -34,7 +34,7 @@ static void prv_adc_interrupt_handler()
     }
 }
 
-static TimerCallbackFunction_t prv_pwr_monitor_timer_cb()
+static void prv_pwr_monitor_timer_cb(TimerHandle_t timer)
 {
 	prv_enter_low_power_mode = true;
 }

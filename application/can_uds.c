@@ -49,7 +49,7 @@ static uds_service_type_t prv_flow_ctrl_last_service = UDS_SERVICE_TYPE_INVALID;
 
 static can_transmit_handle_t* prv_current_data_query[4] = { NULL, NULL, NULL, NULL };		//Holds pointers to the data currently being transmitted (up to 4 parameters at a time).
 /**********		STATIC FUNCTION DECLRATIONS		**********/
-static TaskFunction_t prv_task_can_controller();
+static void prv_task_can_controller();
 static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf);
 /**
  * prv_get_available_pids:
@@ -75,7 +75,7 @@ static void prv_get_vin();
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 
-static TaskFunction_t prv_task_can_controller(FDCAN_GlobalTypeDef* canbus)
+static void prv_task_can_controller(void* canbus)
 {
 	/* Zero out the CAN data array, this is where incoming raw data is stored. */
 	memset(prv_current_data, 0x00, 1760);

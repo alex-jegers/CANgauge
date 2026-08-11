@@ -25,7 +25,7 @@ const char* const prv_vin_file_header = "VIN,Srvc0x1 PID0x00,Srvc0x1 PID0x20,Srv
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_task_gauges();							//The FreeRTOS task.
-static uint8_t prv_load_gauges(const char *str[4], uint8_t num_gauges);		//Sends the gauge data to the UI, must call ui_load_gauge_screen afterwards to display them. Returns the number of gauges submitted that were found on OBD.
+static uint8_t prv_load_gauges(char *str[4], uint8_t num_gauges);		//Sends the gauge data to the UI, must call ui_load_gauge_screen afterwards to display them. Returns the number of gauges submitted that were found on OBD.
 static void prv_create_gauge_select_btns();				//Creates the buttons on the GUI.
 static void prv_update_units();							//Updates the units for the gauges based on what's in the config file.
 static void prv_save_vin_to_file();
@@ -89,10 +89,10 @@ static void prv_task_gauges()
 	}
 
 	/* Print out bus info, for debugging. */
-	uint32_t avail_pids_1 = can_uds_get_raw_current_data(0x00, 0, 4);
-	uint32_t avail_pids_2 = can_uds_get_raw_current_data(0x20, 0, 4);
-	uint32_t avail_pids_3 = can_uds_get_raw_current_data(0x40, 0, 4);
-	uint32_t avail_pids_4 = can_uds_get_raw_current_data(0x60, 0, 4);
+	unsigned int avail_pids_1 = can_uds_get_raw_current_data(0x00, 0, 4);
+	unsigned int avail_pids_2 = can_uds_get_raw_current_data(0x20, 0, 4);
+	unsigned int avail_pids_3 = can_uds_get_raw_current_data(0x40, 0, 4);
+	unsigned int avail_pids_4 = can_uds_get_raw_current_data(0x60, 0, 4);
 	uint32_t can_id = can_uds_get_response_can_id();
 	uint32_t rx_ecr = can_get_rx_error_counter(FDCAN1);
 	uint32_t tx_ecr = can_get_tx_error_counter(FDCAN1);
@@ -107,9 +107,8 @@ static void prv_task_gauges()
 										TX ECR: %lu\n\
 										LEC: %lu\n\
 										%s - %s",
-										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, can_id,
+										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, (unsigned int)can_id,
 										rx_ecr, tx_ecr, ec, prv_version, prv_build);
-	realloc(label, str_size);
 
 	/* Write the diagnostic label to the screen. */
 	lv_port_take_lvgl_mutex(portMAX_DELAY);
@@ -125,7 +124,6 @@ static void prv_task_gauges()
 	uint32_t bytes_wr = sys_mem_get_config_data("LAST GAUGES STATE", line);
 	if (bytes_wr != 0)
 	{
-		realloc(line, bytes_wr);
 		char* split[5];		//Hold the strings from the config file.
 		char* sv_ptr;		//For strtok_r.
 		split[0] = strtok_r(line, ",", &sv_ptr);
@@ -431,7 +429,7 @@ static void prv_gauge_event_cb(lv_event_t* e)
 	sys_mem_set_config_data(str);
 }
 
-static uint8_t prv_load_gauges(const char* str[4], uint8_t num_gauges)
+static uint8_t prv_load_gauges(char* str[4], uint8_t num_gauges)
 {
 	uint8_t rtn_val = 0;		//Returns how many of the gauges are available on the platform.
 	/* Tell the UI how many gauges were gonna load. */
@@ -528,7 +526,7 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 	memset(&active_param, 0, sizeof(saej1979_current_data_t*) * 4);
 
 	/* Start a string that we can write to the config file that saves what gauges are displayed. */
-	const char* str[4];
+	char* str[4];
 	const char* header = "LAST GAUGES STATE,";
 	uint32_t str_len = strlen(header) + 8; 		//Plus 8 for 3 commas and an endline (4) and another 4 for zeros in case any of the strlen are zero.
 	for (uint8_t i = 0; i < 4; i++)
