@@ -396,6 +396,7 @@ static void prv_get_extra_pids(uint8_t pid)
 
 	tx_buf.data[2] = pid;
 	can_transmit_handle_t* x = can_transmit_create_msg();
+	assert( x != NULL );
 	can_transmit_set_msg_data(x, &tx_buf);
 	can_transmit_set_period(x, CAN_TRANSMIT_PERIOD_ONE_SHOT);
 	can_transmit_set_active(x);
