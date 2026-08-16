@@ -18,10 +18,12 @@
 void (**prv_btldr_jmp)() = (void (**)())0x081A0004;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
-static void btldr_firmware_btn_cb(lv_event_t* e);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
-static void btldr_firmware_btn_cb(lv_event_t* e)
+
+
+/**********		GLOBAL FUNCTION DEFINITIONS		**********/
+void btldr_load()
 {
 	/*
 	 *  Stop the power monitor.
@@ -42,11 +44,4 @@ static void btldr_firmware_btn_cb(lv_event_t* e)
 
 	(*prv_btldr_jmp)();		//Jump to the bootloader.
 }
-
-/**********		GLOBAL FUNCTION DEFINITIONS		**********/
-void btldr_init()
-{
-	ui_add_settings_firmware_update_btn_event_cb(btldr_firmware_btn_cb);
-}
-
 

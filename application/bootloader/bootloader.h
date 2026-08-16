@@ -17,12 +17,12 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 /**
- * name: btldr_init
- *      desc: Assigns the function call back for the update firmware button.
+ * name: btldr_load
+ *      desc: Jumps to the bootloader at memory address 0x081A0004.
  *      params: none
  *      returns: none
  */
-void btldr_init();
+void btldr_load();
 
 
 
