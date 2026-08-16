@@ -21,6 +21,7 @@ static lv_anim_t _gauge_demo_animation;				//Animation that runs in demo mode, u
 /* UI Objects. */
 static lv_obj_t* prv_main_scr;						//The parent object.
 static lv_obj_t* prv_gauge_select_btn_container;	//The container that holds the checkboxes.
+static lv_obj_t* prv_options_btn_container;			//The container that holds the options buttons
 static lv_obj_t* prv_view_btn;						//The view button.
 static lv_obj_t* prv_clear_btn;						//The clear button. 
 static lv_obj_t* prv_refresh_btn;					//The refresh button.
@@ -35,7 +36,7 @@ static void prv_settings_btn_handler(lv_event_t* e);
 
 /* External Event Handlers */
 static lv_event_cb_t settings_btn_cb = NULL;
-static lv_event_cb_t prv_view_btn_event_cb = NULL;
+static lv_event_cb_t prv_view_gauges_event_cb = NULL;
 
 /*All the info for the gauge currently being displayed.*/
 static lv_obj_t* _gauge_scr;			//The screen being the parent to the lv_scale that is the gauge.
@@ -45,7 +46,8 @@ static lv_obj_t* _gauge_data_lbl[4];		//The label on the gauge face that display
 static lv_obj_t* _gauge_info_lbl[4];		//Label that tells the user about what data is being displayed.
 static lv_obj_t* gauge_units_lbl[4];
 static float _gauge_scaling_factor[4];	//How the value is multiplied by when decimals are needed.
-static void (*prv_gauge_pressed_cb)(lv_event_t* e) = NULL;
+static void (*prv_gauge_single_clicked_cb)(lv_event_t* e) = NULL;
+static void (*prv_gauge_long_pressed_cb)(lv_event_t* e) = NULL;
 
 
 
@@ -67,42 +69,70 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_gauge_select_checkbox_handler(lv_event_t* e)
 {
+	lv_event_code_t event = lv_event_get_code(e);
 	lv_obj_t* checkbox = lv_event_get_target_obj(e);
 	bool checked = lv_obj_has_state(checkbox, LV_STATE_CHECKED);
+	static bool last_was_long_press = false;
 
-	if (checked)
+	if (event == LV_EVENT_DOUBLE_CLICKED)
 	{
-		prv_gauge_select_checkboxes[prv_selected_checkboxes_count] = checkbox;
-		prv_selected_checkboxes_count++;
-		if (prv_selected_checkboxes_count >= 4)
+		prv_clear_all_checkboxes();
+		return;
+	}
+
+	if (event == LV_EVENT_LONG_PRESSED)
+	{
+		last_was_long_press = true;
+	}
+
+	if (event == LV_EVENT_CLICKED)
+	{
+		if (event == LV_EVENT_LONG_PRESSED) { checked = !checked;  }	//Have to invert the checked state if it's a long press event bc the box hasn't changed state yet.
+		if (!lv_obj_has_flag(checkbox, LV_OBJ_FLAG_CHECKABLE))			//If the checkbox isnt checkable it's disabled and there's already 4 boxes checked.
 		{
-			//Deactivate all the checkboxes.
-			prv_deactivate_all_checkboxes();
+			return;
+		}
+		if (checked)
+		{
+			prv_gauge_select_checkboxes[prv_selected_checkboxes_count] = checkbox;
+			prv_selected_checkboxes_count++;
+			if (prv_selected_checkboxes_count >= 4)
+			{
+				//Deactivate all the checkboxes.
+				prv_deactivate_all_checkboxes();
+			}
+		}
+		else
+		{
+			bool removed = false;
+			for (uint8_t i = 0; i < prv_selected_checkboxes_count; i++)
+			{
+				if (removed == true)
+				{
+					prv_gauge_select_checkboxes[i - 1] = prv_gauge_select_checkboxes[i];
+				}
+				if (prv_gauge_select_checkboxes[i] == checkbox)
+				{
+					prv_gauge_select_checkboxes[i] = NULL;
+					removed = true;
+				}
+			}
+			/* If there was 4 selected, reactivate all the checkboxes. */
+			if (prv_selected_checkboxes_count == 4)
+			{
+				prv_activate_all_checkboxes();
+			}
+			prv_gauge_select_checkboxes[prv_selected_checkboxes_count - 1] = NULL;
+			prv_selected_checkboxes_count--;
+		}
+		if (last_was_long_press == true)
+		{
+			prv_view_gauges_event_cb(e);
+			last_was_long_press = false;
 		}
 	}
-	else
-	{
-		bool removed = false;
-		for (uint8_t i = 0; i < prv_selected_checkboxes_count; i++)
-		{
-			if (removed == true)
-			{
-				prv_gauge_select_checkboxes[i - 1] = prv_gauge_select_checkboxes[i];
-			}
-			if (prv_gauge_select_checkboxes[i] == checkbox)
-			{
-				prv_gauge_select_checkboxes[i] = NULL;
-				removed = true;
-			}
-		}
-		/* If there was 4 selected, reactivate all the checkboxes. */
-		if (prv_selected_checkboxes_count == 4)
-		{
-			prv_activate_all_checkboxes();
-		}
-		prv_gauge_select_checkboxes[prv_selected_checkboxes_count - 1] = NULL;
-		prv_selected_checkboxes_count--;
-	}
+
+
 }
 
 static void prv_deactivate_all_checkboxes()
@@ -115,7 +145,7 @@ static void prv_deactivate_all_checkboxes()
 		/* If it's not checked, disable it.*/
 		if (!lv_obj_has_state(child_checkbox, LV_STATE_CHECKED))
 		{
-			lv_obj_add_state(child_checkbox, LV_STATE_DISABLED);
+			lv_obj_remove_flag(child_checkbox, LV_OBJ_FLAG_CHECKABLE);
 		}
 		child_idx++;
 		child_checkbox = lv_obj_get_child(prv_gauge_select_btn_container, child_idx);
@@ -129,7 +159,7 @@ static void prv_activate_all_checkboxes()
 	while (child_checkbox != NULL)
 	{
 		/* If it's not checked, disable it.*/
-		lv_obj_remove_state(child_checkbox, LV_STATE_DISABLED);
+		lv_obj_add_flag(child_checkbox, LV_OBJ_FLAG_CHECKABLE);
 		child_idx++;
 		child_checkbox = lv_obj_get_child(prv_gauge_select_btn_container, child_idx);
 	}
@@ -158,7 +188,7 @@ static void prv_clear_all_checkboxes()
 static void prv_gauge_pressed_hanlder(lv_event_t* e)
 {
 	lv_event_code_t event_code = lv_event_get_code(e);
-	if (event_code == LV_EVENT_RELEASED)
+	if (event_code == LV_EVENT_SINGLE_CLICKED)
 	{
 		ui_gauges_load();
 		lv_obj_clean(_gauge_scr);
@@ -172,10 +202,15 @@ static void prv_gauge_pressed_hanlder(lv_event_t* e)
 		prv_num_gauges = 0;
 
 		/*Check if there's a function CB assign and call it if there is.*/
-		if (prv_gauge_pressed_cb != NULL)
+		if (prv_gauge_single_clicked_cb != NULL)
 		{
-			prv_gauge_pressed_cb(e);
+			prv_gauge_single_clicked_cb(e);
 		}
+	}
+
+	if (event_code == LV_EVENT_LONG_PRESSED)
+	{
+		prv_gauge_long_pressed_cb(e);
 	}
 }
 
@@ -536,7 +571,8 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 	/* Apply the event callback to all the children of _gauge_scr so
 	when anything on the screen is pressed it will fire the event and we can
 	close the gauge screen. */
-	lv_obj_add_event_cb(_gauge_scr, prv_gauge_pressed_hanlder, LV_EVENT_RELEASED, NULL);
+	lv_obj_add_event_cb(_gauge_scr, prv_gauge_pressed_hanlder, LV_EVENT_SINGLE_CLICKED, NULL);
+	lv_obj_add_event_cb(_gauge_scr, prv_gauge_pressed_hanlder, LV_EVENT_LONG_PRESSED, NULL);
 	for (uint32_t child = 0;; child++)
 	{
 		lv_obj_t* obj = lv_obj_get_child(_gauge_scr, child);
@@ -544,7 +580,8 @@ static void _load_gauge(int32_t min_val, int32_t max_val, const char* primary_lb
 		{
 			break;
 		}
-		lv_obj_add_event_cb(obj, prv_gauge_pressed_hanlder, LV_EVENT_RELEASED, NULL);
+		lv_obj_add_event_cb(obj, prv_gauge_pressed_hanlder, LV_EVENT_SINGLE_CLICKED, NULL);
+		lv_obj_add_event_cb(obj, prv_gauge_pressed_hanlder, LV_EVENT_LONG_PRESSED, NULL);
 	}
 	
 
@@ -591,41 +628,56 @@ void ui_gauges_init()
 	prv_main_scr = lv_obj_create(NULL);
 	lv_obj_set_style_bg_color(prv_main_scr, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_set_layout(prv_main_scr, LV_LAYOUT_FLEX);
-	lv_obj_set_flex_flow(prv_main_scr, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_flow(prv_main_scr, LV_FLEX_FLOW_ROW);
 	lv_obj_set_flex_align(prv_main_scr, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 	lv_obj_set_style_pad_top(prv_main_scr, 70, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_bottom(prv_main_scr, 70, LV_STATE_DEFAULT);
+	lv_obj_set_scroll_snap_x(prv_main_scr, LV_SCROLL_SNAP_CENTER);
+	lv_obj_set_scroll_dir(prv_main_scr, LV_DIR_HOR);
+	lv_obj_set_scrollbar_mode(prv_main_scr, LV_SCROLLBAR_MODE_OFF);
 
-	/*BUTTON CONTAINER.*/
+	/*CHECKBOXES CONTAINER.*/
 	prv_gauge_select_btn_container = lv_obj_create(prv_main_scr);
-	lv_obj_set_size(prv_gauge_select_btn_container, 400, 280);
+	lv_obj_set_size(prv_gauge_select_btn_container, 460, 480);
+	lv_obj_set_style_pad_top(prv_gauge_select_btn_container, 65, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(prv_gauge_select_btn_container, 100, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
-	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_GRAY, LV_STATE_DEFAULT);
+	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(prv_gauge_select_btn_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_layout(prv_gauge_select_btn_container, LV_LAYOUT_FLEX);
 	lv_obj_set_flex_flow(prv_gauge_select_btn_container, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(prv_gauge_select_btn_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_set_scroll_dir(prv_gauge_select_btn_container, LV_DIR_VER);
+	lv_obj_set_scrollbar_mode(prv_gauge_select_btn_container, LV_SCROLLBAR_MODE_OFF);
 
+	/*OPTIONS BUTTON CONTAINER.*/
+	prv_options_btn_container = lv_obj_create(prv_main_scr);
+	lv_obj_set_size(prv_options_btn_container, 400, 480);
+	lv_obj_set_style_bg_color(prv_options_btn_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(prv_options_btn_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_layout(prv_options_btn_container, LV_LAYOUT_FLEX);
+	lv_obj_set_flex_flow(prv_options_btn_container, LV_FLEX_FLOW_COLUMN);
+	lv_obj_set_flex_align(prv_options_btn_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_set_scroll_dir(prv_options_btn_container, LV_DIR_VER);
 
-	/* VIEW BUTTON. */
-	prv_view_btn = ui_helpers_create_btn_with_text(prv_main_scr, "View", LV_FONT_DEFAULT);
-
-	/* CLEAR BUTTON. */
-	prv_clear_btn = ui_helpers_create_btn_with_text(prv_main_scr, "Clear", LV_FONT_DEFAULT);
-	lv_obj_add_event(prv_clear_btn, prv_clear_btn_handler, LV_EVENT_RELEASED, NULL);
+	/* HEADER LOGO. */
+	lv_obj_t* logo_container = lv_obj_create(prv_gauge_select_btn_container);
+	lv_obj_clear_flag(logo_container, LV_OBJ_FLAG_SCROLLABLE);
+	lv_obj_set_scrollbar_mode(logo_container, LV_SCROLLBAR_MODE_OFF);
+	lv_obj_set_size(logo_container, lv_pct(100), cangauge_logo_header.header.h);
+	lv_obj_set_style_bg_opa(logo_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(logo_container, 0, LV_STATE_DEFAULT);
+	lv_obj_t* logo = lv_image_create(logo_container);
+	lv_image_set_src(logo, &cangauge_logo_header);
+	lv_obj_center(logo);
 
 	/* RESET BUTTON. */
-	prv_refresh_btn = ui_helpers_create_btn_with_text(prv_main_scr, "Refresh", LV_FONT_DEFAULT);
-
-	/* SETTINGS BUTTON. */
-	prv_settings_btn = ui_helpers_create_btn_with_text(prv_main_scr, "Settings", LV_FONT_DEFAULT);
-	lv_obj_add_event(prv_settings_btn, prv_settings_btn_handler, LV_EVENT_RELEASED, NULL);
-
+	prv_refresh_btn = ui_helpers_create_btn_with_text(prv_gauge_select_btn_container, "Refresh", LV_FONT_DEFAULT);
+	lv_obj_set_width(prv_refresh_btn, lv_pct(100));
 
 	/* GAUGE SCREEN. */
 	_gauge_scr = lv_obj_create(NULL);
 	lv_obj_set_style_bg_color(_gauge_scr, UI_COLOR_BLACK, LV_PART_MAIN);
-
 
 	/*Bind the controls and event function handlers.*/
 	lv_obj_add_event(prv_main_scr, _scr_load_handler, LV_EVENT_SCREEN_LOAD_START, NULL);
@@ -672,7 +724,11 @@ void ui_gauges_create_gauge_btn(const char* name)
 void ui_gauges_create_gauge_checkbox(const char* name)
 {
 	lv_obj_t* checkbox = ui_helpers_create_checkbox_with_text(prv_gauge_select_btn_container, name, LV_FONT_DEFAULT);
-	lv_obj_add_event(checkbox, prv_gauge_select_checkbox_handler, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event(checkbox, prv_gauge_select_checkbox_handler, LV_EVENT_CLICKED, prv_gauge_select_checkboxes);
+	lv_obj_add_event(checkbox, prv_gauge_select_checkbox_handler, LV_EVENT_DOUBLE_CLICKED, NULL);
+	lv_obj_add_event(checkbox, prv_gauge_select_checkbox_handler, LV_EVENT_LONG_PRESSED, prv_gauge_select_checkboxes);
+	lv_obj_t* refresh_btn = lv_obj_get_child_by_type(prv_gauge_select_btn_container, 0, &lv_button_class);
+	lv_obj_move_foreground(refresh_btn);
 }
 
 void ui_gauges_set_number_of_gauges(uint8_t num_gauges)
@@ -685,9 +741,14 @@ void ui_gauges_create_gauge(const char* name, const char* units, int32_t min, in
 	_load_gauge(min, max, name, units, gauge_idx);
 }
 
-void ui_gauges_set_gauge_cb(void (*func)(lv_event_t* e))
+void ui_gauges_set_gauge_single_clicked_cb(void (*func)(lv_event_t* e))
 {
-	prv_gauge_pressed_cb = func;
+	prv_gauge_single_clicked_cb = func;
+}
+
+void ui_gauges_set_gauge_long_pressed_cb(void (*func)(lv_event_t* e))
+{
+	prv_gauge_long_pressed_cb = func;
 }
 
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func)
@@ -705,6 +766,11 @@ void ui_delete_gauge_select_checkboxes()
 	lv_obj_clean(prv_gauge_select_btn_container);
 }
 
+lv_obj_t* ui_gauges_get_options_container_obj()
+{
+	return prv_options_btn_container;
+}
+
 void ui_set_settings_btn_event_cb(lv_event_cb_t func)
 {
 	settings_btn_cb = func;
@@ -712,7 +778,7 @@ void ui_set_settings_btn_event_cb(lv_event_cb_t func)
 
 void ui_gauges_set_view_btn_cb(lv_event_cb_t func) 
 { 
-	lv_obj_add_event_cb(prv_view_btn, func, LV_EVENT_RELEASED, prv_gauge_select_checkboxes); 
+	prv_view_gauges_event_cb = func;
 }
 
 void ui_add_clear_btn_event_cb(lv_event_cb_t func) 
