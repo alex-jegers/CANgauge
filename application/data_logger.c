@@ -29,17 +29,6 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 		num_params = i + 1;
 	}
 
-	/*** Based on the amount of parameters we are recording figure out how much data we can
-	 * record given the amount of space left in EEPROM (or whatever storage device, at the time
-	 * of writing this the first time, it's EEPROM).
-	 ***/
-	uint32_t remaining_space_bytes = filesys_get_free_space("0:/");				//Remaing bytes in EEPROM.
-	uint32_t remaining_space_floats = remaining_space_bytes / sizeof(float);	//Remaining space for floats (the data were saving are floats).
-	uint32_t number_of_columns = num_params + 1;								//Plus one because we need an extra column for time.
-	uint32_t num_rows = remaining_space_floats / (number_of_columns);			//Plus 1 to num params because we have to record the time too.
-	float* data_arr = malloc(number_of_columns * num_rows * sizeof(float));		//Plus 1 to num params because we have to record the time too.
-
-
 	FRESULT res;		//This is used to check the return value of the coming FatFS function calls.
 
 	/*** Change to and/or create the directory. ***/
@@ -51,11 +40,87 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 		if (res != FR_OK)
 		{
 			hndl->error_cb(DATA_LOGGER_ERROR_FILE_SYS_ERR);
-			free(data_arr);
 			vTaskDelete(NULL);
 		}
 	}
 
+	/*** Create the file name. ***/
+	char file_name[51];		//51 is 10 characters of each parameter, 6 for the _x.csv, 3 commas, 1 null terminator
+	memset(file_name, 0, sizeof(file_name));
+	for (uint8_t i = 0; i < num_params; i++)
+	{
+		memcpy(file_name + (i * 11), hndl->data[i]->name, 10);
+		if (i != num_params - 1)
+		{
+			strcat(file_name, ",");
+		}
+	}
+	strcat(file_name, "_1.csv");		//Add the file type.
+
+	/*** Check if the file name exists and change it if it does. ***/
+	FILINFO f_info;
+	res = f_stat(file_name, &f_info);
+	uint8_t counter = 1;
+	while (res == FR_OK)
+	{
+		counter++;
+		uint32_t str_len = strlen(file_name);
+		char file_name_new[51];
+		file_name[str_len - 6] = '\0';
+		sprintf(file_name_new, "%s_%u.csv", file_name, counter);
+		res = f_stat(file_name_new, &f_info);
+		memcpy(file_name, file_name_new, str_len);
+	}
+	/* *
+	 * End of creating file name. File name is stored in "file_name".
+	 * At this point the file name is sure to not exist so we can create
+	 * a new file using it.
+	 *  */
+
+	/*** Create the file. ***/
+	FIL file;
+	res = f_open(&file, file_name, FA_CREATE_NEW | FA_WRITE);
+	if (res != FR_OK)
+	{
+		hndl->error_cb(DATA_LOGGER_ERROR_FILE_SYS_ERR);
+		f_close(&file);		//Close the file.
+		f_chdir("0:/");		//Change the working directory back.
+		vTaskDelete(NULL);
+	}
+
+	/*** Based on the amount of parameters we are recording figure out how much data we can
+	 * record given the amount of space left in EEPROM (or whatever storage device, at the time
+	 * of writing this the first time, it's EEPROM).
+	 ***/
+	uint32_t remaining_space_bytes = filesys_get_free_space("0:/");				//Remaing bytes in EEPROM.
+	res = f_expand(&file, remaining_space_bytes, 0);							//Try to allocate it.
+	if (res != FR_OK)
+	{
+		uint32_t bytes_to_allocate = remaining_space_bytes / 2;
+		uint32_t largest_available_contiguous_size_bytes = 0;
+		for (uint8_t i = 0; i < 11; i++)
+		{
+			res = f_expand(&file, bytes_to_allocate, 0);							//Try to allocate it.
+			if (res != FR_OK)
+			{
+				bytes_to_allocate /= 2;
+			}
+			else if (res == FR_OK)
+			{
+				if (bytes_to_allocate > largest_available_contiguous_size_bytes)
+				{
+					largest_available_contiguous_size_bytes = bytes_to_allocate;
+				}
+				bytes_to_allocate = ((remaining_space_bytes - bytes_to_allocate) / 2) + bytes_to_allocate;
+			}
+		}
+		remaining_space_bytes = largest_available_contiguous_size_bytes;
+	}
+
+	uint32_t remaining_space_floats = remaining_space_bytes / sizeof(float);	//Remaining space for floats (the data were saving are floats).
+	uint32_t number_of_columns = num_params + 1;								//Plus one because we need an extra column for time.
+	uint32_t num_rows = remaining_space_floats / (number_of_columns);			//Plus 1 to num params because we have to record the time too.
+	float* data_arr = malloc(number_of_columns * num_rows * sizeof(float));		//Plus 1 to num params because we have to record the time too.
 
 
 	/*** Time to start recording data. ***/
@@ -91,24 +156,6 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 		}
 		rows_written = row;
 		vTaskDelay(hndl->period_ms);
-	}
-
-	/* *
-	 * End of creating file name. File name is stored in "file_name".
-	 * At this point the file name is sure to not exist so we can create
-	 * a new file using it.
-	 *  */
-
-	/*** Save the data to a .csv file. ***/
-	FIL file;
-	res = f_open(&file, file_name, FA_CREATE_NEW | FA_WRITE);
-	if (res != FR_OK)
-	{
-		hndl->error_cb(DATA_LOGGER_ERROR_FILE_SYS_ERR);
-		free(data_arr);
-		f_close(&file);		//Close the file.
-		f_chdir("0:/");		//Change the working directory back.
-		vTaskDelete(NULL);
 	}
 
 	/* *
