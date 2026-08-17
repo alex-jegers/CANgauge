@@ -13,6 +13,7 @@ extern "C" {
 #include "application/can_uds.h"
 #include "system/usb_task.h"
 #include "application/pwr_monitor.h"
+#include "application/data_logger.h"
 
 /**********     DEFINES      **********/
 
