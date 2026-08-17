@@ -283,7 +283,7 @@ uint32_t ui_settings_get_data_logger_rate()
 void ui_settings_set_data_logger_rate(uint32_t rate)
 {
 	char rate_str[10];
-	sprintf(rate_str, "%ul", rate);
+	sprintf(rate_str, "%lu", rate);
 	lv_textarea_set_text(prv_data_logging_period_text_area, (const char*)rate_str);
 
 }
