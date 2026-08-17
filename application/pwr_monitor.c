@@ -69,7 +69,7 @@ static void prv_pwr_monitor_task()
     while (adc_get_interrupt(ADC1, ADC_INT_FLAG_ADC_RDY) == 0);
     adc_start_conversion(ADC1);
     
-    prv_timer = xTimerCreate("PWR_MON_TIMER", pdMS_TO_TICKS(30000), pdFALSE, NULL, prv_pwr_monitor_timer_cb);
+    prv_timer = xTimerCreate("PWR_MON_TIMER", pdMS_TO_TICKS(30000), pdFALSE, NULL, &prv_pwr_monitor_timer_cb);
 
     while (1)
     {
