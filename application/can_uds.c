@@ -209,7 +209,16 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 			if (frame_type == PCI_FLOW_CTRL_FF)
 			{
 				uint32_t id = can_get_can_id(buf);
-				id -= 8;		//TODO: Fix for extended IDs.
+				if (prv_id_type == CAN_ID_STD)
+				{
+					id -= 8;
+				}
+				else if (prv_id_type == CAN_ID_XTD)
+				{
+					uint32_t val = id & 0x000000FF;
+					id = 0x18DA00F1 | (val << 8);
+
+				}
 				prv_flow_ctrl_last_service = prv_get_service_type(buf);
 				prv_flow_ctrl_remaining_bytes = ((buf->data[0] & 0x0F) << 8) | buf->data[1];
 				prv_flow_ctrl_ptr = buf->data[2];
