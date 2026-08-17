@@ -20,6 +20,7 @@ static bool prv_task_run = false;
 static TaskHandle_t prv_gauges_task_handle;
 static EventGroupHandle_t prv_event_group = NULL;
 static saej1979_current_data_t* active_param[4] = { NULL, NULL, NULL, NULL };
+static data_logger_handle_t prv_data_logger_handle;
 static const char* prv_vin_info_file_path = "0:/VIN Info.csv/";
 const char* const prv_vin_file_header = "VIN,Srvc0x1 PID0x00,Srvc0x1 PID0x20,Srvc0x1 PID0x40,Srvc0x1 PID0x60,Srvc0x1 PID0x80,Srvc0x1 PID0xA0,Srvc0x9 PID0x00,Srvc0x9 PID0x20,Srvc0x9 PID0x40,Srvc0x9 PID0x60,\n\0";
 
@@ -31,15 +32,18 @@ static void prv_update_units();							//Updates the units for the gauges based o
 static void prv_save_vin_to_file();
 static FRESULT prv_create_default_vin_file();
 
+/* Function callbacks. */
 static void prv_gauge_event_cb(lv_event_t* e);			//Handler for the gauge itself events.
 static void prv_gauge_view_btn_cb(lv_event_t* e);		//Handler for a available being selected.
 static void prv_refresh_btn_cb(lv_event_t* e);			//Handler for the refresh button being pressed.
 static void prv_restore_defaults_btn_cb(lv_event_t* e);	//Handler for the restore defaults button being pressed. Write the default VIN file and system info.
 static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brightness slider being changed.
-static void prv_settings_scr_load_handler(lv_event_t* e);
-static void prv_settings_btn_clicked_cb(lv_event_t* e);
-static void prv_settings_back_btn_clicked_cb(lv_event_t* e);
+static void prv_update_settings_from_eeprom();				//Updates the brightness slider position and unit drop down boxes with the values saved in eeprom.
+static void prv_save_settings_lvgl_cb(lv_event_t* e);
 static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer data btn in the settings menu.
+static void prv_toggle_data_logging_cb(lv_event_t* e);		//Handler for when the gauge screen is long pressed meaning it's time to start or stop data logging.
+static void prv_data_logger_error_cb(data_logger_error_code_t code);	//Handler for if the data logger errors out.
+static void prv_numberpad_closed_cb(lv_event_t* e);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
@@ -48,15 +52,19 @@ static void prv_task_gauges()
 	assert( can_uds_run() == pdPASS );
 
 	/* Set the LVGL event callbacks. */
-	ui_gauges_set_gauge_cb(prv_gauge_event_cb);			//A gauge is clicked (go back to selection screen).
-	ui_gauges_set_view_btn_cb(prv_gauge_view_btn_cb);		//A gauge is selected (load the gauge and set the CAN getter).
-    ui_set_brightness_slider_event_cb(prv_brightness_slider_handler);		//The brightness slider is changed (change the screen brightness).
-    ui_set_settings_scr_load_event_cb(prv_settings_scr_load_handler);		//The settings screen is loaded (recall the screen brightness value and demo mode status).
-    ui_set_settings_btn_event_cb(prv_settings_btn_clicked_cb);		//Stop the gauges and CAN tasks.
-    ui_set_settings_back_btn_event_cb(prv_settings_back_btn_clicked_cb);		//Start the gauges and CAN tasks again.
-    ui_set_settings_data_trnsf_btn_event_cb(prv_data_trsnf_btn_handler);	//Connect the EEPROM file system to USB.
-    ui_add_refresh_btn_event_cb(prv_refresh_btn_cb);						//The refresh button is pressed (restart the CAN connection.
+	ui_gauges_set_gauge_single_clicked_cb(prv_gauge_event_cb);					//A gauge is clicked (go back to selection screen).
+	ui_gauges_set_view_btn_cb(prv_gauge_view_btn_cb);							//A gauge is selected (load the gauge and set the CAN getter).
+    ui_set_brightness_slider_event_cb(prv_brightness_slider_handler);			//The brightness slider is changed (change the screen brightness).
+    ui_set_settings_scr_load_event_cb(prv_update_settings_from_eeprom);			//The settings screen is loaded (recall the screen brightness value and demo mode status).
+    ui_set_save_settings_cb(prv_save_settings_lvgl_cb);							//Start the gauges and CAN tasks again.
+    ui_set_settings_data_trnsf_btn_event_cb(prv_data_trsnf_btn_handler);		//Connect the EEPROM file system to USB.
+    ui_add_refresh_btn_event_cb(prv_refresh_btn_cb);							//The refresh button is pressed (restart the CAN connection.
     ui_settings_set_restore_defaults_btn_event_cb(prv_restore_defaults_btn_cb);	//Restore defaults button pressed.
+    ui_gauges_set_gauge_long_pressed_cb(prv_toggle_data_logging_cb);
+    ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
+    ui_set_numberpad_closed_cb(prv_numberpad_closed_cb);
+
+    prv_update_settings_from_eeprom();
 
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
@@ -427,6 +435,10 @@ static void prv_gauge_event_cb(lv_event_t* e)
 	/* Write to the save state file. */
 	char* str = "LAST GAUGES STATE,0,0,0,0,\n";
 	sys_mem_set_config_data(str);
+
+	/*Stop the data logger. */
+	data_logger_stop_recording(&prv_data_logger_handle);
+	lv_obj_clean(lv_layer_top());
 }
 
 static uint8_t prv_load_gauges(char* str[4], uint8_t num_gauges)
@@ -668,49 +680,36 @@ static void prv_brightness_slider_handler(lv_event_t* e)
 
 }
 
-static void prv_settings_scr_load_handler(lv_event_t* e)
+static void prv_update_settings_from_eeprom()
 {
-	lv_event_code_t code = lv_event_get_code(e);
 
-	if (code == LV_EVENT_SCREEN_LOADED)
-	{
-		/* Set the slider value. */
-		lv_obj_t** slider = lv_event_get_user_data(e);
-		uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
-		uint32_t slider_val = (timer_val - 5000) / 605;
-		lv_slider_set_value(*slider, slider_val, LV_ANIM_OFF);
+	/* Set the slider value. */
+	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
+	uint32_t slider_val = (timer_val - 5000) / 605;
+	ui_settings_set_brightness_slider_value(slider_val);
 
-		/* Set the units dropdowns. */
-		char units_config_str[25];
-		char* units;
-		sys_mem_get_config_data("PRESSURE UNITS", units_config_str);
-		units = sys_mem_csv_split(units_config_str, 1);
-		ui_settings_set_pressure_units_dropdown(units);
+	/* Set the units dropdowns. */
+	char units_config_str[25];
+	char* units;
+	sys_mem_get_config_data("PRESSURE UNITS", units_config_str);
+	units = sys_mem_csv_split(units_config_str, 1);
+	ui_settings_set_pressure_units_dropdown(units);
 
-		sys_mem_get_config_data("TEMPERATURE UNITS", units_config_str);
-		units = sys_mem_csv_split(units_config_str, 1);
-		ui_settings_set_temperature_units_dropdown(units);
-	}
+	sys_mem_get_config_data("TEMPERATURE UNITS", units_config_str);
+	units = sys_mem_csv_split(units_config_str, 1);
+	ui_settings_set_temperature_units_dropdown(units);
 
+	/*Get the data logging rate. */
+	char data_logging_rate_str[25];
+	char* data_log_rate_val_str;
+	uint32_t data_log_rate_val_uint = 0;
+	sys_mem_get_config_data("DATA LOG RATE", data_logging_rate_str);
+	data_log_rate_val_str = sys_mem_csv_split(data_logging_rate_str, 1);
+	data_log_rate_val_uint = strtoul(data_log_rate_val_str, NULL, 10);
+	ui_settings_set_data_logger_rate(data_log_rate_val_uint);
 }
 
-static void prv_settings_btn_clicked_cb(lv_event_t* e)
-{
-	/* Wait until the gauges task have been stopped. */
-	if (app_gauges_stop(pdMS_TO_TICKS(500)) == pdFALSE)
-	{
-		app_gauges_hard_stop();
-	}
-	ui_gauges_delete();
-
-
-	/* Initialize the boot loader, this sets the function CB
-	 * for the update firmware button.
-	 */
-	btldr_init();
-}
-
-static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
+static void prv_save_settings_lvgl_cb(lv_event_t* e)
 {
 	/* Write the backlight brigthness data to the config file. */
 	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
@@ -728,9 +727,6 @@ static void prv_settings_back_btn_clicked_cb(lv_event_t* e)
     sprintf(config_str, "TEMPERATURE UNITS,%s,\n", uints_str);
     sys_mem_set_config_data(config_str);
 
-
-	ui_settings_delete();
-	app_gauges_run();
 }
 
 static void prv_data_trsnf_btn_handler(lv_event_t* e)
@@ -754,5 +750,93 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e)
 		usb_connect(USB_FS_EEPROM);
 	}
 
+}
+
+static void prv_toggle_data_logging_cb(lv_event_t* e)
+{
+	/* If were not recording... */
+	if (!data_logger_recording(&prv_data_logger_handle))
+	{
+		/* Start a data logging task based on the params in the active_param array. */
+		data_logger_set_data(&prv_data_logger_handle, active_param);
+
+		/*Get the data logging rate. */
+		char data_logging_rate_str[25];
+		char* data_log_rate_val_str;
+		uint32_t data_log_rate_val_uint = 0;
+		sys_mem_get_config_data("DATA LOG RATE", data_logging_rate_str);
+		data_log_rate_val_str = sys_mem_csv_split(data_logging_rate_str, 1);
+		data_log_rate_val_uint = strtoul(data_log_rate_val_str, NULL, 10);
+		data_logger_set_period(&prv_data_logger_handle, data_log_rate_val_uint);
+
+		data_logger_set_error_cb(&prv_data_logger_handle, prv_data_logger_error_cb);
+		bool rtn_val = data_logger_start_recording(&prv_data_logger_handle);
+
+		if (rtn_val == false)
+		{
+			return;
+		}
+		/* Create the recording label and LED. */
+		lv_obj_t* rec_container = lv_obj_create(lv_layer_top());
+		lv_obj_set_size(rec_container, 130, 60);
+		lv_obj_set_style_bg_color(rec_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
+		lv_obj_set_style_bg_opa(rec_container, 127, LV_STATE_DEFAULT);
+		lv_obj_align(rec_container, LV_ALIGN_TOP_MID, 0, 0);
+		lv_obj_set_style_border_width(rec_container, 0, LV_STATE_DEFAULT);
+		lv_obj_set_style_radius(rec_container, 0, LV_STATE_DEFAULT);
+		lv_obj_set_scrollable(rec_container, false);
+		lv_obj_set_scrollbar_mode(rec_container, LV_SCROLLBAR_MODE_OFF);
+
+		lv_obj_t* lbl = lv_label_create(rec_container);
+		lv_label_set_text(lbl, "Rec.");
+		lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, LV_STATE_DEFAULT);
+		lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 0, 0);
+		lv_obj_set_style_text_color(lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+
+		lv_obj_t* led = lv_led_create(rec_container);
+		lv_obj_set_size(led, 6, 6);
+		lv_led_set_color(led, UI_COLOR_RED);
+		lv_led_set_brightness(led, LV_LED_BRIGHT_MAX);
+		lv_obj_align(led, LV_ALIGN_RIGHT_MID, 0, 0);
+	}
+	else
+	{
+		data_logger_stop_recording(&prv_data_logger_handle);
+		lv_obj_clean(lv_layer_top());
+	}
+
+}
+
+static void prv_data_logger_error_cb(data_logger_error_code_t code)
+{
+	lv_port_take_lvgl_mutex(1000);
+
+	lv_obj_clean(lv_layer_top());		//Get rid of the recording tag on the screen.
+
+	if (code == DATA_LOGGER_ERROR_NO_MEM)
+	{
+		lv_obj_t* msgbox = ui_helpers_show_msgbox("Logger out of memory.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msgbox, NULL);
+	}
+	else if (code == DATA_LOGGER_ERROR_FILE_SYS_ERR)
+	{
+		lv_obj_t* msgbox = ui_helpers_show_msgbox("Logger file system error.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msgbox, NULL);
+	}
+	else if (code == DATA_LOGGER_ERROR_HEAP_ERR)
+	{
+		lv_obj_t* msgbox = ui_helpers_show_msgbox("Logger internal memory error.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msgbox, NULL);
+	}
+	lv_port_give_lvgl_mutex();
+}
+
+static void prv_numberpad_closed_cb(lv_event_t* e)
+{
+	uint32_t data_logging_period = ui_settings_get_data_logger_rate();
+	data_logger_set_period(&prv_data_logger_handle, data_logging_period);
+    char config_str[25];
+    sprintf(config_str, "DATA LOG RATE,%lu,\n\0", data_logging_period);
+    sys_mem_set_config_data(config_str);
 }
 
