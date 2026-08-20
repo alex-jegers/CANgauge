@@ -741,11 +741,13 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e)
 		lv_obj_delete(msgbox);
 		usb_disconnect();
 		msg_box = NULL;
+		pwr_monitor_resume();
 	}
 	else	//It was the data transfer button.
 	{
 		lv_obj_t* btn = lv_event_get_target_obj(e);
 		lv_obj_t* lbl = lv_obj_get_child(btn, 0);
+		pwr_monitor_suspend();
 		msg_box = ui_helpers_show_msgbox("Entering mass storage mode.", "Close", prv_data_trsnf_btn_handler);
 		usb_connect(USB_FS_EEPROM);
 	}
