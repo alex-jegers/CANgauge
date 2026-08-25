@@ -1,6 +1,7 @@
 /**********     INCLUDES        **********/
 #include "ui_settings.h"
 #include "ui_gauges.h"
+#include "stdio.h"
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
@@ -15,8 +16,10 @@ static bool prv_is_init = false;
 /* UI Objects */
 static lv_obj_t* prv_settings_screen;					//Parent object.
 static lv_obj_t* prv_brightness_slider;					//Brightness slider.
-static lv_obj_t* prv_pressure_units_dropdown;			
-static lv_obj_t* prv_temperature_units_dropdown;
+static lv_obj_t* prv_pressure_units_dropdown;			//Pressure units dropdown.
+static lv_obj_t* prv_temperature_units_dropdown;		//Temperature units dropdown.
+static lv_obj_t* prv_speed_units_dropdown;				//Speed units dropdown.
+static lv_obj_t* prv_torque_units_dropdown;				//Torque units dropdown.
 static lv_obj_t* prv_settings_firmware_update_btn;		//Update firmware button.
 static lv_obj_t* prv_settings_data_trsnf_btn;			//Transfer data button.
 static lv_obj_t* prv_restore_defaults_btn;				//Restore Defaults button.
@@ -31,6 +34,7 @@ static lv_event_cb_t prv_numberpad_closed_cb = NULL;
 static void prv_create_brightness_slider();
 static void prv_text_area_clicked(lv_event_t* e);
 static void prv_number_pad_pressed(lv_event_t* e);
+static lv_obj_t* prv_helper_create_units_dropdown(lv_obj_t* parent, const char* lbl, const char* items, uint8_t width_pct);
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_create_brightness_slider()
@@ -96,6 +100,17 @@ static void prv_number_pad_pressed(lv_event_t* e)
 	}
 }
 
+static lv_obj_t* prv_helper_create_units_dropdown(lv_obj_t* parent, const char* lbl, const char* items, uint8_t width_pct)
+{
+	lv_obj_t* units_lbl = lv_label_create(parent);
+	lv_label_set_text_static(units_lbl, lbl);
+	lv_obj_set_style_text_color(units_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	lv_obj_t* dropdown = lv_dropdown_create(parent);
+	lv_dropdown_set_options_static(dropdown, items);
+	lv_obj_set_width(dropdown, lv_pct(width_pct));
+	return dropdown;
+}
+
 /**********		GLOBAL FUNCTION DEFINITIONS		**********/
 void ui_settings_load()
 {
@@ -121,34 +136,31 @@ void ui_settings_init()
 	prv_create_brightness_slider();
 
 	/* Pressure and temperature units dropdown box and label. */
-	lv_obj_t* units_container = lv_obj_create(prv_settings_screen);
-	lv_obj_set_size(units_container, 480, 150);
-	lv_obj_set_style_bg_opa(units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_border_width(units_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_layout(units_container, LV_LAYOUT_FLEX);
-	lv_obj_set_flex_flow(units_container, LV_FLEX_FLOW_ROW_WRAP);
-	lv_obj_set_flex_align(units_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
-	lv_obj_set_style_pad_row(units_container, 50, LV_STATE_DEFAULT);
+	lv_obj_t* units_container = lv_obj_create(prv_settings_screen);			//Creating the parent container.
+	lv_obj_set_size(units_container, lv_pct(100), 220);								//Size the parent container.
+	lv_obj_set_style_bg_opa(units_container, 0, LV_STATE_DEFAULT);			//BG opacity. 
+	lv_obj_set_style_border_width(units_container, 0, LV_STATE_DEFAULT);	//Border width.
+	lv_obj_set_layout(units_container, LV_LAYOUT_FLEX);						//Assign flex layout.
+	lv_obj_set_flex_flow(units_container, LV_FLEX_FLOW_ROW_WRAP);			//Flex flow type.
+	lv_obj_set_flex_align(units_container, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_set_style_pad_row(units_container, 20, LV_STATE_DEFAULT);		//Row padding.
 	lv_obj_clear_flag(units_container, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_scrollbar_mode(units_container, LV_SCROLLBAR_MODE_OFF);
 
-	lv_obj_t* pressure_units_lbl = lv_label_create(units_container);
-	lv_label_set_text_static(pressure_units_lbl, "Pressure Units: ");
-	lv_obj_set_style_text_color(pressure_units_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-
-	prv_pressure_units_dropdown = lv_dropdown_create(units_container);
-	lv_dropdown_set_options_static(prv_pressure_units_dropdown, "kPa\nPSI\nbar");
-	lv_obj_set_width(prv_pressure_units_dropdown, lv_pct(25));
-
-	lv_obj_t* temp_units_lbl = lv_label_create(units_container);
-	lv_label_set_text_static(temp_units_lbl, "Temperature Units: ");
-	lv_obj_set_style_text_color(temp_units_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-	prv_temperature_units_dropdown = lv_dropdown_create(units_container);
-	lv_dropdown_set_options_static(prv_temperature_units_dropdown, "C\nF");
-	lv_obj_set_width(prv_temperature_units_dropdown, lv_pct(25));
+	prv_pressure_units_dropdown = prv_helper_create_units_dropdown(units_container, "Pressure Units: ", "kPa\nPSI\nbar", 30);
+	prv_temperature_units_dropdown = prv_helper_create_units_dropdown(units_container, "Temperature Units:", "C\nF", 30);
+	prv_speed_units_dropdown = prv_helper_create_units_dropdown(units_container, "Speed Units: ", "kph\nmph", 30);
+	prv_torque_units_dropdown = prv_helper_create_units_dropdown(units_container, "Torque Units: ", "Nm\nft-lbs", 30);
 
 	/* Text area for data logging rate. */
 	lv_obj_t* text_area_container = lv_obj_create(prv_settings_screen);
+	lv_obj_t* txt_area_lbl = lv_label_create(text_area_container);
+	lv_obj_set_style_text_color(txt_area_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
+	lv_obj_align(txt_area_lbl, LV_ALIGN_TOP_LEFT, 0, 0);
+	lv_label_set_text(txt_area_lbl, "Data logging period (ms)");
+	lv_label_set_long_mode(txt_area_lbl, LV_LABEL_LONG_MODE_WRAP);
+	lv_obj_set_size(txt_area_lbl, lv_pct(40), lv_pct(80));
+	lv_obj_set_style_text_align(txt_area_lbl, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
 	lv_obj_clear_flag(text_area_container, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_scrollbar_mode(text_area_container, LV_SCROLLBAR_MODE_OFF);
 	lv_obj_set_style_bg_color(text_area_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
@@ -161,15 +173,8 @@ void ui_settings_init()
 	prv_data_logging_period_text_area = lv_textarea_create(text_area_container);
 	lv_textarea_set_one_line(prv_data_logging_period_text_area, true);
 	lv_obj_set_width(prv_data_logging_period_text_area, lv_pct(50));
-	lv_obj_align(prv_data_logging_period_text_area, LV_ALIGN_TOP_LEFT, 0, 0);
+	lv_obj_align(prv_data_logging_period_text_area, LV_ALIGN_TOP_RIGHT, 0, 0);
 	lv_obj_set_style_border_width(prv_data_logging_period_text_area, 2, LV_STATE_DEFAULT);
-	lv_obj_t* txt_area_lbl = lv_label_create(text_area_container);
-	lv_obj_set_style_text_color(txt_area_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
-	lv_obj_align(txt_area_lbl, LV_ALIGN_TOP_RIGHT, 0, 0);
-	lv_label_set_text(txt_area_lbl, "Data logging period (ms)");
-	lv_label_set_long_mode(txt_area_lbl, LV_LABEL_LONG_MODE_WRAP);
-	lv_obj_set_size(txt_area_lbl, lv_pct(40), lv_pct(80));
-	lv_obj_set_style_text_align(txt_area_lbl, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
 	lv_obj_add_event_cb(prv_data_logging_period_text_area, prv_text_area_clicked, LV_EVENT_SHORT_CLICKED, NULL);
 
 
@@ -207,6 +212,8 @@ void ui_set_save_settings_cb(lv_event_cb_t func)
 	lv_obj_add_event_cb(prv_brightness_slider, func, LV_EVENT_RELEASED, NULL);
 	lv_obj_add_event_cb(prv_temperature_units_dropdown, func, LV_EVENT_VALUE_CHANGED, NULL);
 	lv_obj_add_event_cb(prv_pressure_units_dropdown, func, LV_EVENT_VALUE_CHANGED, NULL);
+	lv_obj_add_event_cb(prv_speed_units_dropdown, func, LV_EVENT_VALUE_CHANGED, NULL);
+	lv_obj_add_event_cb(prv_torque_units_dropdown, func, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 void ui_add_settings_firmware_update_btn_event_cb(lv_event_cb_t func) 

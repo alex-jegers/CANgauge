@@ -636,12 +636,13 @@ void ui_gauges_init()
 	lv_obj_set_scroll_dir(prv_main_scr, LV_DIR_HOR);
 	lv_obj_set_scrollbar_mode(prv_main_scr, LV_SCROLLBAR_MODE_OFF);
 
-	/*CHECKBOXES CONTAINER.*/
+	/*CHECKBOXES CONTAINER. (page 1)*/
 	prv_gauge_select_btn_container = lv_obj_create(prv_main_scr);
 	lv_obj_set_size(prv_gauge_select_btn_container, 460, 480);
 	lv_obj_set_style_pad_top(prv_gauge_select_btn_container, 65, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_bottom(prv_gauge_select_btn_container, 100, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
 	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(prv_gauge_select_btn_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_layout(prv_gauge_select_btn_container, LV_LAYOUT_FLEX);
@@ -650,7 +651,7 @@ void ui_gauges_init()
 	lv_obj_set_scroll_dir(prv_gauge_select_btn_container, LV_DIR_VER);
 	lv_obj_set_scrollbar_mode(prv_gauge_select_btn_container, LV_SCROLLBAR_MODE_OFF);
 
-	/*OPTIONS BUTTON CONTAINER.*/
+	/*OPTIONS BUTTON CONTAINER. (page 2)*/
 	prv_options_btn_container = lv_obj_create(prv_main_scr);
 	lv_obj_set_size(prv_options_btn_container, 400, 480);
 	lv_obj_set_style_bg_color(prv_options_btn_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
@@ -671,7 +672,7 @@ void ui_gauges_init()
 	lv_image_set_src(logo, &cangauge_logo_header);
 	lv_obj_center(logo);
 
-	/* RESET BUTTON. */
+	/* REFRESH BUTTON. */
 	prv_refresh_btn = ui_helpers_create_btn_with_text(prv_gauge_select_btn_container, "Refresh", LV_FONT_DEFAULT);
 	lv_obj_set_width(prv_refresh_btn, lv_pct(100));
 
