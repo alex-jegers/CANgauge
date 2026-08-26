@@ -1,6 +1,6 @@
 /**********     INCLUDES        **********/
 #include "ui_settings.h"
-#include "ui_gauges.h"
+#include "ui_gauges_prv.h"
 #include "stdio.h"
 #include "stdlib.h"
 /**********     TYPEDEFS         **********/
