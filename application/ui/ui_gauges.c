@@ -22,10 +22,8 @@ static lv_anim_t _gauge_demo_animation;				//Animation that runs in demo mode, u
 static lv_obj_t* prv_main_scr;						//The parent object.
 static lv_obj_t* prv_gauge_select_btn_container;	//The container that holds the checkboxes.
 static lv_obj_t* prv_options_btn_container;			//The container that holds the options buttons
-static lv_obj_t* prv_view_btn;						//The view button.
 static lv_obj_t* prv_clear_btn;						//The clear button. 
 static lv_obj_t* prv_refresh_btn;					//The refresh button.
-static lv_obj_t* prv_settings_btn;					//The settings button.
 
 /* Internal Event Handlers */
 static void prv_gauge_select_checkbox_handler(lv_event_t* e);
