@@ -26,15 +26,14 @@ void ui_gauges_delete();		//Delete all the ui elements.
 * val:
 */
 void ui_gauges_set_gauge_value(float val, uint8_t idx);
-void ui_gauges_create_gauge_btn(const char* name);			//TODO: Remove, obsolete.
 void ui_gauges_create_gauge_checkbox(const char* name);
 void ui_gauges_create_gauge(const char* name, const char* units, int32_t min, int32_t max, uint8_t gauge_idx);
 void ui_gauges_set_number_of_gauges(uint8_t num_gauges);
 void ui_load_gauge_screen();
 void ui_delete_gauge_select_checkboxes();
-lv_obj_t* ui_gauges_get_options_container_obj();
-void ui_gauges_show_recording();				//Creates a small label on the top layer with blinking light that says "Rec." for when the device is data logging.
-void ui_gauges_hide_recording();				//
+
+
+
 
 /**
  * Callbacks for UI element events.
