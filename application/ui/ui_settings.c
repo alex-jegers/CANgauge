@@ -2,6 +2,7 @@
 #include "ui_settings.h"
 #include "ui_gauges.h"
 #include "stdio.h"
+#include "stdlib.h"
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
@@ -108,6 +109,7 @@ static lv_obj_t* prv_helper_create_units_dropdown(lv_obj_t* parent, const char* 
 	lv_obj_t* dropdown = lv_dropdown_create(parent);
 	lv_dropdown_set_options_static(dropdown, items);
 	lv_obj_set_width(dropdown, lv_pct(width_pct));
+	lv_obj_set_height(dropdown, 45);
 	return dropdown;
 }
 
@@ -143,14 +145,17 @@ void ui_settings_init()
 	lv_obj_set_layout(units_container, LV_LAYOUT_FLEX);						//Assign flex layout.
 	lv_obj_set_flex_flow(units_container, LV_FLEX_FLOW_ROW_WRAP);			//Flex flow type.
 	lv_obj_set_flex_align(units_container, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
-	lv_obj_set_style_pad_row(units_container, 20, LV_STATE_DEFAULT);		//Row padding.
+	lv_obj_set_style_pad_row(units_container, 30, LV_STATE_DEFAULT);		//Row padding.
+	const uint8_t side_pad = 0;
+	lv_obj_set_style_pad_right(units_container, side_pad, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(units_container, side_pad, LV_STATE_DEFAULT);
 	lv_obj_clear_flag(units_container, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_scrollbar_mode(units_container, LV_SCROLLBAR_MODE_OFF);
 
-	prv_pressure_units_dropdown = prv_helper_create_units_dropdown(units_container, "Pressure Units: ", "kPa\nPSI\nbar", 30);
+	prv_pressure_units_dropdown = prv_helper_create_units_dropdown(units_container, "Pressure Units: ", "kPa\nPSI\nbar", 40);
 	prv_temperature_units_dropdown = prv_helper_create_units_dropdown(units_container, "Temperature Units:", "C\nF", 30);
-	prv_speed_units_dropdown = prv_helper_create_units_dropdown(units_container, "Speed Units: ", "kph\nmph", 30);
-	prv_torque_units_dropdown = prv_helper_create_units_dropdown(units_container, "Torque Units: ", "Nm\nft-lbs", 30);
+	prv_speed_units_dropdown = prv_helper_create_units_dropdown(units_container, "Speed Units: ", "kph\nmph", 40);
+	prv_torque_units_dropdown = prv_helper_create_units_dropdown(units_container, "Torque Units: ", "Nm\nft-lbs", 40);
 
 	/* Text area for data logging rate. */
 	lv_obj_t* text_area_container = lv_obj_create(prv_settings_screen);
@@ -258,6 +263,28 @@ bool ui_settings_set_temperature_units_dropdown(char* units_str)
 	return true;
 }
 
+bool ui_settings_set_speed_units_dropdown(char* units_str)
+{
+	int8_t option_index = lv_dropdown_get_option_index(prv_speed_units_dropdown, units_str);
+	if (option_index == -1)
+	{
+		return false;
+	}
+	lv_dropdown_set_selected(prv_speed_units_dropdown, option_index);
+	return true;
+}
+
+bool ui_settings_set_torque_units_dropdown(char* units_str)
+{
+	int8_t option_index = lv_dropdown_get_option_index(prv_torque_units_dropdown, units_str);
+	if (option_index == -1)
+	{
+		return false;
+	}
+	lv_dropdown_set_selected(prv_torque_units_dropdown, option_index);
+	return true;
+}
+
 void ui_settings_set_brightness_slider_value(uint32_t val)
 {
 	lv_slider_set_value(prv_brightness_slider, val, LV_ANIM_OFF);
@@ -266,12 +293,21 @@ void ui_settings_set_brightness_slider_value(uint32_t val)
 void ui_settings_get_pressure_units_dropdown(char* buf)
 {
 	lv_dropdown_get_selected_str(prv_pressure_units_dropdown, buf, 0);
-
 }
 
 void ui_settings_get_temperature_units_dropdown(char* buf)
 {
 	lv_dropdown_get_selected_str(prv_temperature_units_dropdown, buf, 0);
+}
+
+void ui_settings_get_speed_units_dropdown(char* buf)
+{
+	lv_dropdown_get_selected_str(prv_speed_units_dropdown, buf, 0);
+}
+
+void ui_settings_get_torque_units_dropdown(char* buf)
+{
+	lv_dropdown_get_selected_str(prv_torque_units_dropdown, buf, 0);
 }
 
 uint32_t ui_settings_get_brightness_slider_value()

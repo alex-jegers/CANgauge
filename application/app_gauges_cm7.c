@@ -699,6 +699,14 @@ static void prv_update_settings_from_eeprom()
 	units = sys_mem_csv_split(units_config_str, 1);
 	ui_settings_set_temperature_units_dropdown(units);
 
+	sys_mem_get_config_data("SPEED UNITS", units_config_str);
+	units = sys_mem_csv_split(units_config_str, 1);
+	ui_settings_set_speed_units_dropdown(units);
+
+	sys_mem_get_config_data("TORQUE UNITS", units_config_str);
+	units = sys_mem_csv_split(units_config_str, 1);
+	ui_settings_set_torque_units_dropdown(units);
+
 	/*Get the data logging rate. */
 	char data_logging_rate_str[25];
 	char* data_log_rate_val_str;
@@ -718,13 +726,21 @@ static void prv_save_settings_lvgl_cb(lv_event_t* e)
     sys_mem_set_config_data(config_str);
 
     /* Write the units to the config file. */
-    char uints_str[5];
+    char uints_str[7];
     ui_settings_get_pressure_units_dropdown(uints_str);
     sprintf(config_str, "PRESSURE UNITS,%s,\n", uints_str);
     sys_mem_set_config_data(config_str);
 
     ui_settings_get_temperature_units_dropdown(uints_str);
     sprintf(config_str, "TEMPERATURE UNITS,%s,\n", uints_str);
+    sys_mem_set_config_data(config_str);
+
+    ui_settings_get_speed_units_dropdown(uints_str);
+    sprintf(config_str, "SPEED UNITS,%s,\n", uints_str);
+    sys_mem_set_config_data(config_str);
+
+    ui_settings_get_torque_units_dropdown(uints_str);
+    sprintf(config_str, "TORQUE UNITS,%s,\n", uints_str);
     sys_mem_set_config_data(config_str);
 
 }

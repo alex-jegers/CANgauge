@@ -37,11 +37,16 @@ void ui_set_numberpad_closed_cb(lv_event_cb_t func);
 bool ui_settings_set_pressure_units_dropdown(char* units_str);	//Units_str must be PSI, kPa, or bar. Anything else will return false.
 bool ui_settings_set_temperature_units_dropdown(char* units_str);	//Units_str must be C or F. Anything else will return false.
 void ui_settings_set_brightness_slider_value(uint32_t val);
+bool ui_settings_set_speed_units_dropdown(char* units_str);
+bool ui_settings_set_torque_units_dropdown(char* units_str);
+void ui_settings_set_data_logger_rate(uint32_t rate);
 void ui_settings_get_pressure_units_dropdown(char* buf);
 void ui_settings_get_temperature_units_dropdown(char* buf);
+void ui_settings_get_speed_units_dropdown(char* buf);
+void ui_settings_get_torque_units_dropdown(char* buf);
 uint32_t ui_settings_get_brightness_slider_value();
 uint32_t ui_settings_get_data_logger_rate();					//Returns the value typed in the data logger rate text area.
-void ui_settings_set_data_logger_rate(uint32_t rate);
+
 
 #ifdef __cplusplus
 } /*extern "C"*/
