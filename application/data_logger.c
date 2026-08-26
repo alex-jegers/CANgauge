@@ -65,7 +65,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	{
 		counter++;
 		uint32_t str_len = strlen(file_name);
-		char file_name_new[51];
+		char file_name_new[60];
 		file_name[str_len - 6] = '\0';
 		sprintf(file_name_new, "%s_%u.csv", file_name, counter);
 		res = f_stat(file_name_new, &f_info);
