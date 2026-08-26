@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "ui_gauges.h"
+#include "ui_gauges_prv.h"
 #include "ui_settings.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,7 +22,8 @@ static lv_anim_t _gauge_demo_animation;				//Animation that runs in demo mode, u
 /* UI Objects. */
 static lv_obj_t* prv_main_scr;						//The parent object.
 static lv_obj_t* prv_gauge_select_btn_container;	//The container that holds the checkboxes.
-static lv_obj_t* prv_options_btn_container;			//The container that holds the options buttons
+static lv_obj_t* prv_options_btn_container;			//The container that holds the options buttons.
+static lv_obj_t* prv_graph_container;				//Container for data logging data graph and file mgmt.
 static lv_obj_t* prv_clear_btn;						//The clear button. 
 static lv_obj_t* prv_refresh_btn;					//The refresh button.
 
@@ -637,10 +639,10 @@ void ui_gauges_init()
 	/*CHECKBOXES CONTAINER. (page 1)*/
 	prv_gauge_select_btn_container = lv_obj_create(prv_main_scr);
 	lv_obj_set_size(prv_gauge_select_btn_container, 460, 480);
-	lv_obj_set_style_pad_top(prv_gauge_select_btn_container, 65, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_top(prv_gauge_select_btn_container, 55, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_bottom(prv_gauge_select_btn_container, 100, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_right(prv_gauge_select_btn_container, 80, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(prv_gauge_select_btn_container, 40, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(prv_gauge_select_btn_container, 40, LV_STATE_DEFAULT);
 	lv_obj_set_style_bg_color(prv_gauge_select_btn_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(prv_gauge_select_btn_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_layout(prv_gauge_select_btn_container, LV_LAYOUT_FLEX);
@@ -658,6 +660,9 @@ void ui_gauges_init()
 	lv_obj_set_flex_flow(prv_options_btn_container, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_flex_align(prv_options_btn_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 	lv_obj_set_scroll_dir(prv_options_btn_container, LV_DIR_VER);
+
+	/*GRAPH AND FILE MANAGEMENT CONTAINER. (page 3).*/
+	prv_graph_container = lv_obj_create(prv_main_scr);
 
 	/* HEADER LOGO. */
 	lv_obj_t* logo_container = lv_obj_create(prv_gauge_select_btn_container);
@@ -714,12 +719,6 @@ void ui_gauges_set_gauge_value(float val, uint8_t idx)
 
 }
 
-void ui_gauges_create_gauge_btn(const char* name)
-{
-	lv_obj_t* btn = ui_helpers_create_btn_with_text(prv_gauge_select_btn_container, name, LV_FONT_DEFAULT);
-	//lv_obj_add_event(btn, prv_gauge_select_btn_handler, LV_EVENT_CLICKED, NULL);
-}
-
 void ui_gauges_create_gauge_checkbox(const char* name)
 {
 	lv_obj_t* checkbox = ui_helpers_create_checkbox_with_text(prv_gauge_select_btn_container, name, LV_FONT_DEFAULT);
@@ -768,6 +767,11 @@ void ui_delete_gauge_select_checkboxes()
 lv_obj_t* ui_gauges_get_options_container_obj()
 {
 	return prv_options_btn_container;
+}
+
+lv_obj_t* ui_gauges_get_graph_container_obj()
+{
+	return prv_graph_container;
 }
 
 void ui_set_settings_btn_event_cb(lv_event_cb_t func)
