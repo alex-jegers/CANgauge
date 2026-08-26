@@ -29,6 +29,9 @@ int main(void)
    	/* Enable the battery monitor. */
    	pwr_monitor_run(3);
 
+   	/* Start the file manager task. */
+   	file_mngr_run();
+
 	/* Load the menu screen. */
 	system_set_ui_init_cb(app_gauges_run);
 
