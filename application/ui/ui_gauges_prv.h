@@ -13,7 +13,8 @@ extern "C" {
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
-
+lv_obj_t* ui_gauges_get_options_container_obj();
+lv_obj_t* ui_gauges_get_graph_container_obj();
 
 
 
