@@ -721,7 +721,7 @@ static void prv_save_settings_lvgl_cb(lv_event_t* e)
 {
 	/* Write the backlight brigthness data to the config file. */
 	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
-    char config_str[25];
+    char config_str[28];
     sprintf(config_str, "BRIGHTNESS,%lu,\n", timer_val);
     sys_mem_set_config_data(config_str);
 
