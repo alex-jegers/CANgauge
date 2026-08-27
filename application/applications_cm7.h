@@ -14,6 +14,7 @@ extern "C" {
 #include "system/usb_task.h"
 #include "application/pwr_monitor.h"
 #include "application/data_logger.h"
+#include "application/file_mngr/file_mngr.h"
 
 /**********     DEFINES      **********/
 
