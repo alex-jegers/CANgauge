@@ -5,6 +5,7 @@
 #include "application/can_uds_def.h"
 #include "ui/ui_gauges.h"
 #include "ui/ui_settings.h"
+#include "ui/ui_graph.h"
 
 
 /**********		DEFINES		**********/
@@ -593,6 +594,8 @@ static void prv_restore_defaults_btn_cb(lv_event_t* e)
 {
 	FRESULT res1;
 	FRESULT res2;
+	FRESULT res3;
+	sys_mem_init_file_systems(true);			//Format EEPROM file system.
 	res1 = sys_mem_create_default_config_file();
 	if (res1 != FR_OK)
 	{
@@ -605,7 +608,12 @@ static void prv_restore_defaults_btn_cb(lv_event_t* e)
 		lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to restore VIN file.", NULL, NULL);
 		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
 	}
-	if (res1 == FR_OK && res2 == FR_OK)
+	res3 = f_mkdir("0:/Data Logs/");
+	if (res3 != FR_OK)
+	{
+		error_show_msgbox("Failed to create logs directory.", NULL, NULL);
+	}
+	if (res1 == FR_OK && res2 == FR_OK && res3 == FR_OK)
 	{
 		lv_obj_t* msg_box = ui_helpers_show_msgbox("Default files restored.", NULL, NULL);
 		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
@@ -629,6 +637,7 @@ void app_gauges_run()
 	/* Load the UI. */
 	ui_gauges_init();
 	ui_settings_init();
+	ui_graph_init();
 	ui_gauges_load();
 
 	/* Create the task. */
@@ -802,7 +811,7 @@ static void prv_toggle_data_logging_cb(lv_event_t* e)
 		lv_obj_align(rec_container, LV_ALIGN_TOP_MID, 0, 0);
 		lv_obj_set_style_border_width(rec_container, 0, LV_STATE_DEFAULT);
 		lv_obj_set_style_radius(rec_container, 0, LV_STATE_DEFAULT);
-		lv_obj_set_scrollable(rec_container, false);
+		lv_obj_clear_flag(rec_container, LV_OBJ_FLAG_SCROLLABLE);
 		lv_obj_set_scrollbar_mode(rec_container, LV_SCROLLBAR_MODE_OFF);
 
 		lv_obj_t* lbl = lv_label_create(rec_container);
