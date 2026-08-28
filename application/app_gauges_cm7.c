@@ -741,11 +741,13 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e)
 		lv_obj_delete(msgbox);
 		usb_disconnect();
 		msg_box = NULL;
+		pwr_monitor_resume();
 	}
 	else	//It was the data transfer button.
 	{
 		lv_obj_t* btn = lv_event_get_target_obj(e);
 		lv_obj_t* lbl = lv_obj_get_child(btn, 0);
+		pwr_monitor_suspend();
 		msg_box = ui_helpers_show_msgbox("Entering mass storage mode.", "Close", prv_data_trsnf_btn_handler);
 		usb_connect(USB_FS_EEPROM);
 	}
@@ -784,7 +786,7 @@ static void prv_toggle_data_logging_cb(lv_event_t* e)
 		lv_obj_align(rec_container, LV_ALIGN_TOP_MID, 0, 0);
 		lv_obj_set_style_border_width(rec_container, 0, LV_STATE_DEFAULT);
 		lv_obj_set_style_radius(rec_container, 0, LV_STATE_DEFAULT);
-		lv_obj_set_scrollable(rec_container, false);
+		lv_obj_remove_flag(rec_container, LV_OBJ_FLAG_SCROLLABLE);
 		lv_obj_set_scrollbar_mode(rec_container, LV_SCROLLBAR_MODE_OFF);
 
 		lv_obj_t* lbl = lv_label_create(rec_container);
