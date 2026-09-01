@@ -3,6 +3,7 @@
 #include "applications_cm7.h"
 #include "application/bootloader/bootloader.h"
 #include "application/can_uds_def.h"
+#include "system/error_handler.h"
 #include "ui/ui_gauges.h"
 #include "ui/ui_settings.h"
 #include "ui/ui_graph.h"
@@ -611,7 +612,7 @@ static void prv_restore_defaults_btn_cb(lv_event_t* e)
 	res3 = f_mkdir("0:/Data Logs/");
 	if (res3 != FR_OK)
 	{
-		error_show_msgbox("Failed to create logs directory.", NULL, NULL);
+		error_show_msgbox("Failed to create logs directory.");
 	}
 	if (res1 == FR_OK && res2 == FR_OK && res3 == FR_OK)
 	{
