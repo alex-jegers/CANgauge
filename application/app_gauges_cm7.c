@@ -867,7 +867,7 @@ static void prv_numberpad_closed_cb(lv_event_t* e)
 	uint32_t data_logging_period = ui_settings_get_data_logger_rate();
 	data_logger_set_period(&prv_data_logger_handle, data_logging_period);
     char config_str[25];
-    sprintf(config_str, "DATA LOG RATE,%lu,\n\0", data_logging_period);
+    sprintf(config_str, "DATA LOG RATE,%lu,\n", data_logging_period);
     sys_mem_set_config_data(config_str);
 }
 
