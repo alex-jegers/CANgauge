@@ -13,6 +13,7 @@
 static lv_obj_t* prv_main_container;
 static lv_obj_t* prv_chart;
 static lv_obj_t* prv_files_list;
+static lv_obj_t* prv_delete_btn;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 
 /**********		STATIC FUNCTION DEFINITIONS		**********/
@@ -30,9 +31,10 @@ void ui_graph_init()
 	lv_obj_set_style_pad_right(prv_main_container, 10, 0);
 	lv_obj_set_flex_flow(prv_main_container, LV_FLEX_FLOW_COLUMN);
 	lv_obj_set_style_flex_main_place(prv_main_container, LV_FLEX_ALIGN_CENTER, 0);
-	lv_obj_set_style_flex_cross_place(prv_main_container, LV_FLEX_ALIGN_START, 0);
+	lv_obj_set_style_flex_cross_place(prv_main_container, LV_FLEX_ALIGN_CENTER, 0);
 	lv_obj_set_style_flex_track_place(prv_main_container, LV_FLEX_ALIGN_SPACE_EVENLY, 0);
 
+	/* Create the chart. */
 	prv_chart = lv_chart_create(prv_main_container);
 	lv_obj_set_size(prv_chart, lv_pct(100), 240);
 	lv_chart_set_type(prv_chart, LV_CHART_TYPE_LINE);
@@ -40,13 +42,18 @@ void ui_graph_init()
 	lv_obj_set_style_pad_right(prv_chart, 25, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(prv_chart, 25, LV_STATE_DEFAULT);
 
+	/* Create the file list. */
 	prv_files_list = lv_list_create(prv_main_container);
 	lv_obj_set_size(prv_files_list, lv_pct(100), 200);
+
+	/* Create the delete button. */
+	prv_delete_btn = ui_helpers_create_btn_with_text(prv_main_container, "Delete", LV_FONT_DEFAULT);
 }
 
 uint32_t ui_graph_get_number_of_list_items()
 {
-	return lv_obj_get_child_count(prv_files_list);
+	uint32_t rtn_val = lv_obj_get_child_count(prv_files_list);
+	return rtn_val;
 }
 
 lv_obj_t* ui_graph_add_file_to_list(char* file_name)
@@ -75,4 +82,10 @@ void ui_graph_delete_file_from_list(uint32_t index)
 {
 	lv_obj_t* btn = lv_obj_get_child(prv_files_list, index);
 	lv_obj_delete(btn);
+}
+
+void ui_graph_set_delete_btn_cb(lv_event_cb_t func)
+{
+	if (func == NULL) { return; }
+	lv_obj_add_event_cb(prv_delete_btn, func, LV_EVENT_SHORT_CLICKED, NULL);
 }

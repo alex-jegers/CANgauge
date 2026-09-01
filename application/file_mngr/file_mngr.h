@@ -23,6 +23,7 @@ extern "C" {
  *      returns:
  */
 bool file_mngr_run();
+bool file_mngr_stop();
 
 
 #ifdef __cplusplus
