@@ -46,7 +46,7 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e);			//Handler for trasnfer 
 static void prv_toggle_data_logging_cb(lv_event_t* e);		//Handler for when the gauge screen is long pressed meaning it's time to start or stop data logging.
 static void prv_data_logger_error_cb(data_logger_error_code_t code);	//Handler for if the data logger errors out.
 static void prv_numberpad_closed_cb(lv_event_t* e);
-
+static void prv_low_power_mode_cb();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
 {
@@ -65,6 +65,9 @@ static void prv_task_gauges()
     ui_gauges_set_gauge_long_pressed_cb(prv_toggle_data_logging_cb);
     ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
     ui_set_numberpad_closed_cb(prv_numberpad_closed_cb);
+
+    /* Set the low power mode callbacks. */
+    pwr_monitor_add_low_pwr_mode_cb(prv_low_power_mode_cb);
 
     prv_update_settings_from_eeprom();
 
@@ -866,5 +869,18 @@ static void prv_numberpad_closed_cb(lv_event_t* e)
     char config_str[25];
     sprintf(config_str, "DATA LOG RATE,%lu,\n\0", data_logging_period);
     sys_mem_set_config_data(config_str);
+}
+
+static void prv_low_power_mode_cb()
+{
+	app_gauges_stop(portMAX_DELAY);
+	can_uds_stop(pdMS_TO_TICKS(1000));
+	can_transmit_stop(pdMS_TO_TICKS(1000));
+	file_mngr_stop();
+	system_blink_stop();
+	lv_port_stop(1000);
+	data_logger_stop_recording(&prv_data_logger_handle);
+	while (data_logger_recording(&prv_data_logger_handle)) {}	//Do nothing while we wait for the handle to finish its recording.
+
 }
 

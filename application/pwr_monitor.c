@@ -1,6 +1,5 @@
 /**********     INCLUDES        **********/
 #include "pwr_monitor.h"
-#include "application/applications_cm7.h"
 #include <assert.h>
 
 /**********		DEFINES		**********/
@@ -10,6 +9,13 @@
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
+/**********     TYPEDEFS      **********/
+typedef struct prv_cb_ll
+{
+	void (*func_cb)();
+	struct prv_cb_ll* next;
+}prv_cb_ll_t;
+
 /**********		STATIC VARIABLES		**********/
 TaskHandle_t task_handle_battery_monitor = NULL;
 static uint32_t prv_measurement = 0;
@@ -17,6 +23,7 @@ static uint32_t prv_low_threshold = 0x6fb4;
 static uint32_t prv_high_threshold = 0x9133;
 static bool prv_enter_low_power_mode = false;
 static TimerHandle_t prv_timer = NULL;
+static prv_cb_ll_t* prv_low_pwr_mode_cb_head;
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_adc_interrupt_handler();
@@ -144,11 +151,15 @@ void pwr_monitor_resume()
 void pwr_monitor_enter_low_pwr_mode()
 {
 	/* Stop all other tasks. */
-	app_gauges_stop(portMAX_DELAY);
-	can_uds_stop(pdMS_TO_TICKS(1000));
-	can_transmit_stop(pdMS_TO_TICKS(1000));
-	lv_port_stop(pdMS_TO_TICKS(1000));
-	system_blink_stop(portMAX_DELAY);
+	/*
+	data_logger_stop_all_recording(1000);
+*/
+	prv_cb_ll_t* current = prv_low_pwr_mode_cb_head;
+	while (current != NULL)
+	{
+		current->func_cb();
+		current = current->next;
+	}
 
 	taskENTER_CRITICAL();
 
@@ -181,4 +192,32 @@ void pwr_monitor_enter_low_pwr_mode()
 	io_deinit_gpioj();
 
 	taskEXIT_CRITICAL();
+}
+
+bool pwr_monitor_add_low_pwr_mode_cb(void (*func)())
+{
+	if (func == NULL)
+	{
+		return false;
+	}
+	prv_cb_ll_t* new = malloc(sizeof(prv_cb_ll_t));		//Create a new list item.
+	if (new == NULL) { return false; }					//Return on a heap error.
+	new->func_cb = func;								//Set the callback.
+
+	if (prv_low_pwr_mode_cb_head == NULL)				//Check if the head has been assigned yet.
+	{
+		new->next = NULL;
+		prv_low_pwr_mode_cb_head = new;
+		return true;
+	}
+
+	new->next = prv_low_pwr_mode_cb_head;				//Set the next item in the list equal to the current head of the list.
+	prv_low_pwr_mode_cb_head = new;						//The added item is now the new head.
+}
+bool pwr_monitor_remove_low_pwr_mode_cb(void (*func()))
+{
+	prv_cb_ll_t* current = prv_low_pwr_mode_cb_head;
+	prv_cb_ll_t* next = prv_low_pwr_mode_cb_head->next;
+
+
 }

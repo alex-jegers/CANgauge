@@ -9,6 +9,7 @@ extern "C" {
 /**********     INCLUDES        **********/
 #include "cangauge.h"
 
+/**********     TYPEDEFS      **********/
 
 /**********     DEFINES      **********/
 
@@ -19,7 +20,8 @@ void pwr_monitor_run(uint8_t priority);
 void pwr_monitor_suspend();
 void pwr_monitor_resume();
 void pwr_monitor_enter_low_pwr_mode();
-
+bool pwr_monitor_add_low_pwr_mode_cb(void (*func)());
+bool pwr_monitor_remove_low_pwr_mode_cb(void (*func()));
 
 
 #ifdef __cplusplus
