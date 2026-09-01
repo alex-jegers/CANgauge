@@ -12,10 +12,7 @@
  */
 
 /* clang-format off */
-#define ENABLE_LVGL		1 /* Set this to "1" to enable content */
-
-
-#if ENABLE_LVGL
+#if 1 /* Set this to "1" to enable content */
 
 #ifndef LV_CONF_H
 #define LV_CONF_H
@@ -72,7 +69,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /** Size of memory available for `lv_malloc()` in bytes (>= 2kB) */
-    #define LV_MEM_SIZE (128 * 1024)          /**< [bytes] */
+    #define LV_MEM_SIZE (128 * 1024U)          /**< [bytes] */
 
     /** Size of the memory expand for `lv_malloc()` in bytes */
     #define LV_MEM_POOL_EXPAND_SIZE 0
@@ -198,7 +195,7 @@
     #define LV_DRAW_SW_DRAW_UNIT_CNT    1
 
     /** Use Arm-2D to accelerate software (sw) rendering. */
-    #define LV_USE_DRAW_ARM2D_SYNC      0			//TODO: Add this and figure out how this was enabled but not throwing an error before???
+    #define LV_USE_DRAW_ARM2D_SYNC      0			//TODO: ADD this in.
 
     /** Enable native helium assembly to be compiled. */
     #define LV_USE_NATIVE_HELIUM_ASM    0
@@ -626,7 +623,7 @@
 #define LV_ATTRIBUTE_LARGE_RAM_ARRAY
 
 /** Place performance critical functions into a faster memory (e.g RAM) */
-#define LV_ATTRIBUTE_FAST_MEM		//__attribute__((__section__(".itcm")))
+#define LV_ATTRIBUTE_FAST_MEM
 
 /** Export integer constant to binding. This macro is used with constants in the form of LV_<CONST> that
  *  should also appear on LVGL binding API such as MicroPython. */
@@ -886,7 +883,7 @@
 #define LV_USE_THEME_SIMPLE 1
 
 /** A theme designed for monochrome displays */
-#define LV_USE_THEME_MONO 1
+#define LV_USE_THEME_MONO 0
 
 /*==================
  * LAYOUTS
@@ -1119,7 +1116,7 @@
      *  - Requires `LV_USE_SYSMON = 1` */
     #define LV_USE_PERF_MONITOR 1
     #if LV_USE_PERF_MONITOR
-        #define LV_USE_PERF_MONITOR_POS LV_ALIGN_TOP_MID
+        #define LV_USE_PERF_MONITOR_POS LV_ALIGN_BOTTOM_RIGHT
 
         /** 0: Displays performance data on the screen; 1: Prints performance data using log. */
         #define LV_USE_PERF_MONITOR_LOG_MODE 1
@@ -1133,7 +1130,7 @@
 #else
     #define LV_USE_MEM_MONITOR 0
 #endif
-	#if LV_USE_MEM_MONITOR
+    #if LV_USE_MEM_MONITOR
         #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_MID
     #endif
 #endif /*LV_USE_SYSMON*/
@@ -1415,7 +1412,7 @@
 #define LV_USE_RENESAS_GLCDC    0
 
 /** Driver for ST LTDC */
-#define LV_USE_ST_LTDC    0
+#define LV_USE_ST_LTDC    0			//TODO: Use??
 #if LV_USE_ST_LTDC
     /* Only used for partial. */
     #define LV_ST_LTDC_USE_DMA2D_FLUSH 0
@@ -1460,7 +1457,7 @@
 *======================*/
 
 /** Enable examples to be built with the library. */
-#define LV_BUILD_EXAMPLES 0
+#define LV_BUILD_EXAMPLES 1
 
 /** Build the demos */
 #define LV_BUILD_DEMOS 1
@@ -1471,13 +1468,13 @@
 
 #if LV_BUILD_DEMOS
     /** Show some widgets. This might be required to increase `LV_MEM_SIZE`. */
-    #define LV_USE_DEMO_WIDGETS 1
-    
+    #define LV_USE_DEMO_WIDGETS 0
+
     /** Demonstrate usage of encoder and keyboard. */
     #define LV_USE_DEMO_KEYPAD_AND_ENCODER 0
 
     /** Benchmark your system */
-    #define LV_USE_DEMO_BENCHMARK 1
+    #define LV_USE_DEMO_BENCHMARK 0
 
     #if LV_USE_DEMO_BENCHMARK
         /** Use fonts where bitmaps are aligned 16 byte and has Nx16 byte stride */
