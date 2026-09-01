@@ -200,6 +200,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	free(data_arr);
 	f_close(&file);		//Close the file.
 	f_chdir("0:/");		//Change the working directory back.
+	hndl->task_handle = NULL;		//Nullify handle so we can check when the task has been deleted.
 	vTaskDelete(NULL);	//Delete the task.
 }
 
@@ -215,6 +216,10 @@ bool data_logger_start_recording(data_logger_handle_t* handle)
 
 void data_logger_stop_recording(data_logger_handle_t* hndl)
 {
+	if (hndl == NULL)
+	{
+		return;
+	}
 	hndl->run = false;
 }
 
@@ -234,5 +239,12 @@ void data_logger_set_error_cb(data_logger_handle_t* hndl, void (*func)(data_logg
 
 bool data_logger_recording(data_logger_handle_t* hndl)
 {
-	return hndl->run;
+	if (hndl->task_handle != NULL)
+	{
+		return true;	//The task still exists.
+	}
+	else
+	{
+		return false;	//The handle has been nullified and the freeRTOS task deleted.
+	}
 }
