@@ -15,11 +15,11 @@ extern "C" {
 	#define BUILD_TYPE_STR		"Release"
 #elif DEBUG
 	#define BUILD_TYPE_STR		"Debug"
-#elif	DEBUG_OFAST
+#elif DEBUG_OFAST
 	#define BUILD_TYPE_STR		"Dbg Ofast"
 #endif
 
-#define VERSION					"v1.3.226 08/31/26 04:51PM"
+#define VERSION					"v1.3.320 09/05/26 09:26PM"
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
