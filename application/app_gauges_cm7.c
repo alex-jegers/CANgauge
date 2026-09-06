@@ -53,6 +53,7 @@ static void prv_task_gauges()
 	/* Start the CAN receiver task. */
 	assert( can_uds_run() == pdPASS );
 
+	assert(lv_port_take_lvgl_mutex(portMAX_DELAY));
 	/* Set the LVGL event callbacks. */
 	ui_gauges_set_gauge_single_clicked_cb(prv_gauge_event_cb);					//A gauge is clicked (go back to selection screen).
 	ui_gauges_set_view_btn_cb(prv_gauge_view_btn_cb);							//A gauge is selected (load the gauge and set the CAN getter).
@@ -65,7 +66,8 @@ static void prv_task_gauges()
     ui_gauges_set_gauge_long_pressed_cb(prv_toggle_data_logging_cb);
     ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
     ui_set_numberpad_closed_cb(prv_numberpad_closed_cb);
-
+	lv_port_give_lvgl_mutex();
+	
     /* Set the low power mode callbacks. */
     pwr_monitor_add_low_pwr_mode_cb(prv_low_power_mode_cb);
 
