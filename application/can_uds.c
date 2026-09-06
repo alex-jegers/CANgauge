@@ -38,13 +38,14 @@ EventGroupHandle_t prv_event_group = NULL;
 SemaphoreHandle_t prv_rx_fifo1_counter = NULL;
 
 static uint8_t prv_current_data[0xB0][24];
+
 static uint8_t prv_infotype_data[0x78][24];
 static uint32_t prv_query_can_id = 0x00;
 static uint32_t prv_response_can_id = 0x00;			//The ID that the car responds with when were checking for an ECU present.
 static can_id_t prv_id_type = 0x00;
 
 static uint8_t prv_flow_ctrl_ptr = 0;
-static uint8_t prv_flow_ctrl_remaining_bytes = 0;
+static int8_t prv_flow_ctrl_remaining_bytes = 0;
 static uds_service_type_t prv_flow_ctrl_last_service = UDS_SERVICE_TYPE_INVALID;
 
 static can_transmit_handle_t* prv_current_data_query[4] = { NULL, NULL, NULL, NULL };		//Holds pointers to the data currently being transmitted (up to 4 parameters at a time).
@@ -168,40 +169,26 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				service = prv_flow_ctrl_last_service;
 			}
 			
-			uint8_t a = 0;
-			uint8_t b = 0;
-			uint8_t c = 0;
-			uint8_t d = 0;
-			uint8_t e = 0;
-			uint8_t f = 0;
-			uint8_t g = 0;
-			uint8_t h = 0;
-			uint8_t i = 0;
-			uint8_t j = 0;
-			uint8_t k = 0;
+			static uint8_t raw_data_buffer[24];
+
 			if (frame_type == PCI_FLOW_CTRL_SF)
 			{
 				uint8_t pid = buf->data[0x2];
-				a = buf->data[0x3];
-				b = buf->data[0x4];
-				c = buf->data[0x5];
-				d = buf->data[0x6];
-				e = buf->data[0x7];
 				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
 				{			
-					prv_current_data[pid][0] = a;
-					prv_current_data[pid][1] = b;
-					prv_current_data[pid][2] = c;
-					prv_current_data[pid][3] = d;
-					prv_current_data[pid][4] = e;
+					prv_current_data[pid][0] = buf->data[0x3];
+					prv_current_data[pid][1] = buf->data[0x4];
+					prv_current_data[pid][2] = buf->data[0x5];
+					prv_current_data[pid][3] = buf->data[0x6];
+					prv_current_data[pid][4] = buf->data[0x7];
 				}
 				else if (service == UDS_SERVICE_TYPE_INFO)
 				{
-					prv_infotype_data[pid][0] = a;
-					prv_infotype_data[pid][1] = b;
-					prv_infotype_data[pid][2] = c;
-					prv_infotype_data[pid][3] = d;
-					prv_infotype_data[pid][4] = e;
+					prv_infotype_data[pid][0] = buf->data[0x3];
+					prv_infotype_data[pid][1] = buf->data[0x4];
+					prv_infotype_data[pid][2] = buf->data[0x5];
+					prv_infotype_data[pid][3] = buf->data[0x6];
+					prv_infotype_data[pid][4] = buf->data[0x7];
 				}
 
 			}
@@ -224,24 +211,17 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				prv_flow_ctrl_ptr = buf->data[2];
 				uint8_t pid = buf->data[0x3];
 				prv_flow_ctrl_ptr = pid;
-				a = buf->data[0x4];
-				b = buf->data[0x5];
-				c = buf->data[0x6];
-				d = buf->data[0x7];
-				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
-				{
-					prv_current_data[pid][0] = a;
-					prv_current_data[pid][1] = b;
-					prv_current_data[pid][2] = c;
-					prv_current_data[pid][3] = d;
-				}
-				else if (service == UDS_SERVICE_TYPE_INFO)
-				{
-					prv_infotype_data[pid][0] = a;
-					prv_infotype_data[pid][1] = b;
-					prv_infotype_data[pid][2] = c;
-					prv_infotype_data[pid][3] = d;
-				}
+				raw_data_buffer[0] = buf->data[0x4];
+				raw_data_buffer[1] = buf->data[0x5];
+				raw_data_buffer[2] = buf->data[0x6];
+				raw_data_buffer[3] = buf->data[0x7];
+
+				/* The remaining bytes given by the car is including everything except flow control bytes
+				 * so w subtract 6 here bc we do have to include buf->data bytes 2 & 3 (byte 2 is an echo
+				 * of the service number and byte 3 is an echo of the PID) which are not apart
+				 * of the data we're after but still contribute to the overall message length.
+				 */
+				prv_flow_ctrl_remaining_bytes -= 6;
 
 				can_tx_buffer_entry_t fc_continue_sending_frame =
 				{
@@ -253,6 +233,10 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				if (prv_accept_consecutive_frames == false)
 				{
 					fc_continue_sending_frame.data[0] = 0x32;
+					prv_current_data[prv_flow_ctrl_ptr][0] = raw_data_buffer[0];
+					prv_current_data[prv_flow_ctrl_ptr][1] = raw_data_buffer[1];
+					prv_current_data[prv_flow_ctrl_ptr][2] = raw_data_buffer[2];
+					prv_current_data[prv_flow_ctrl_ptr][3] = raw_data_buffer[3];
 				}
 				can_transmit_handle_t* tx_hndl = can_transmit_create_high_priority_msg();
 				if (tx_hndl == NULL) { return frame_type; }	//TODO: Handle this better, this would indicate an error.
@@ -265,32 +249,29 @@ static pci_flow_ctrl_t prv_process_can_data(can_rx_buffer_entry_t* buf)
 				uint8_t cfsn = prv_get_consecutive_frame_number(buf);
 				if (cfsn > 2) { return frame_type; }		//Dont have enough memory allocated to store more than 2 consecutive frames for any given PID.
 				uint32_t offset = (cfsn - 1) * 7;
-				e = buf->data[0x1];
-				f = buf->data[0x2];
-				g = buf->data[0x3];
-				h = buf->data[0x4];
-				i = buf->data[0x5];
-				j = buf->data[0x6];
-				k = buf->data[0x7];
+				raw_data_buffer[4 + offset] = buf->data[0x1];
+				raw_data_buffer[5 + offset] = buf->data[0x2];
+				raw_data_buffer[6 + offset] = buf->data[0x3];
+				raw_data_buffer[7 + offset] = buf->data[0x4];
+				raw_data_buffer[8 + offset] = buf->data[0x5];
+				raw_data_buffer[9 + offset] = buf->data[0x6];
+				raw_data_buffer[10 + offset] = buf->data[0x7];
+				prv_flow_ctrl_remaining_bytes -= 7;
+				if (prv_flow_ctrl_remaining_bytes > 0) { return frame_type; }
+				prv_flow_ctrl_remaining_bytes = 0;
 				if (service == UDS_SERVICE_TYPE_CURRENT_DATA)
 				{
-					prv_current_data[prv_flow_ctrl_ptr][4 + offset] = e;
-					prv_current_data[prv_flow_ctrl_ptr][5 + offset] = f;
-					prv_current_data[prv_flow_ctrl_ptr][6 + offset] = g;
-					prv_current_data[prv_flow_ctrl_ptr][7 + offset] = h;
-					prv_current_data[prv_flow_ctrl_ptr][8 + offset] = i;
-					prv_current_data[prv_flow_ctrl_ptr][9 + offset] = j;
-					prv_current_data[prv_flow_ctrl_ptr][10 + offset] = k;
+					for (uint8_t i = 0; i < 24; i++)
+					{
+						prv_current_data[prv_flow_ctrl_ptr][i] = raw_data_buffer[i];
+					}
 				}
 				else if (service == UDS_SERVICE_TYPE_INFO)
 				{
-					prv_infotype_data[prv_flow_ctrl_ptr][4 + offset] = e;
-					prv_infotype_data[prv_flow_ctrl_ptr][5 + offset] = f;
-					prv_infotype_data[prv_flow_ctrl_ptr][6 + offset] = g;
-					prv_infotype_data[prv_flow_ctrl_ptr][7 + offset] = h;
-					prv_infotype_data[prv_flow_ctrl_ptr][8 + offset] = i;
-					prv_infotype_data[prv_flow_ctrl_ptr][9 + offset] = j;
-					prv_infotype_data[prv_flow_ctrl_ptr][10 + offset] = k;
+					for (uint8_t i = 0; i < 24; i++)
+					{
+						prv_infotype_data[prv_flow_ctrl_ptr][i] = raw_data_buffer[i];
+					}
 				}	
 			}
 			return frame_type;
