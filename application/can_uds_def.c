@@ -19,25 +19,18 @@ const char* const percent = "%";
 const char* const psi = "PSI";
 const char* const volts = "Volts";
 const char* const kph = "kph";
+const char* const mph = "mph";
 const char* const g_per_s = "g/s";
 const char* const seconds = "sec";
 const char* const l_per_h = "L/hr";
 const char* const nm = "Nm";
+const char* const ft_lbs = "ft-lbs";
 
 const float kpa_to_psi = 0.145038;;
 const float kpa_to_bar = 0.01;
 const float c_to_f = 1.8;			//Only the scale needs to be adjusted because they're all offset by -40C.
-
-
-
-
-
-
-
-
-
-
-
+const float kph_to_mph = 0.621371;
+const float nm_to_ftlbs = 0.737562;
 
 /*** Generated with current_data_array_generator_script.py. ***/
 static saej1979_current_data_t saej1979_mass_air_flow_nest_pid_0 = {.name = "Mass Air Flow A", .pid_code = 0x66, .scale = 0.03125, .offset = 0, .data_bytes = 2, .first_byte = 1,  .min = 0, .max = 2040, .units = g_per_s, .available = false, .nested = NULL};
@@ -763,6 +756,90 @@ void can_uds_change_temperature_units(const char* units)
 						x->max *= conversion;
 						x->scale *= conversion;
 						x->units = farenheit;
+					}
+				}
+			}
+		}
+	}
+}
+
+void can_uds_change_speed_units(const char* units)
+{
+	float conversion = 0;
+	if (!strcmp(units, mph))
+	{
+		conversion = kph_to_mph;
+	}
+	else
+	{
+		return;
+	}
+
+	for (uint8_t i = 0; i < 176; i++)
+	{
+		saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(i);
+		if (y->units == kph)
+		{
+			y->min *= conversion;
+			y->max *= conversion;
+			y->scale *= conversion;
+			y->units = mph;
+			/* Check if this one is nested. */
+			if (y->nested != NULL)
+			{
+				/* If it is, cycle through its parameters. */
+				for (uint8_t idx = 0; idx < 8; idx++)
+				{
+					saej1979_current_data_t* x = y->nested[idx];
+					if (x == NULL) { continue; }
+					if (x->available)
+					{
+						x->min *= conversion;
+						x->max *= conversion;
+						x->scale *= conversion;
+						x->units = mph;
+					}
+				}
+			}
+		}
+	}
+}
+
+void can_uds_change_torque_units(const char* units)
+{
+	float conversion = 0;
+	if (!strcmp(units, nm))
+	{
+		conversion = nm_to_ftlbs;
+	}
+	else
+	{
+		return;
+	}
+
+	for (uint8_t i = 0; i < 176; i++)
+	{
+		saej1979_current_data_t* y = saej1979_get_current_data_lut_by_pid(i);
+		if (y->units == nm)
+		{
+			y->min *= conversion;
+			y->max *= conversion;
+			y->scale *= conversion;
+			y->units = ft_lbs;
+			/* Check if this one is nested. */
+			if (y->nested != NULL)
+			{
+				/* If it is, cycle through its parameters. */
+				for (uint8_t idx = 0; idx < 8; idx++)
+				{
+					saej1979_current_data_t* x = y->nested[idx];
+					if (x == NULL) { continue; }
+					if (x->available)
+					{
+						x->min *= conversion;
+						x->max *= conversion;
+						x->scale *= conversion;
+						x->units = ft_lbs;
 					}
 				}
 			}

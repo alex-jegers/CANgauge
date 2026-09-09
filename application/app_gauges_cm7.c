@@ -67,7 +67,10 @@ static void prv_task_gauges()
     ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
     ui_set_numberpad_closed_cb(prv_numberpad_closed_cb);
 	lv_port_give_lvgl_mutex();
-	
+
+	/* Notify file manager to run once to update the file list. */
+	file_mngr_notify();
+
     /* Set the low power mode callbacks. */
     pwr_monitor_add_low_pwr_mode_cb(prv_low_power_mode_cb);
 
@@ -268,6 +271,8 @@ static void prv_update_units()
 	char* split;
 	char pressure_units[4];
 	char temperature_units[2];
+	char speed_units[4];
+	char torque_units[8];
 
 	sys_mem_get_config_data("PRESSURE UNITS", buf);
 	split = sys_mem_csv_split(buf, 1);
@@ -276,6 +281,15 @@ static void prv_update_units()
 	split = sys_mem_csv_split(buf, 1);
 	strcpy(temperature_units, split);
 
+	sys_mem_get_config_data("SPEED UNITS", buf);
+	split = sys_mem_csv_split(buf, 1);
+	strcpy(speed_units, split);
+
+	sys_mem_get_config_data("TORQUE UNITS", buf);
+	split = sys_mem_csv_split(buf, 1);
+	strcpy(torque_units, split);
+
+	/* If the units are something other than the default, update them in the CAN UDS array. */
 	if (strcmp(pressure_units, "kPa"))
 	{
 		can_uds_change_pressure_units(pressure_units);
@@ -283,6 +297,14 @@ static void prv_update_units()
 	if (strcmp(temperature_units, "C"))
 	{
 		can_uds_change_temperature_units(temperature_units);
+	}
+	if (strcmp(speed_units, "kph"))
+	{
+		can_uds_change_speed_units(speed_units);
+	}
+	if (strcmp(torque_units, "Nm"))
+	{
+		can_uds_change_torque_units(torque_units);
 	}
 
 }

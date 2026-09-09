@@ -30,6 +30,8 @@ uint32_t can_uds_get_response_can_id();	//Will return zero if there is no UDS on
 void can_uds_stop_query();					//Stops all the queries for current data being sent on the bus.
 void can_uds_change_pressure_units(const char* units);
 void can_uds_change_temperature_units(const char* units);
+void can_uds_change_speed_units(const char* units);
+void can_uds_change_torque_units(const char* units);
 
 
 #ifdef __cplusplus
