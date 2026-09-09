@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "data_logger.h"
+#include "file_mngr/file_mngr.h"
 
 /**********     TYPEDEFS         **********/
 
@@ -165,7 +166,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	/*** Make the header for the CSV file. ***/
 	const char* time_header_str = "Time (ms),";
 	f_puts(time_header_str, &file);			//Write the "Time" column header with a comma.
-	f_puts(hndl->data[0]->name, &file);		//Write the first data parameter column header.
+	f_printf(&file, "%s (%s)", hndl->data[0]->name, hndl->data[0]->units);		//Write the first data parameter column header.
 
 	if (num_params == 1)					//If this is the only parameter put a newline.
 	{
@@ -174,7 +175,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	for (uint8_t i = 1; i < num_params; i++)
 	{
 		f_putc(',', &file);
-		f_puts(hndl->data[i]->name, &file);
+		f_printf(&file, "%s (%s)", hndl->data[i]->name, hndl->data[i]->units);
 		if (i == num_params - 1)		//This is the last one.
 		{
 			f_putc('\n', &file);
@@ -198,8 +199,9 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	}
 
 	free(data_arr);
-	f_close(&file);		//Close the file.
-	f_chdir("0:/");		//Change the working directory back.
+	f_close(&file);					//Close the file.
+	f_chdir("0:/");					//Change the working directory back.
+	file_mngr_notify();				//Notify the file manager so it can update the file list.
 	hndl->task_handle = NULL;		//Nullify handle so we can check when the task has been deleted.
 	vTaskDelete(NULL);	//Delete the task.
 }
