@@ -35,7 +35,7 @@ void ui_graph_set_delete_btn_cb(lv_event_cb_t func);
 void ui_graph_set_file_list_event_cb(lv_event_cb_t func);
 
 void ui_graph_clear_all_chart_data();
-lv_obj_t* ui_graph_add_file_to_list(char* file_name);
+lv_obj_t* ui_graph_add_file_to_list(const char* file_name);
 void ui_graph_clear_file_list();
 void ui_graph_delete_file_from_list(uint32_t index);
 
