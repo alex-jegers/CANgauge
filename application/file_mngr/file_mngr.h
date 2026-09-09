@@ -24,6 +24,7 @@ extern "C" {
  */
 bool file_mngr_run();
 bool file_mngr_stop();
+void file_mngr_notify();
 
 
 #ifdef __cplusplus

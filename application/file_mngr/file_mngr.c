@@ -53,7 +53,7 @@ static void prv_file_mngr_task(void* args)
 	ui_graph_set_delete_btn_cb(prv_delete_btn_cb);
 	ui_graph_set_file_list_event_cb(prv_file_selected_cb);
 	lv_port_give_lvgl_mutex();
-	
+
 	while (1)
 	{
 		/**
@@ -214,26 +214,36 @@ static void prv_display_data()
 	snprintf(file_path, file_name_length + dir_path_length + 1, "%s%s", PRV_DATA_LOGS_DIR_PATH, prv_file_name_to_display);
     FIL file;
     FRESULT res = f_open(&file, file_path, FA_READ);
-    char* line = (char*)malloc(400);				//There's no way each column name is more than 100 characters but still TODO: make this so it allocates more memory if the gets call fails.
-    line = f_gets(line, 400, &file);				//line holds the header.
+    char* line = (char*)malloc(400);					//There's no way each column name is more than 100 characters but still TODO: make this so it allocates more memory if the gets call fails.
+    line = f_gets(line, 400, &file);					//line holds the header.
 	char* line_cpy = (char*)malloc(strlen(line) + 1);	//Make a copy of line for the following strtok_r procedures.
     uint8_t num_cols = sys_mem_csv_get_num_cols(line);
 
     /* Start at 1 bc the first column should always just be "Time (ms)". */
     const lv_color_t color_lut[4] = { UI_COLOR_RED, UI_COLOR_BLUE, UI_COLOR_WHITE, UI_COLOR_LIGHT_RED };
+    float* data_arr;		//*data_arr has to be freed after prv_convert_csv_to_array.
+    uint32_t num_rows;
+    /* Set the time base. */
+    num_rows = prv_convert_csv_to_array(file_path, 0, &data_arr);
+    uint32_t max_time_ms = data_arr[num_rows - 1];
+    uint32_t increment_ms = max_time_ms / num_rows;
+    ui_graph_set_timebase(max_time_ms, increment_ms);
+
     for (uint8_t i = 1; i < num_cols; i++)
     {
     	strcpy(line_cpy, line);
     	char* series_label = sys_mem_csv_split(line_cpy, i);
-    	float* data_arr;		//*data_arr has to be freed after prv_convert_csv_to_array.
-    	uint32_t num_rows = prv_convert_csv_to_array(file_path, i, &data_arr);
-	    	if (lv_port_take_lvgl_mutex(500) == pdPASS)
-	    	{
-	    		ui_graph_add_series_data(data_arr, num_rows, series_label, color_lut[i - 1]);
-	    		lv_port_give_lvgl_mutex();
-	    	}
+
+    	num_rows = prv_convert_csv_to_array(file_path, i, &data_arr);
+	    if (lv_port_take_lvgl_mutex(500) == pdPASS)
+	    {
+	    	ui_graph_add_series_data(data_arr, num_rows, series_label, color_lut[i - 1]);
+	    	lv_port_give_lvgl_mutex();
+	    }
 		free(data_arr);
     }
+
+
     prv_displayed_file = prv_file_name_to_display;
     free(line);
     free(line_cpy);
@@ -385,4 +395,9 @@ bool file_mngr_stop()
 	/* TODO: Make this cleaner. Or ensure that nothing gets left dangling. */
 	vTaskSuspend(prv_file_mngr_task_handle);
 	return true;
+}
+
+void file_mngr_notify()
+{
+	xTaskNotifyGive(prv_file_mngr_task_handle);
 }
