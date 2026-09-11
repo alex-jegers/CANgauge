@@ -50,6 +50,22 @@ static void prv_low_power_mode_cb();
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_task_gauges()
 {
+	if (sys_mem_init_eeprom_fs() != FR_OK)
+	{
+		if (sys_mem_create_eeprom_fs() != FR_OK)
+		{
+			//EEPROM error.
+		}
+	}
+
+	if (file_mngr_config_file_exists() != FR_OK)
+	{
+		if (file_mngr_create_default_config_file() != FR_OK)
+		{
+			//EEPROM error.
+		}
+	}
+
 	/* Start the CAN receiver task. */
 	assert( can_uds_run() == pdPASS );
 
@@ -139,7 +155,7 @@ static void prv_task_gauges()
 
 	/* Check to see if there's a config file with the last state. */
 	char* line = calloc(250, 1);
-	uint32_t bytes_wr = sys_mem_get_config_data("LAST GAUGES STATE", line);
+	uint32_t bytes_wr = file_mngr_get_config_data("LAST GAUGES STATE", line);
 	if (bytes_wr != 0)
 	{
 		char* split[5];		//Hold the strings from the config file.
@@ -274,19 +290,19 @@ static void prv_update_units()
 	char speed_units[4];
 	char torque_units[8];
 
-	sys_mem_get_config_data("PRESSURE UNITS", buf);
-	split = sys_mem_csv_split(buf, 1);
+	file_mngr_get_config_data("PRESSURE UNITS", buf);
+	split = file_mngr_csv_split(buf, 1);
 	strcpy(pressure_units, split);
-	sys_mem_get_config_data("TEMPERATURE UNITS", buf);
-	split = sys_mem_csv_split(buf, 1);
+	file_mngr_get_config_data("TEMPERATURE UNITS", buf);
+	split = file_mngr_csv_split(buf, 1);
 	strcpy(temperature_units, split);
 
-	sys_mem_get_config_data("SPEED UNITS", buf);
-	split = sys_mem_csv_split(buf, 1);
+	file_mngr_get_config_data("SPEED UNITS", buf);
+	split = file_mngr_csv_split(buf, 1);
 	strcpy(speed_units, split);
 
-	sys_mem_get_config_data("TORQUE UNITS", buf);
-	split = sys_mem_csv_split(buf, 1);
+	file_mngr_get_config_data("TORQUE UNITS", buf);
+	split = file_mngr_csv_split(buf, 1);
 	strcpy(torque_units, split);
 
 	/* If the units are something other than the default, update them in the CAN UDS array. */
@@ -463,7 +479,7 @@ static void prv_gauge_event_cb(lv_event_t* e)
 
 	/* Write to the save state file. */
 	char* str = "LAST GAUGES STATE,0,0,0,0,\n";
-	sys_mem_set_config_data(str);
+	file_mngr_set_config_data(str);
 
 	/*Stop the data logger. */
 	data_logger_stop_recording(&prv_data_logger_handle);
@@ -601,7 +617,7 @@ static void prv_gauge_view_btn_cb(lv_event_t* e)
 	strcat(save_str, ",");
 	str_len = strlen(save_str);		//Double check this.
 
-	sys_mem_set_config_data(save_str);
+	file_mngr_set_config_data(save_str);
 	free(save_str);
 
 	/* Load the gauges into the UI and set the ISO15675 query on CAN. */
@@ -623,8 +639,8 @@ static void prv_restore_defaults_btn_cb(lv_event_t* e)
 	FRESULT res1;
 	FRESULT res2;
 	FRESULT res3;
-	sys_mem_init_file_systems(true);			//Format EEPROM file system.
-	res1 = sys_mem_create_default_config_file();
+	sys_mem_create_eeprom_fs();
+	res1 = file_mngr_create_default_config_file();
 	if (res1 != FR_OK)
 	{
 		lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to restore config file.", NULL, NULL);
@@ -728,28 +744,28 @@ static void prv_update_settings_from_eeprom()
 	/* Set the units dropdowns. */
 	char units_config_str[25];
 	char* units;
-	sys_mem_get_config_data("PRESSURE UNITS", units_config_str);
-	units = sys_mem_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("PRESSURE UNITS", units_config_str);
+	units = file_mngr_csv_split(units_config_str, 1);
 	ui_settings_set_pressure_units_dropdown(units);
 
-	sys_mem_get_config_data("TEMPERATURE UNITS", units_config_str);
-	units = sys_mem_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("TEMPERATURE UNITS", units_config_str);
+	units = file_mngr_csv_split(units_config_str, 1);
 	ui_settings_set_temperature_units_dropdown(units);
 
-	sys_mem_get_config_data("SPEED UNITS", units_config_str);
-	units = sys_mem_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("SPEED UNITS", units_config_str);
+	units = file_mngr_csv_split(units_config_str, 1);
 	ui_settings_set_speed_units_dropdown(units);
 
-	sys_mem_get_config_data("TORQUE UNITS", units_config_str);
-	units = sys_mem_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("TORQUE UNITS", units_config_str);
+	units = file_mngr_csv_split(units_config_str, 1);
 	ui_settings_set_torque_units_dropdown(units);
 
 	/*Get the data logging rate. */
 	char data_logging_rate_str[25];
 	char* data_log_rate_val_str;
 	uint32_t data_log_rate_val_uint = 0;
-	sys_mem_get_config_data("DATA LOG RATE", data_logging_rate_str);
-	data_log_rate_val_str = sys_mem_csv_split(data_logging_rate_str, 1);
+	file_mngr_get_config_data("DATA LOG RATE", data_logging_rate_str);
+	data_log_rate_val_str = file_mngr_csv_split(data_logging_rate_str, 1);
 	data_log_rate_val_uint = strtoul(data_log_rate_val_str, NULL, 10);
 	ui_settings_set_data_logger_rate(data_log_rate_val_uint);
 }
@@ -760,25 +776,25 @@ static void prv_save_settings_lvgl_cb(lv_event_t* e)
 	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
     char config_str[28];
     sprintf(config_str, "BRIGHTNESS,%lu,\n", timer_val);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 
     /* Write the units to the config file. */
     char uints_str[7];
     ui_settings_get_pressure_units_dropdown(uints_str);
     sprintf(config_str, "PRESSURE UNITS,%s,\n", uints_str);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 
     ui_settings_get_temperature_units_dropdown(uints_str);
     sprintf(config_str, "TEMPERATURE UNITS,%s,\n", uints_str);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 
     ui_settings_get_speed_units_dropdown(uints_str);
     sprintf(config_str, "SPEED UNITS,%s,\n", uints_str);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 
     ui_settings_get_torque_units_dropdown(uints_str);
     sprintf(config_str, "TORQUE UNITS,%s,\n", uints_str);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 
 }
 
@@ -819,8 +835,8 @@ static void prv_toggle_data_logging_cb(lv_event_t* e)
 		char data_logging_rate_str[25];
 		char* data_log_rate_val_str;
 		uint32_t data_log_rate_val_uint = 0;
-		sys_mem_get_config_data("DATA LOG RATE", data_logging_rate_str);
-		data_log_rate_val_str = sys_mem_csv_split(data_logging_rate_str, 1);
+		file_mngr_get_config_data("DATA LOG RATE", data_logging_rate_str);
+		data_log_rate_val_str = file_mngr_csv_split(data_logging_rate_str, 1);
 		data_log_rate_val_uint = strtoul(data_log_rate_val_str, NULL, 10);
 		data_logger_set_period(&prv_data_logger_handle, data_log_rate_val_uint);
 
@@ -892,7 +908,7 @@ static void prv_numberpad_closed_cb(lv_event_t* e)
 	data_logger_set_period(&prv_data_logger_handle, data_logging_period);
     char config_str[25];
     sprintf(config_str, "DATA LOG RATE,%lu,\n", data_logging_period);
-    sys_mem_set_config_data(config_str);
+    file_mngr_set_config_data(config_str);
 }
 
 static void prv_low_power_mode_cb()

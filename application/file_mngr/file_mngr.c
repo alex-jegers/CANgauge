@@ -217,7 +217,7 @@ static void prv_display_data()
     char* line = (char*)malloc(400);					//There's no way each column name is more than 100 characters but still TODO: make this so it allocates more memory if the gets call fails.
     line = f_gets(line, 400, &file);					//line holds the header.
 	char* line_cpy = (char*)malloc(strlen(line) + 1);	//Make a copy of line for the following strtok_r procedures.
-    uint8_t num_cols = sys_mem_csv_get_num_cols(line);
+    uint8_t num_cols = file_mngr_csv_get_num_cols(line);
 
     /* Start at 1 bc the first column should always just be "Time (ms)". */
     const lv_color_t color_lut[4] = { UI_COLOR_RED, UI_COLOR_BLUE, UI_COLOR_WHITE, UI_COLOR_LIGHT_RED };
@@ -225,6 +225,13 @@ static void prv_display_data()
     uint32_t num_rows;
     /* Set the time base. */
     num_rows = prv_convert_csv_to_array(file_path, 0, &data_arr);
+    if (num_rows == 0)
+    {
+        free(line);
+        free(line_cpy);
+        free(file_path);
+    	return;
+    }
     uint32_t max_time_ms = data_arr[num_rows - 1];
     uint32_t increment_ms = max_time_ms / num_rows;
     ui_graph_set_timebase(max_time_ms, increment_ms);
@@ -232,7 +239,7 @@ static void prv_display_data()
     for (uint8_t i = 1; i < num_cols; i++)
     {
     	strcpy(line_cpy, line);
-    	char* series_label = sys_mem_csv_split(line_cpy, i);
+    	char* series_label = file_mngr_csv_split(line_cpy, i);
 
     	num_rows = prv_convert_csv_to_array(file_path, i, &data_arr);
 	    if (lv_port_take_lvgl_mutex(500) == pdPASS)
@@ -330,7 +337,7 @@ static uint32_t prv_convert_csv_to_array(const char* file_path, uint8_t column, 
 			return 0;
     	}
 
-    	char* val_str = sys_mem_csv_split(line, column);	//Get the data from the column requested.
+    	char* val_str = file_mngr_csv_split(line, column);	//Get the data from the column requested.
 		if (val_str == NULL)
 		{
 			free(line);
@@ -401,3 +408,176 @@ void file_mngr_notify()
 {
 	xTaskNotifyGive(prv_file_mngr_task_handle);
 }
+
+uint32_t file_mngr_get_config_data(const char* data_to_get, char* data_buf)
+{
+	uint32_t rtn_val = 0;
+	/* Try to open the config file. */
+	FIL config_file;
+	FRESULT res;
+	res = f_open(&config_file, FILE_MNGR_CONFIG_FILE_PATH, FA_READ | FA_WRITE);
+	if (res == FR_OK) //The file exists.
+	{
+		char* line = calloc(250, 1);
+		char* line_copy = calloc(250, 1);
+		while (f_eof(&config_file) == 0)
+		{
+			/* Read a line. */
+			f_gets(line, 250, &config_file);
+			strcpy(line_copy, line);
+
+			/* Split it with ",". */
+			char* split;		//Hold the strings from the config file.
+			char* sv_ptr;		//For strtok_r.
+			split = strtok_r(line_copy, ",", &sv_ptr);
+
+			/* Check if it's a match. */
+			if (strcmp(split, data_to_get) == 0)
+			{
+				/* Copy the line to data_buf. */
+				uint32_t line_str_len = strlen(line);
+				memcpy(data_buf, line, line_str_len);
+				rtn_val = line_str_len;
+				break;
+			}
+		}
+		free(line);
+		free(line_copy);
+		f_close(&config_file);
+	}
+	if (rtn_val == 0)
+	{
+		//Do something if the file fails to open.
+		file_mngr_create_default_config_file();
+	}
+	return rtn_val;
+}
+
+void file_mngr_set_config_data(char* data)
+{
+	FIL current_file;
+	FIL new_file;
+	FRESULT res;
+	char* data_copy = calloc(250, 1);		//Make a copy of the data were writing to figure out what the header is.
+	strcpy(data_copy, data);
+
+	/* Split it with ",". */
+	char* data_header;	//Hold the strings from the config file.
+	char* sv_ptr;		//For strtok_r.a
+	data_header = strtok_r(data_copy, ",", &sv_ptr);
+
+	/* Figure out what the index of this header is, if it even exists. */
+	uint32_t line_counter = 0;
+	char* line = calloc(250, 1);
+	res = f_open(&current_file, FILE_MNGR_CONFIG_FILE_PATH, FA_READ | FA_WRITE);
+	while (f_eof(&current_file) == 0)
+	{
+		/* Read a line. */
+		f_gets(line, 250, &current_file);
+
+		/* Split it with ",". */
+		char* split;		//Hold the strings from the config file.
+		char* sv_ptr;		//For strtok_r.
+		split = strtok_r(line, ",", &sv_ptr);
+
+		/* Check if it's a match. */
+		if (strcmp(split, data_header) == 0)
+		{
+			break;
+		}
+		line_counter++;
+	}
+
+	uint32_t line_to_skip = line_counter;
+	line_counter = 0;
+
+	/* Now copy everything from the old file to a new file except for the line we're overwriting. */
+	res = f_open(&new_file, "0:/temp", FA_WRITE | FA_CREATE_ALWAYS);
+	f_lseek(&current_file, 0);
+	while (f_eof(&current_file) == 0)
+	{
+		f_gets(line, 250, &current_file);
+		uint32_t line_len = strlen(line);
+		if (line_counter != line_to_skip && (line_len > 1))
+		{
+			f_puts(line, &new_file);
+		}
+		line_counter++;
+	}
+	/* Add the new data line to the end of the new file. */
+	f_putc('\n', &new_file);
+	f_puts(data, &new_file);
+
+	f_close(&current_file);
+	f_close(&new_file);
+	f_unlink(FILE_MNGR_CONFIG_FILE_PATH);				//Unlink the current config file.
+	f_rename("0:/temp", FILE_MNGR_CONFIG_FILE_PATH);	//Remane the temp file as the new config file.
+
+	free(data_copy);
+	free(line);
+}
+
+FRESULT file_mngr_create_default_config_file()
+{
+	FIL config_file;
+	FRESULT res;
+	res = f_unlink(FILE_MNGR_CONFIG_FILE_PATH);		//Unlink the old one incase it's still there.
+	res = f_open(&config_file, FILE_MNGR_CONFIG_FILE_PATH, FA_CREATE_ALWAYS | FA_WRITE);
+	if (res != FR_OK) { return res; }
+
+	const char* const config_str = "LAST GAUGES STATE,0,0,0,0,\n"
+									"BRIGHTNESS,65535,\n"
+									"PRESSURE UNITS,kPa,\n"
+									"TEMPERATURE UNITS,C,\n"
+									"SPEED UNITS,kph,\n"
+									"TORQUE UNITS,Nm\n"
+									"DATA LOG RATE,100,\n";
+	uint32_t len = strlen(config_str);
+	uint32_t bw = 0;
+	res = f_write(&config_file, config_str, (UINT)len, (UINT*)&bw);
+	f_close(&config_file);
+	return res;
+}
+
+FRESULT file_mngr_config_file_exists()
+{
+	FRESULT rtn_val = f_stat(FILE_MNGR_CONFIG_FILE_PATH, NULL);
+	return rtn_val;
+}
+
+char* file_mngr_csv_split(char* str, uint32_t index)
+{
+	char* sv_ptr = NULL;
+	char* split = NULL;
+
+	split = strtok_r(str, ",", &sv_ptr);
+	for (uint32_t i = 0; i < index; i++)
+	{
+		split = strtok_r(NULL, ",", &sv_ptr);
+	}
+	return split;
+}
+
+uint32_t file_mngr_csv_get_num_cols(char* str)
+{
+	uint32_t str_len = strlen(str);
+	char* str_copy = (char*)malloc(str_len);
+	if (str_copy == NULL)
+	{
+		return 0;
+	}
+	strcpy(str_copy, str);
+	char* sv_ptr = NULL;
+	char* split = NULL;
+
+	uint8_t counter = 0;
+	split = strtok_r(str_copy, ",", &sv_ptr);
+	while (split != NULL)
+	{
+		counter++;
+		split = strtok_r(NULL, ",", &sv_ptr);
+	}
+	free(str_copy);
+	return counter;
+}
+
