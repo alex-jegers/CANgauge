@@ -46,11 +46,16 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	}
 
 	/*** Create the file name. ***/
-	char file_name[51];		//51 is 10 characters of each parameter, 6 for the _x.csv, 3 commas, 1 null terminator
+	char file_name[52];		//51 is 10 characters of each parameter, 7 for the _x.csv, 3 commas, 1 null terminator
 	memset(file_name, 0, sizeof(file_name));
 	for (uint8_t i = 0; i < num_params; i++)
 	{
-		memcpy(file_name + (i * 11), hndl->data[i]->name, 10);
+		uint32_t name_len = strlen(hndl->data[i]->name);
+		if (name_len > 10)
+		{
+			name_len = 10;
+		}
+		memcpy(file_name + strlen(file_name), hndl->data[i]->name, name_len);
 		if (i != num_params - 1)
 		{
 			strcat(file_name, ",");
@@ -67,10 +72,11 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 		counter++;
 		uint32_t str_len = strlen(file_name);
 		char file_name_new[60];
+		memset(file_name_new, 0, sizeof(file_name_new));
 		file_name[str_len - 6] = '\0';
 		sprintf(file_name_new, "%s_%u.csv", file_name, counter);
 		res = f_stat(file_name_new, &f_info);
-		memcpy(file_name, file_name_new, str_len);
+		strcpy(file_name_new, file_name);
 	}
 	/* *
 	 * End of creating file name. File name is stored in "file_name".
@@ -86,6 +92,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 		hndl->error_cb(DATA_LOGGER_ERROR_FILE_SYS_ERR);
 		f_close(&file);		//Close the file.
 		f_chdir("0:/");		//Change the working directory back.
+		hndl->task_handle = NULL;
 		vTaskDelete(NULL);
 	}
 
@@ -93,36 +100,28 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	 * record given the amount of space left in EEPROM (or whatever storage device, at the time
 	 * of writing this the first time, it's EEPROM).
 	 ***/
-	uint32_t remaining_space_bytes = filesys_get_free_space("0:/");				//Remaing bytes in EEPROM.
-	res = f_expand(&file, remaining_space_bytes, 0);							//Try to allocate it.
-	if (res != FR_OK)
+	uint32_t remaining_space_bytes = filesys_get_contiguous_free_space_bytes("0:/");				//Remaing bytes in EEPROM.
+	if (remaining_space_bytes == 0)
 	{
-		uint32_t bytes_to_allocate = remaining_space_bytes / 2;
-		uint32_t largest_available_contiguous_size_bytes = 0;
-		for (uint8_t i = 0; i < 11; i++)
-		{
-			res = f_expand(&file, bytes_to_allocate, 0);							//Try to allocate it.
-			if (res != FR_OK)
-			{
-				bytes_to_allocate /= 2;
-			}
-			else if (res == FR_OK)
-			{
-				if (bytes_to_allocate > largest_available_contiguous_size_bytes)
-				{
-					largest_available_contiguous_size_bytes = bytes_to_allocate;
-				}
-				bytes_to_allocate = ((remaining_space_bytes - bytes_to_allocate) / 2) + bytes_to_allocate;
-			}
-		}
-		remaining_space_bytes = largest_available_contiguous_size_bytes;
+		hndl->error_cb(DATA_LOGGER_ERROR_FILE_SYS_ERR);
+		f_close(&file);		//Close the file.
+		f_chdir("0:/");		//Change the working directory back.
+		hndl->task_handle = NULL;
+		vTaskDelete(NULL);
 	}
 
 	uint32_t remaining_space_floats = remaining_space_bytes / sizeof(float);	//Remaining space for floats (the data were saving are floats).
 	uint32_t number_of_columns = num_params + 1;								//Plus one because we need an extra column for time.
 	uint32_t num_rows = remaining_space_floats / (number_of_columns);			//Plus 1 to num params because we have to record the time too.
 	float* data_arr = malloc(number_of_columns * num_rows * sizeof(float));		//Plus 1 to num params because we have to record the time too.
-
+	if (data_arr == NULL)
+	{
+		hndl->error_cb(DATA_LOGGER_ERROR_NO_MEM);
+		f_close(&file);		//Close the file.
+		f_chdir("0:/");		//Change the working directory back.
+		hndl->task_handle = NULL;
+		vTaskDelete(NULL);
+	}
 
 	/*** Time to start recording data. ***/
 	uint32_t starting_time_ms = pdTICKS_TO_MS(xTaskGetTickCount());		//Obv the start time for the recording so this can be referenced and the first entry is at 0ms.
@@ -185,10 +184,10 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	/*** Start writing the collected data to the file. ***/
 	for (uint32_t current_row = 0; current_row < rows_written; current_row++)
 	{
-		f_printf(&file, "%.4f,%.4f", data_arr[(current_row * number_of_columns) + 0], data_arr[(current_row * number_of_columns) + 1]);
+		f_printf(&file, "%.3f,%.4f", data_arr[(current_row * number_of_columns) + 0], data_arr[(current_row * number_of_columns) + 1]);
 		for (uint8_t additional_pids = 2; additional_pids < num_params + 1; additional_pids++)		//Plus 1 because the first column is time.
 		{
-			f_printf(&file, ",%.4f", data_arr[(current_row * number_of_columns) + additional_pids]);
+			f_printf(&file, ",%.3f", data_arr[(current_row * number_of_columns) + additional_pids]);
 		}
 		int32_t chars_written = f_putc('\n', &file);
 		if (chars_written != 1)
@@ -212,7 +211,7 @@ bool data_logger_start_recording(data_logger_handle_t* handle)
 	if (handle->period_ms == 0) { return false; }
 	if (handle->data[0] == NULL) { return false; }
 	handle->run = true;
-	bool rtn_val = xTaskCreate(prv_data_logger_task_function, "LOGGER", 2000 / 4, handle, 4, &handle->task_handle);
+	bool rtn_val = xTaskCreate(prv_data_logger_task_function, "LOGGER", 3000 / 4, handle, 4, &handle->task_handle);
 	return rtn_val;
 }
 
