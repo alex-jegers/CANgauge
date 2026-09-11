@@ -42,9 +42,10 @@ static void prv_create_brightness_slider()
 {
 	/* Container to hold label and slider. */
 	lv_obj_t* container = lv_obj_create(prv_settings_screen);
-	lv_obj_set_size(container, 400, 120);
-	lv_obj_set_style_bg_color(container, UI_COLOR_GRAY, LV_PART_MAIN);
-	lv_obj_set_style_border_color(container, UI_COLOR_DARK_GRAY, LV_PART_MAIN);
+	lv_obj_set_width(container, 400);
+	lv_obj_set_height(container, 110);
+	lv_obj_set_style_bg_color(container, UI_COLOR_BLACK, LV_PART_MAIN);
+	lv_obj_set_style_border_color(container, UI_COLOR_BLACK, LV_PART_MAIN);
 	lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_OFF);
 
@@ -110,6 +111,7 @@ static lv_obj_t* prv_helper_create_units_dropdown(lv_obj_t* parent, const char* 
 	lv_dropdown_set_options_static(dropdown, items);
 	lv_obj_set_width(dropdown, lv_pct(width_pct));
 	lv_obj_set_height(dropdown, 45);
+	lv_dropdown_set_selected_highlight(dropdown, false);
 	return dropdown;
 }
 
