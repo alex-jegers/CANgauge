@@ -184,7 +184,7 @@ void prv_data_logger_task_function(void* data_logger_info_struct_ptr)
 	/*** Start writing the collected data to the file. ***/
 	for (uint32_t current_row = 0; current_row < rows_written; current_row++)
 	{
-		f_printf(&file, "%.3f,%.4f", data_arr[(current_row * number_of_columns) + 0], data_arr[(current_row * number_of_columns) + 1]);
+		f_printf(&file, "%.0f,%.3f", data_arr[(current_row * number_of_columns) + 0], data_arr[(current_row * number_of_columns) + 1]);
 		for (uint8_t additional_pids = 2; additional_pids < num_params + 1; additional_pids++)		//Plus 1 because the first column is time.
 		{
 			f_printf(&file, ",%.3f", data_arr[(current_row * number_of_columns) + additional_pids]);
