@@ -38,23 +38,22 @@ ENTRY(Reset_Handler)
 /* Highest address of the user mode stack */
 _estack = ORIGIN(DTCMRAM) + LENGTH(DTCMRAM); /* end of "RAM_D1" Ram type memory */
 
-_Min_Heap_Size  = 0x8000; /* required amount of heap  */
+_Min_Heap_Size  = 0x800000; /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
 /* Memories definition */
 MEMORY
 {
-  RAM_D1 (xrw)   	: ORIGIN = 0x24000000, LENGTH =  512K	/*Frame buffer.*/
-  FLASH  (rx)    	: ORIGIN = 0x08000000, LENGTH = 1024K   /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
-  FLASH2 (rw)    	: ORIGIN = 0x08100000, LENGTH = 1024K
-  DTCMRAM (xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K		/*Stack.*/
-  RAM_D2 (xrw)   	: ORIGIN = 0x30000000, LENGTH = 288K		/*CM7 heap and data.*/
-  RAM_D3 (xrw)   	: ORIGIN = 0x38000000, LENGTH = 64K		/*CM4 heap and data.*/
-  ITCMRAM (xrw)  	: ORIGIN = 0x000000ff, LENGTH = 64K		/*Bootloader functions*/
-  EXT_RAM (xrw) 	: ORIGIN = 0x70000000, LENGTH = 16M
+  RAM_D1 (rw)   	: ORIGIN = 0x24000000, LENGTH =  512K	/* One LCD frame buffer. */
+  FLASH  (rx)    	: ORIGIN = 0x08000000, LENGTH = 1024K   /* Program memory. */
+  FLASH2 (rx)    	: ORIGIN = 0x08100000, LENGTH = 1024K
+  DTCMRAM (rw)  	: ORIGIN = 0x20000000, LENGTH = 128K	/* Stack. */
+  RAM_D2 (rw)   	: ORIGIN = 0x30000000, LENGTH = 288K	/* Data section (LVGL and FreeRTOS heap). */
+  RAM_D3 (rw)   	: ORIGIN = 0x38000000, LENGTH = 64K		
+  ITCMRAM (rx)  	: ORIGIN = 0x000000ff, LENGTH = 64K		/* Instruction tightly coupled RAM memory. */
+  EXT_RAM (rw) 		: ORIGIN = 0x70000000, LENGTH = 16M		/* 2nd frame buffer and user heap. */
 
 }
-
 /* Sections */
 SECTIONS
 {
@@ -72,13 +71,8 @@ SECTIONS
 		KEEP(*(.ram_d1));		
 	} >RAM_D1	
 
-  .config :
-  {
-    . = ALIGN(4);
-  } >FLASH2
-	
-
   /* The startup code into "FLASH" Rom type memory */
+  _israddr = LOADADDR(.isr_vector);
   .isr_vector :
   {
     . = ALIGN(4);
