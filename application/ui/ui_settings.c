@@ -93,6 +93,7 @@ static void prv_number_pad_pressed(lv_event_t* e)
 		{
 			lv_obj_set_style_border_color(prv_data_logging_period_text_area, UI_COLOR_GRAY, LV_STATE_DEFAULT);
 		}
+		lv_obj_remove_event_cb(number_pad, prv_number_pad_pressed);
 		ui_helpers_delete_number_pad();
 		if (prv_numberpad_closed_cb != NULL)
 		{
@@ -183,7 +184,7 @@ void ui_settings_init()
 	lv_obj_align(prv_data_logging_period_text_area, LV_ALIGN_TOP_RIGHT, 0, 0);
 	lv_obj_set_style_border_width(prv_data_logging_period_text_area, 2, LV_STATE_DEFAULT);
 	lv_obj_add_event_cb(prv_data_logging_period_text_area, prv_text_area_clicked, LV_EVENT_SHORT_CLICKED, NULL);
-
+	lv_textarea_set_accepted_chars(prv_data_logging_period_text_area, "0123456789");
 
 	/* Make a firmware update button. */
 	prv_settings_firmware_update_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Update Firmware", LV_FONT_DEFAULT);
