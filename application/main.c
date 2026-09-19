@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  */
+#include "applications.h"
 #include "cangauge.h"
 #include "application/applications_cm7.h"
 

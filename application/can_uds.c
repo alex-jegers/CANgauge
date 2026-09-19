@@ -1,5 +1,5 @@
 /**********     INCLUDES        **********/
-#include "application/applications_cm7.h"
+#include "applications.h"
 #include "application/can_uds_def.h"
 #include <stdio.h>				//For sprintf.
 #include <string.h>				//For memcpy.
