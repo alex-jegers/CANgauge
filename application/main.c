@@ -1,15 +1,10 @@
 /**
- ******************************************************************************
- * @file           : main.c
- * @author         : A. Jegers
- * @brief          : Main program body
- ******************************************************************************
- *
- ******************************************************************************
+ * @file main.c
+ * @author Alex Jegers
+ * @brief Main program body
  */
 #include "applications.h"
 #include "cangauge.h"
-#include "application/applications_cm7.h"
 
 int main(void)
 {
@@ -34,7 +29,7 @@ int main(void)
    	file_mngr_run();
 
 	/* Load the menu screen. */
-	system_set_ui_init_cb(app_gauges_run);
+	system_set_ui_init_cb(cg_obd_initialize);
 
 	/* Starts the FreeRTOS scheduler. */
 	vTaskStartScheduler();
