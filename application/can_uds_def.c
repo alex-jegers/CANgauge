@@ -707,14 +707,11 @@ void can_uds_change_pressure_units(const char* units)
 				{
 					saej1979_current_data_t* x = y->nested[idx];
 					if (x == NULL) { continue; }
-					if (x->available)
-					{
-						x->min *= conversion;
-						x->max *= conversion;
-						x->scale *= conversion;
-						x->offset *= conversion;	//TODO: check that this math works.
-						x->units = *new_lbl;
-					}
+					x->min *= conversion;
+					x->max *= conversion;
+					x->scale *= conversion;
+					x->offset *= conversion;	//TODO: check that this math works.
+					x->units = *new_lbl;
 				}
 
 			}
@@ -750,13 +747,10 @@ void can_uds_change_temperature_units(const char* units)
 				{
 					saej1979_current_data_t* x = y->nested[idx];
 					if (x == NULL) { continue; }
-					if (x->available)
-					{
-						x->min *= conversion;
-						x->max *= conversion;
-						x->scale *= conversion;
-						x->units = farenheit;
-					}
+					x->min *= conversion;
+					x->max *= conversion;
+					x->scale *= conversion;
+					x->units = farenheit;
 				}
 			}
 		}
@@ -792,13 +786,10 @@ void can_uds_change_speed_units(const char* units)
 				{
 					saej1979_current_data_t* x = y->nested[idx];
 					if (x == NULL) { continue; }
-					if (x->available)
-					{
-						x->min *= conversion;
-						x->max *= conversion;
-						x->scale *= conversion;
-						x->units = mph;
-					}
+					x->min *= conversion;
+					x->max *= conversion;
+					x->scale *= conversion;
+					x->units = mph;
 				}
 			}
 		}
@@ -834,13 +825,10 @@ void can_uds_change_torque_units(const char* units)
 				{
 					saej1979_current_data_t* x = y->nested[idx];
 					if (x == NULL) { continue; }
-					if (x->available)
-					{
-						x->min *= conversion;
-						x->max *= conversion;
-						x->scale *= conversion;
-						x->units = ft_lbs;
-					}
+					x->min *= conversion;
+					x->max *= conversion;
+					x->scale *= conversion;
+					x->units = ft_lbs;
 				}
 			}
 		}
