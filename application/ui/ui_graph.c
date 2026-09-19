@@ -10,7 +10,6 @@
 /**********     TYPEDEFS         **********/
 
 /**********		DEFINES		**********/
-#define Y_AXIS_MULTIPLIER			100.0
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
 
@@ -21,18 +20,54 @@ static lv_obj_t* prv_files_list;
 static lv_obj_t* prv_delete_btn;
 static lv_obj_t* prv_series_info_container;
 static const char* prv_selected_file_name;		//The file name of the selected list item.
-static int32_t prv_pri_axis_max = 0x80000000;
-static int32_t prv_pri_axis_min = 0x7FFFFFFF;
-static int32_t prv_sec_axis_max = 0x80000000;
-static int32_t prv_sec_axis_min = 0x7FFFFFFF;
+static int32_t prv_pri_axis_max = 0x80000000;	//Signed int, hold the the max value of the primary y axis.
+static int32_t prv_pri_axis_min = 0x7FFFFFFF;	//Signed int, hold the the min value of the primary y axis.
+static int32_t prv_sec_axis_max = 0x80000000;	//Signed int, hold the the max value of the secondary y axis.
+static int32_t prv_sec_axis_min = 0x7FFFFFFF;	//Signed int, hold the the min value of the secondary y axis.
 static float prv_max_time_s = 0;
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_list_btn_pressed_handler(lv_event_t* e);
 static void prv_series_switch_event_handler(lv_event_t* e);			//User data contained in the event is the lv_series_t.
+
+/**
+* @brief The callback for when one of the graph's axis labels are pressed. The 
+* labels are actually text areas styled to look like a label. It opens up the 
+* number pad and assigns the keypad to that text area. It also assigns the event
+* handler for the numberpad being pressed.
+* 
+* @param e The event. It's used to determine which axis label was pressed.
+* @attention The event's user data is a pointer to the int32_t that holds the value
+* for that axes min/max. The value in the text area should be assigned to this integer.
+*/
+static void prv_prv_axis_lbl_pressed_cb(lv_event_t* e);
+
+/**
+* @brief This is the event handler for the number pad being pressed. The only time
+* it does anything is when the "ok" button is pressed. When that happens it removes
+* this function as an event handler for the numberpad and closes the numberpad.
+* 
+* @param e The LVGL event. This is used to determine which key on the numberpad was
+* pressed that triggered the event.
+*/
+static void prv_numberpad_pressed_cb(lv_event_t* e);
+
+/**
+* @brief Updates the y-axis scale of the chart with the values stored in prv_xxx_y_axis_yyy variables.
+* Also checks the values of these variables to make sure they're being used (i.e. not set to the 
+* default values) and that the mins are greater the than maxes.
+*/
+static void prv_update_chart_axes();
 static float prv_get_array_max_val_f(float* arr, uint32_t arr_len);
 static float prv_get_array_min_val_f(float* arr, uint32_t arr_len);
 static int32_t prv_get_array_max_val_i32(int32_t* arr, uint32_t arr_len);
 static int32_t prv_get_array_min_val_i32(int32_t* arr, uint32_t arr_len);
+
+/**
+* @brief Determines the values of each y-axis label depending on what the min and max of the 
+* series that have been assigned to them are. The max y-axis label will be equal to the max
+* value of all the series that are assigned to that axis and the min label the same but the
+* smallest value of the series assigned to that axis.
+*/
 static void prv_update_chart();
 static void prv_set_series_y_axis(lv_chart_series_t* ser, lv_chart_axis_t y_axis);
 static lv_chart_axis_t prv_get_series_y_axis(lv_chart_series_t* ser);
@@ -73,6 +108,50 @@ static void prv_series_switch_event_handler(lv_event_t* e)
 		prv_set_series_y_axis(ser, LV_CHART_AXIS_PRIMARY_Y);
 	}
 	prv_update_chart();
+}
+
+static void prv_prv_axis_lbl_pressed_cb(lv_event_t* e)
+{
+	lv_obj_t* txt_area = lv_event_get_target_obj(e);	//Get the text area that was clicked.
+	lv_obj_t* numpad = ui_helpers_load_number_pad();	//Show the number pad.
+	void* user_data = lv_event_get_user_data(e);		//Pointer to the int32_t that holds the axis value.
+	lv_keyboard_set_textarea(numpad, txt_area);			//Assign the number pad.
+	lv_obj_add_event_cb(numpad, prv_numberpad_pressed_cb, LV_EVENT_VALUE_CHANGED, user_data);		//Bind the event and pass along the int pointer.
+}
+
+static void prv_numberpad_pressed_cb(lv_event_t* e)
+{
+	lv_obj_t* numpad = lv_event_get_target_obj(e);
+	uint32_t key = lv_keyboard_get_selected_btn(numpad);
+	const char* txt = lv_keyboard_get_btn_text(numpad, key);
+	
+	if (lv_streq(txt, LV_SYMBOL_OK) == true)
+	{
+		int32_t* axis_val_int = (int32_t*)lv_event_get_user_data(e);		//Pointer to the axis value int32_t.
+		const char* textarea_text = lv_textarea_get_text(lv_keyboard_get_textarea(numpad));		//Get the text from the text area.
+		char* end_ptr;		//Used to convert string to float.
+		float new_axis_val_f = strtof(textarea_text, &end_ptr);
+		if (end_ptr != textarea_text)		//If end_ptr still points to the start of the textarea_text there was no text.
+		{
+			*axis_val_int = (int32_t)(new_axis_val_f * UI_GRAPH_Y_AXIS_MULTIPLIER);
+			prv_update_chart_axes();
+		}
+		lv_obj_remove_event_cb(numpad, prv_numberpad_pressed_cb);
+		ui_helpers_delete_number_pad();
+	}
+}
+
+static void prv_update_chart_axes()
+{
+	if (prv_pri_axis_max >= prv_pri_axis_min)
+	{
+		lv_chart_set_axis_range(prv_chart, LV_CHART_AXIS_PRIMARY_Y, prv_pri_axis_min, prv_pri_axis_max);
+	}
+	if (prv_sec_axis_max >= prv_pri_axis_min)
+	{
+		lv_chart_set_axis_range(prv_chart, LV_CHART_AXIS_SECONDARY_Y, prv_sec_axis_min, prv_sec_axis_max);
+	}
+
 }
 
 static float prv_get_array_max_val_f(float* arr, uint32_t arr_len)
@@ -163,74 +242,98 @@ static void prv_update_chart()
 	lv_chart_set_axis_min_value(prv_chart, LV_CHART_AXIS_SECONDARY_Y, prv_sec_axis_min);
 
 	/* 6 labels, primary max, primary min, secondary max, secondary min, time min, time max. */
-	lv_obj_t* pri_max_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(pri_max_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(pri_max_lbl, LV_ALIGN_TOP_LEFT, 0, -10);
-	lv_obj_set_style_text_align(pri_max_lbl, LV_TEXT_ALIGN_LEFT, 0);
-	float pri_max_float = (float)prv_pri_axis_max / Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(pri_max_lbl, "%.1f", pri_max_float);
-	lv_obj_set_style_text_color(pri_max_lbl, UI_COLOR_WHITE, 0);
+	static lv_style_t textarea_style;
+	lv_style_init(&textarea_style);
+	lv_style_set_text_font(&textarea_style, &lv_font_montserrat_12);
+	lv_style_set_text_color(&textarea_style, UI_COLOR_WHITE);
+	lv_style_set_bg_opa(&textarea_style, 0);
+	lv_style_set_border_opa(&textarea_style, 0);
+
+	lv_obj_t* pri_max_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(pri_max_lbl, 100);
+	lv_textarea_set_one_line(pri_max_lbl, true);
+	lv_obj_align(pri_max_lbl, LV_ALIGN_TOP_LEFT, -10, -35);
+	float pri_max_float = (float)prv_pri_axis_max / UI_GRAPH_Y_AXIS_MULTIPLIER;
+	lv_label_set_text_fmt(lv_textarea_get_label(pri_max_lbl), "%.1f", pri_max_float);
+	lv_obj_set_style_text_align(lv_textarea_get_label(pri_max_lbl), LV_TEXT_ALIGN_LEFT, 0);
+	lv_obj_set_style_border_color(pri_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(pri_max_lbl, &textarea_style, 0);
+	lv_obj_add_event_cb(pri_max_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_max);
 	if (prv_pri_axis_max == 0x80000000)
 	{
 		lv_obj_set_flag(pri_max_lbl, LV_OBJ_FLAG_HIDDEN, true);
 	}
 
-	lv_obj_t* pri_min_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(pri_min_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(pri_min_lbl, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-	lv_obj_set_style_text_align(pri_max_lbl, LV_TEXT_ALIGN_LEFT, 0);
-	float pri_min_float = (float)prv_pri_axis_min / Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(pri_min_lbl, "%.1f", pri_min_float);
-	lv_obj_set_style_text_color(pri_min_lbl, UI_COLOR_WHITE, 0);
+	lv_obj_t* pri_min_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(pri_min_lbl, 100);
+	lv_textarea_set_one_line(pri_min_lbl, true);
+	lv_obj_align(pri_min_lbl, LV_ALIGN_BOTTOM_LEFT, -10, 35);
+	float pri_min_float = (float)prv_pri_axis_min / UI_GRAPH_Y_AXIS_MULTIPLIER;
+	lv_label_set_text_fmt(lv_textarea_get_label(pri_min_lbl), "%.1f", pri_min_float);
+	lv_obj_set_style_text_align(lv_textarea_get_label(pri_min_lbl), LV_TEXT_ALIGN_LEFT, 0);
+	lv_obj_set_style_border_color(pri_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(pri_min_lbl, &textarea_style, 0);
+	lv_obj_add_event_cb(pri_min_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_min);
 	if (prv_pri_axis_min == 0x7FFFFFFF)
 	{
 		lv_obj_set_flag(pri_min_lbl, LV_OBJ_FLAG_HIDDEN, true);
 	}
 
-	lv_obj_t* sec_max_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(sec_max_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(sec_max_lbl, LV_ALIGN_TOP_RIGHT, 0, -10);
-	lv_obj_set_style_text_align(sec_max_lbl, LV_TEXT_ALIGN_RIGHT, 0);
-	float sec_max_float = (float)prv_sec_axis_max / Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(sec_max_lbl, "%.1f", sec_max_float);
+	lv_obj_t* sec_max_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(sec_max_lbl, 100);
+	lv_textarea_set_one_line(sec_max_lbl, true);
+	lv_obj_align(sec_max_lbl, LV_ALIGN_TOP_RIGHT, 10, -35);
+	float sec_max_float = (float)prv_sec_axis_max / UI_GRAPH_Y_AXIS_MULTIPLIER;
+	lv_label_set_text_fmt(lv_textarea_get_label(sec_max_lbl), "%.1f", sec_max_float);
+	lv_obj_set_style_text_align(lv_textarea_get_label(sec_max_lbl), LV_TEXT_ALIGN_RIGHT, 0);
+	lv_obj_set_style_border_color(sec_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(sec_max_lbl, &textarea_style, 0);
+	lv_obj_add_event_cb(sec_max_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_max);
 	lv_obj_set_style_text_color(sec_max_lbl, UI_COLOR_WHITE, 0);
 	if (prv_sec_axis_max == 0x80000000)
 	{
 		lv_obj_set_flag(sec_max_lbl, LV_OBJ_FLAG_HIDDEN, true);
 	}
 
-	lv_obj_t* sec_min_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(sec_min_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(sec_min_lbl, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
-	lv_obj_set_style_text_align(sec_min_lbl, LV_TEXT_ALIGN_RIGHT, 0);
-	float sec_min_float = (float)prv_sec_axis_min / Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(sec_min_lbl, "%.1f", sec_min_float);
-	lv_obj_set_style_text_color(sec_min_lbl, UI_COLOR_WHITE, 0);
+	lv_obj_t* sec_min_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(sec_min_lbl, 100);
+	lv_textarea_set_one_line(sec_min_lbl, true);
+	lv_obj_align(sec_min_lbl, LV_ALIGN_BOTTOM_RIGHT, 10, 35);
+	float sec_min_float = (float)prv_sec_axis_min / UI_GRAPH_Y_AXIS_MULTIPLIER;
+	lv_label_set_text_fmt(lv_textarea_get_label(sec_min_lbl), "%.1f", sec_min_float);
+	lv_obj_set_style_text_align(lv_textarea_get_label(sec_min_lbl), LV_TEXT_ALIGN_RIGHT, 0);
+	lv_obj_set_style_border_color(sec_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(sec_min_lbl, &textarea_style, 0);
+	lv_obj_add_event_cb(sec_min_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_min);
 	if (prv_sec_axis_min == 0x7FFFFFFF)
 	{
 		lv_obj_set_flag(sec_min_lbl, LV_OBJ_FLAG_HIDDEN, true);
 	}
 
-	lv_obj_t* time_zero_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(time_zero_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(time_zero_lbl, LV_ALIGN_BOTTOM_LEFT, 0, 20);
-	lv_obj_set_style_text_align(time_zero_lbl, LV_TEXT_ALIGN_LEFT, 0);
-	lv_label_set_text(time_zero_lbl, "0s");
-	lv_obj_set_style_text_color(time_zero_lbl, UI_COLOR_WHITE, 0);
+	lv_obj_t* time_zero_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(time_zero_lbl, 100);
+	lv_textarea_set_one_line(time_zero_lbl, true);
+	lv_obj_align(time_zero_lbl, LV_ALIGN_BOTTOM_LEFT, -35, 15);
+	lv_obj_set_style_text_align(lv_textarea_get_label(time_zero_lbl), LV_TEXT_ALIGN_LEFT, 0);
+	lv_obj_set_style_border_color(time_zero_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(time_zero_lbl, &textarea_style, 0);
+	lv_label_set_text(lv_textarea_get_label(time_zero_lbl), "0s");
 
-	lv_obj_t* time_lbl = lv_label_create(prv_chart);
-	lv_obj_set_style_text_font(time_lbl, &lv_font_montserrat_12, 0);
-	lv_obj_align(time_lbl, LV_ALIGN_BOTTOM_RIGHT, 0, 20);
-	lv_obj_set_style_text_align(time_lbl, LV_TEXT_ALIGN_RIGHT, 0);
-	lv_label_set_text_fmt(time_lbl, "%.1fs", prv_max_time_s);
-	lv_obj_set_style_text_color(time_lbl, UI_COLOR_WHITE, 0);
+	lv_obj_t* time_lbl = lv_textarea_create(prv_chart);
+	lv_obj_set_width(time_lbl, 100);
+	lv_textarea_set_one_line(time_lbl, true);
+	lv_obj_align(time_lbl, LV_ALIGN_BOTTOM_RIGHT, 35, 15);
+	lv_obj_set_style_text_align(lv_textarea_get_label(time_lbl), LV_TEXT_ALIGN_RIGHT, 0);
+	lv_obj_set_style_border_color(time_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
+	lv_obj_add_style(time_lbl, &textarea_style, 0);
+	lv_label_set_text_fmt(lv_textarea_get_label(time_lbl), "%.1fs", prv_max_time_s); 
 
 	lv_chart_refresh(prv_chart);
 }
 
 static void prv_set_series_y_axis(lv_chart_series_t* ser, lv_chart_axis_t y_axis)
 {
-    ser->y_axis_sec = y_axis & LV_CHART_AXIS_SECONDARY_Y ? 1 : 0;
+	ser->y_axis_sec = y_axis & LV_CHART_AXIS_SECONDARY_Y ? 1 : 0;
 }
 
 static lv_chart_axis_t prv_get_series_y_axis(lv_chart_series_t* ser)
@@ -269,6 +372,7 @@ void ui_graph_init()
 	lv_obj_set_style_line_color(prv_chart, UI_COLOR_GRAY, 0);
 	lv_obj_set_style_size(prv_chart, 0, 0, LV_PART_INDICATOR);
 	lv_chart_set_type(prv_chart, LV_CHART_TYPE_LINE);
+	lv_obj_set_style_pad_top(prv_chart, 25, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_bottom(prv_chart, 25, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_right(prv_chart, 25, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(prv_chart, 25, LV_STATE_DEFAULT);
@@ -288,6 +392,7 @@ void ui_graph_init()
 	lv_obj_set_style_flex_main_place(prv_series_info_container, LV_FLEX_ALIGN_SPACE_BETWEEN, 0);
 	lv_obj_set_style_flex_cross_place(prv_series_info_container, LV_FLEX_ALIGN_CENTER, 0);
 	lv_obj_set_style_flex_track_place(prv_series_info_container, LV_FLEX_ALIGN_CENTER, 0);
+
 
 	/* Create the file list. */
 	lv_obj_t* file_list_lbl = lv_label_create(prv_main_container);
@@ -310,7 +415,7 @@ void ui_graph_init()
 
 void ui_graph_set_timebase(uint32_t max_ms, uint32_t increment_ms)
 {
-	prv_max_time_s = (float)(max_ms / 1000);
+	prv_max_time_s = ((float)max_ms / 1000.0);
 }
 
 uint32_t ui_graph_get_number_of_list_items()
@@ -379,13 +484,11 @@ lv_obj_t* ui_graph_get_main_container()
 void ui_graph_delete_file_from_list(uint32_t index)
 {
 	lv_obj_t* btn = lv_obj_get_child(prv_files_list, index);
-	lv_obj_delete(btn);
-}
+	if (btn != NULL)
+	{
+		lv_obj_delete(btn);
+	}
 
-void ui_graph_add_series_lbl(const char* name)
-{
-	lv_obj_t* lbl = lv_label_create(prv_series_info_container);
-	lv_label_set_text(lbl, name);
 }
 
 void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* name, lv_color_t color)
@@ -395,7 +498,7 @@ void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* n
 
 	for(uint32_t i = 0; i < arr_size_floats; i++)
 	{
-		int_arr[i] = (int32_t)roundf(Y_AXIS_MULTIPLIER * data_arr[i]);
+		int_arr[i] = (int32_t)roundf(UI_GRAPH_Y_AXIS_MULTIPLIER * data_arr[i]);
 	}
 
 	lv_chart_set_point_count(prv_chart, arr_size_floats);
@@ -407,22 +510,20 @@ void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* n
 	name[ strcspn(name, "\n") ] = 0;			//https://stackoverflow.com/questions/2693776/removing-trailing-newline-character-from-fgets-input
 	lv_label_set_text(lbl, name);
 	lv_obj_set_style_text_color(lbl, color, 0);
-	lv_obj_set_width(lbl, lv_pct(70));
+	lv_obj_set_width(lbl, lv_pct(65));
 	lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
-	lv_obj_t* sw = lv_switch_create(prv_series_info_container);
-	lv_obj_set_height(sw, 35);
-	lv_obj_add_event_cb(sw, prv_series_switch_event_handler, LV_EVENT_VALUE_CHANGED, lv_series);
-	lv_obj_set_style_bg_color(sw, UI_COLOR_GRAY, LV_STATE_DEFAULT | LV_PART_MAIN);
-	lv_obj_set_style_bg_color(sw, UI_COLOR_RED, LV_STATE_CHECKED | LV_PART_INDICATOR);
-	lv_obj_set_style_bg_color(sw, UI_COLOR_BLACK, LV_PART_KNOB);
+	lv_obj_t* cb = lv_checkbox_create(prv_series_info_container);
+	lv_checkbox_set_text_static(cb, "2nd axis?");
+	lv_obj_set_style_text_font(cb, &lv_font_montserrat_12, 0);
+	lv_obj_set_style_pad_all(cb, 7, LV_PART_INDICATOR);
+	lv_obj_set_style_text_color(cb, UI_COLOR_WHITE,0);
+	lv_obj_set_height(cb, 35);
+	lv_obj_set_width(cb, lv_pct(30));
+	lv_obj_add_event_cb(cb, prv_series_switch_event_handler, LV_EVENT_VALUE_CHANGED, lv_series);
+	lv_obj_set_style_bg_color(cb, UI_COLOR_RED, LV_STATE_CHECKED | LV_PART_INDICATOR);
+	lv_obj_set_style_border_color(cb, UI_COLOR_RED, LV_PART_INDICATOR);
 
 	prv_update_chart();
-	/*
-	prv_pri_axis_max = (prv_pri_axis_max < max) ? max : prv_pri_axis_max;
-	prv_pri_axis_min = (prv_pri_axis_min > min) ? min : prv_pri_axis_min;
-	lv_chart_set_axis_max_value(prv_chart, LV_CHART_AXIS_PRIMARY_Y, prv_pri_axis_max);
-	lv_chart_set_axis_min_value(prv_chart, LV_CHART_AXIS_PRIMARY_Y, prv_pri_axis_min);
-	*/
 	free(int_arr);
 }
 
