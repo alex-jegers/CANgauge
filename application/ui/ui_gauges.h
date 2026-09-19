@@ -41,10 +41,20 @@ void ui_delete_gauge_select_checkboxes();
 void ui_gauges_set_gauge_single_clicked_cb(void (*func)(lv_event_t* e));				//When the gauge screen itself is pressed.
 void ui_gauges_set_gauge_long_pressed_cb(void (*func)(lv_event_t* e));
 void ui_gauges_set_scr_load_cb(lv_event_cb_t func);						//When the main screen is loaded.
+
+/**
+* @brief Sets the function callback for the view button being clicked or a checkbox
+* being long pressed. This does not utilize a list for the checkbox long press so 
+* only 1 function pointer can be assigned. Calling a second time with a different
+* function will overwrite the first.
+* 
+* @attention An array of lv_obj[4] pointers is passed in the event user data, these are
+* the checkboxes that are checked.
+* 
+* @param func A pointer to the function to call on the event.
+*/
 void ui_gauges_set_view_btn_cb(lv_event_cb_t func);
-void ui_set_settings_btn_event_cb(lv_event_cb_t func);
 void ui_add_refresh_btn_event_cb(lv_event_cb_t func);					//Refresh the CAN connection.
-void ui_add_clear_btn_event_cb(lv_event_cb_t func);						//Clear the checked checkboxes.
 
 #ifdef __cplusplus
 } /*extern "C"*/
