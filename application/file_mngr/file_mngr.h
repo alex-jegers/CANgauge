@@ -46,6 +46,16 @@ uint32_t file_mngr_get_config_data(const char* data_to_get, char* data_buf);
 void file_mngr_set_config_data(char* data);
 
 FRESULT file_mngr_create_default_config_file();
+FRESULT file_mngr_create_default_vin_file();
+
+/**
+ * @brief Saves the VIN to a file.
+ * @todo This currently depends on can_uds.h. Idk if ideal, it's the only function in this file that
+ * uses can_uds.h maybe there is a better way to get the availabe CAN data without including can_uds.h. 
+ * @param vin The VIN string to be saved. Must be 17 characters long.
+ * @return FR_OK if successful, otherwise an error code.
+ */
+FRESULT file_mngr_save_vin_to_file(char* vin);
 FRESULT file_mngr_config_file_exists();
 
 /**

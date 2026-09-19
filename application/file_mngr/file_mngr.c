@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "file_mngr.h"
+#include "application/can_uds.h"		//TODO: Change how file_mngr_save_vin_to_file works so i dont have to include this.
 #include "ui/ui_graph.h"
 
 /**********     TYPEDEFS         **********/
@@ -14,6 +15,9 @@ static const char* prv_file_name_to_delete;
 static const char* prv_file_name_to_display;
 static const char* prv_displayed_file;
 static lv_obj_t* prv_loading_wheel;
+static const char* const prv_vin_info_file_path = "0:/VIN Info.csv/";
+static const char* const prv_vin_file_header = "VIN,Srvc0x1 PID0x00,Srvc0x1 PID0x20,Srvc0x1 PID0x40,Srvc0x1 PID0x60,Srvc0x1 PID0x80,Srvc0x1 PID0xA0,Srvc0x9 PID0x00,Srvc0x9 PID0x20,Srvc0x9 PID0x40,Srvc0x9 PID0x60,\n\0";
+
 
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 /* Task functions. */
@@ -61,7 +65,7 @@ static void prv_file_mngr_task(void* args)
 		 * 		and remove items from the list that are no longer in the folder and
 		 * 		add items in the folder that are not in the list.
 		 */
-		ulTaskNotifyTake(pdTRUE, 5000);			//Task will run every 5 seconds or when notified, whichever is first.
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);			//Task will run when notified.
 		prv_delete_file();
 		prv_update_files_list();
 		prv_display_data();
@@ -537,6 +541,149 @@ FRESULT file_mngr_create_default_config_file()
 	res = f_write(&config_file, config_str, (UINT)len, (UINT*)&bw);
 	f_close(&config_file);
 	return res;
+}
+
+FRESULT file_mngr_create_default_vin_file()
+{
+	FIL vin_file;
+	FRESULT res;
+	f_unlink(prv_vin_info_file_path);		//Unlink the old one incase it's still there.
+	res = f_open(&vin_file, prv_vin_info_file_path, FA_CREATE_ALWAYS | FA_WRITE);
+	if (res != FR_OK) { return res; }
+
+	uint32_t len = strlen(prv_vin_file_header);
+	uint32_t bw = 0;
+	res = f_write(&vin_file, prv_vin_file_header, (UINT)len, (UINT*)&bw);
+	f_close(&vin_file);
+	return res;
+}
+
+FRESULT file_mngr_save_vin_to_file(char* vin)
+{
+	if (vin == NULL)
+	{
+		return FR_DENIED;
+	}
+	/* Check to see if the VIN file exists or not. */
+	FIL vin_file;
+	FRESULT res;
+	res = f_open(&vin_file, prv_vin_info_file_path, FA_READ | FA_WRITE);
+	/* If the file doesnt exist... */
+	if (res != FR_OK)
+	{
+		/* If the file doesnt exist, create a new one. */
+		f_close(&vin_file);
+		res = file_mngr_create_default_vin_file();
+		res = f_open(&vin_file, prv_vin_info_file_path, FA_READ | FA_WRITE);
+		if (res != FR_OK)
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to create new VIN file.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return res;
+		}
+		else
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("Created new VIN file.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+		}
+	}
+	/* If the file does already exist. */
+	/* Check to see if this VIN is already saved. */
+	f_lseek(&vin_file, 0);			//Move pointer to start of file.
+	const uint32_t alloc_length = 250;
+	char* line = calloc(alloc_length, 1);		//Allocate memory to read from the file.
+	if (line == NULL) { rcc_sw_reset(); }
+	/* Read the header line (make sure the header is correct and that the file is valid). */
+	f_gets(line, alloc_length, &vin_file);
+	if (strcmp(line, prv_vin_file_header) != 0)
+	{
+		assert( lv_port_take_lvgl_mutex(500) );
+		lv_obj_t* msg_box = ui_helpers_show_msgbox("VIN file header corrupt.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+		lv_port_give_lvgl_mutex();
+		f_lseek(&vin_file, 0);
+		f_truncate(&vin_file);
+		int val = f_puts(prv_vin_file_header, &vin_file);			//Write the header.
+		if (val != strlen(prv_vin_file_header))
+		{
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to write header to VIN file.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return FR_DISK_ERR;
+		}
+
+	}
+
+	/* Start reading the VINs and see if this one has been saved yet. */
+	while (f_eof(&vin_file) != true)
+	{
+		f_gets(line, alloc_length, &vin_file);		//Read a VIN line.
+		char* split = NULL;
+		char* sv_ptr = NULL;
+		split = strtok_r(line,",", &sv_ptr);	//Split the string with "," to get the VIN.
+		if (strlen(split) != 17)
+		{
+			f_unlink(prv_vin_info_file_path);
+			assert( lv_port_take_lvgl_mutex(500) );
+			lv_obj_t* msg_box = ui_helpers_show_msgbox("VIN file corrupt.", NULL, NULL);
+			ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+			lv_port_give_lvgl_mutex();
+			return FR_DISK_ERR;
+		}
+		if (strcmp(split, vin) == 0)
+		{
+			free(line);
+			return FR_OK;//This VIN is already saved.
+		}
+	}
+	free(line);
+	/* If we reached this point, this VIN is not saved and the file pointer is
+	 * at the end of the file so we can save this VIN and data. */
+	if (strlen(vin) != 17)
+	{
+		assert( lv_port_take_lvgl_mutex(500) );
+		lv_obj_t* msg_box = ui_helpers_show_msgbox("No VIN found. Nothing to save.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+		lv_port_give_lvgl_mutex();
+		return FR_DISK_ERR;
+	}
+	unsigned int avail_pids_current_data[6];
+	unsigned int avail_pids_info_type[4];
+	char* save_str = calloc(alloc_length, 1);
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		avail_pids_current_data[i] = can_uds_get_raw_current_data(0x20 * i, 0, 4);
+	}
+	for (uint8_t i = 0; i < 4; i++)
+	{
+		avail_pids_info_type[i] = can_uds_get_raw_infotype_data(0x20 * i, 0, 4);
+	}
+	uint32_t str_len = sprintf(save_str, "%s,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,\n",
+								vin, avail_pids_current_data[0], avail_pids_current_data[1],
+								avail_pids_current_data[2], avail_pids_current_data[3],
+								avail_pids_current_data[4], avail_pids_current_data[5],
+								avail_pids_info_type[0], avail_pids_info_type[1],
+								avail_pids_info_type[2], avail_pids_info_type[3]);
+	res = f_puts(save_str, &vin_file);
+	assert( lv_port_take_lvgl_mutex(500) );
+	if (res == strlen(save_str))
+	{
+		lv_obj_t* msg_box = ui_helpers_show_msgbox(save_str, NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+	}
+	else
+	{
+		lv_obj_t* msg_box = ui_helpers_show_msgbox("Failed to save VIN to file.", NULL, NULL);
+		ui_helpers_add_msgbox_close_btn(msg_box, NULL);
+	}
+	lv_port_give_lvgl_mutex();
+	free(save_str);
+	f_close(&vin_file);
 }
 
 FRESULT file_mngr_config_file_exists()
