@@ -99,7 +99,7 @@ static void prv_task_gauges()
 										LEC: %lu\n\
 										%s - %s",
 										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, (unsigned int)can_id,
-										rx_ecr, tx_ecr, ec, prv_version, prv_build);
+										rx_ecr, tx_ecr, ec, VERSION, BUILD_TYPE_STR);
 
 	/* Write the diagnostic label to the screen. */
 	lv_port_take_lvgl_mutex(portMAX_DELAY);
