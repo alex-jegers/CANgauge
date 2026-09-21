@@ -24,7 +24,11 @@ static int32_t prv_pri_axis_max = 0x80000000;	//Signed int, hold the the max val
 static int32_t prv_pri_axis_min = 0x7FFFFFFF;	//Signed int, hold the the min value of the primary y axis.
 static int32_t prv_sec_axis_max = 0x80000000;	//Signed int, hold the the max value of the secondary y axis.
 static int32_t prv_sec_axis_min = 0x7FFFFFFF;	//Signed int, hold the the min value of the secondary y axis.
-static float prv_max_time_s = 0;
+static uint32_t prv_max_time_ms = 0;			//Dont edit this outside of ui_graph_set_timebase. This is used internally to determine how many pts are in the data arrays for x axis scaling.
+static uint32_t prv_timebase_ms = 0;			//Dont edit this outside of ui_graph_set_timebase. This is used internally to determine how many pts are in the data arrays for x axis scaling.
+static uint32_t prv_x_axis_point_offset = 0;	//Keeps track of how far offset the data arrays are for adjustment of the x-axis since the LVGL implementation of change starting point is dumb asf.
+static float prv_max_time_s = 0;				//This is made to match what is  being displayed vs the above.
+static float prv_min_time_s = 0;				//This is made to match what is being displayed.
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_list_btn_pressed_handler(lv_event_t* e);
 static void prv_series_switch_event_handler(lv_event_t* e);			//User data contained in the event is the lv_series_t.
@@ -39,17 +43,20 @@ static void prv_series_switch_event_handler(lv_event_t* e);			//User data contai
 * @attention The event's user data is a pointer to the int32_t that holds the value
 * for that axes min/max. The value in the text area should be assigned to this integer.
 */
-static void prv_prv_axis_lbl_pressed_cb(lv_event_t* e);
+static void prv_axis_lbl_pressed_cb(lv_event_t* e);
 
 /**
-* @brief This is the event handler for the number pad being pressed. The only time
+* @brief This is the event handler for the number pad being pressed when one of the 
+* axis text areas are being edited. The only time
 * it does anything is when the "ok" button is pressed. When that happens it removes
 * this function as an event handler for the numberpad and closes the numberpad.
 * 
 * @param e The LVGL event. This is used to determine which key on the numberpad was
 * pressed that triggered the event.
+* @attention The event's user data is a pointer to the int32_t that holds the value
+* for that axes min/max. The value in the text area should be assigned to this integer.
 */
-static void prv_numberpad_pressed_cb(lv_event_t* e);
+static void prv_numberpad_pressed_y_axis_cb(lv_event_t* e);
 
 /**
 * @brief Updates the y-axis scale of the chart with the values stored in prv_xxx_y_axis_yyy variables.
@@ -110,39 +117,61 @@ static void prv_series_switch_event_handler(lv_event_t* e)
 	prv_update_chart();
 }
 
-static void prv_prv_axis_lbl_pressed_cb(lv_event_t* e)
+static void prv_axis_lbl_pressed_cb(lv_event_t* e)
 {
 	lv_obj_t* txt_area = lv_event_get_target_obj(e);	//Get the text area that was clicked.
 	lv_obj_t* numpad = ui_helpers_load_number_pad();	//Show the number pad.
 	void* user_data = lv_event_get_user_data(e);		//Pointer to the int32_t that holds the axis value.
 	lv_keyboard_set_textarea(numpad, txt_area);			//Assign the number pad.
-	lv_obj_add_event_cb(numpad, prv_numberpad_pressed_cb, LV_EVENT_VALUE_CHANGED, user_data);		//Bind the event and pass along the int pointer.
+	lv_obj_add_event_cb(numpad, prv_numberpad_pressed_y_axis_cb, LV_EVENT_VALUE_CHANGED, user_data);		//Bind the event and pass along the int pointer.
 }
 
-static void prv_numberpad_pressed_cb(lv_event_t* e)
+static void prv_numberpad_pressed_y_axis_cb(lv_event_t* e)
 {
 	lv_obj_t* numpad = lv_event_get_target_obj(e);
 	uint32_t key = lv_keyboard_get_selected_btn(numpad);
 	const char* txt = lv_keyboard_get_btn_text(numpad, key);
 	
-	if (lv_streq(txt, LV_SYMBOL_OK) == true)
+	/* If any key other than the OK symbol were pressed return. */
+	if (lv_streq(txt, LV_SYMBOL_OK) != true)
 	{
-		int32_t* axis_val_int = (int32_t*)lv_event_get_user_data(e);		//Pointer to the axis value int32_t.
+		return;
+	}
+
+	void* e_user_data = lv_event_get_user_data(e);		//The user data tied to the event.
+
+	//TODO: Optimize this if then block below.
+	/* Check if the user data is pointing to one of the time labels (x axis). */
+	if ((e_user_data == &prv_max_time_s) || (e_user_data == &prv_min_time_s))
+	{	
+		float* axis_val_f = (float*)e_user_data;
+		const char* textarea_text = lv_textarea_get_text(lv_keyboard_get_textarea(numpad));		//Get the text from the text area.
+		char* end_ptr;		//Used to convert string to float.
+		float new_axis_val_f = strtof(textarea_text, &end_ptr);
+		if (end_ptr != textarea_text)		//If end_ptr still points to the start of the textarea_text there was no text.
+		{
+			*axis_val_f = (new_axis_val_f);
+		}
+	}
+	else
+	{
+		int32_t* axis_val_int = (int32_t*)e_user_data;		//Pointer to the axis value int32_t.
 		const char* textarea_text = lv_textarea_get_text(lv_keyboard_get_textarea(numpad));		//Get the text from the text area.
 		char* end_ptr;		//Used to convert string to float.
 		float new_axis_val_f = strtof(textarea_text, &end_ptr);
 		if (end_ptr != textarea_text)		//If end_ptr still points to the start of the textarea_text there was no text.
 		{
 			*axis_val_int = (int32_t)(new_axis_val_f * UI_GRAPH_Y_AXIS_MULTIPLIER);
-			prv_update_chart_axes();
 		}
-		lv_obj_remove_event_cb(numpad, prv_numberpad_pressed_cb);
-		ui_helpers_delete_number_pad();
 	}
+	prv_update_chart_axes();
+	lv_obj_remove_event_cb(numpad, prv_numberpad_pressed_y_axis_cb);
+	ui_helpers_delete_number_pad();
 }
 
 static void prv_update_chart_axes()
 {
+	/* Make sure the axes minimum values are lower than the maximum values. If they're not just ignore it.*/
 	if (prv_pri_axis_max >= prv_pri_axis_min)
 	{
 		lv_chart_set_axis_range(prv_chart, LV_CHART_AXIS_PRIMARY_Y, prv_pri_axis_min, prv_pri_axis_max);
@@ -151,7 +180,30 @@ static void prv_update_chart_axes()
 	{
 		lv_chart_set_axis_range(prv_chart, LV_CHART_AXIS_SECONDARY_Y, prv_sec_axis_min, prv_sec_axis_max);
 	}
-
+	if (prv_min_time_s < prv_max_time_s)
+	{
+		uint32_t number_of_pts_in_array = prv_max_time_ms / prv_timebase_ms;
+		uint32_t starting_point = ((uint32_t)(prv_min_time_s * 1000)) / prv_timebase_ms;
+		uint32_t ending_point = ((uint32_t)(prv_max_time_s * 1000)) / prv_timebase_ms;
+		
+		lv_chart_series_t* series = lv_chart_get_series_next(prv_chart, NULL);
+		lv_chart_series_t* last = NULL;
+		while (series != NULL)
+		{
+			int32_t* int_arr = lv_chart_get_series_y_array(prv_chart, series);		//Get the pointer to where ever in the data array were currently pointing to.
+			int_arr -= prv_x_axis_point_offset;										//This brings us to the allocated pointer.
+			lv_chart_set_series_ext_y_array(prv_chart, series, int_arr + starting_point);
+			last = series;
+			series = lv_chart_get_series_next(prv_chart, last);
+		}
+		prv_x_axis_point_offset = starting_point;
+		if (ending_point <= number_of_pts_in_array)
+		{
+			uint32_t number_of_pts_to_display = ending_point - starting_point;
+			lv_chart_set_point_count(prv_chart, number_of_pts_to_display);
+		}
+	}
+	lv_chart_refresh(prv_chart);
 }
 
 static float prv_get_array_max_val_f(float* arr, uint32_t arr_len)
@@ -258,7 +310,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(pri_max_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(pri_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(pri_max_lbl, &textarea_style, 0);
-	lv_obj_add_event_cb(pri_max_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_max);
+	lv_obj_add_event_cb(pri_max_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_max);
 	if (prv_pri_axis_max == 0x80000000)
 	{
 		lv_obj_set_flag(pri_max_lbl, LV_OBJ_FLAG_HIDDEN, true);
@@ -273,7 +325,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(pri_min_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(pri_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(pri_min_lbl, &textarea_style, 0);
-	lv_obj_add_event_cb(pri_min_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_min);
+	lv_obj_add_event_cb(pri_min_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_pri_axis_min);
 	if (prv_pri_axis_min == 0x7FFFFFFF)
 	{
 		lv_obj_set_flag(pri_min_lbl, LV_OBJ_FLAG_HIDDEN, true);
@@ -288,7 +340,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(sec_max_lbl), LV_TEXT_ALIGN_RIGHT, 0);
 	lv_obj_set_style_border_color(sec_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(sec_max_lbl, &textarea_style, 0);
-	lv_obj_add_event_cb(sec_max_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_max);
+	lv_obj_add_event_cb(sec_max_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_max);
 	lv_obj_set_style_text_color(sec_max_lbl, UI_COLOR_WHITE, 0);
 	if (prv_sec_axis_max == 0x80000000)
 	{
@@ -304,7 +356,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(sec_min_lbl), LV_TEXT_ALIGN_RIGHT, 0);
 	lv_obj_set_style_border_color(sec_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(sec_min_lbl, &textarea_style, 0);
-	lv_obj_add_event_cb(sec_min_lbl, prv_prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_min);
+	lv_obj_add_event_cb(sec_min_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_sec_axis_min);
 	if (prv_sec_axis_min == 0x7FFFFFFF)
 	{
 		lv_obj_set_flag(sec_min_lbl, LV_OBJ_FLAG_HIDDEN, true);
@@ -318,6 +370,7 @@ static void prv_update_chart()
 	lv_obj_set_style_border_color(time_zero_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(time_zero_lbl, &textarea_style, 0);
 	lv_label_set_text(lv_textarea_get_label(time_zero_lbl), "0s");
+	lv_obj_add_event_cb(time_zero_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_min_time_s);
 
 	lv_obj_t* time_lbl = lv_textarea_create(prv_chart);
 	lv_obj_set_width(time_lbl, 100);
@@ -327,6 +380,7 @@ static void prv_update_chart()
 	lv_obj_set_style_border_color(time_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(time_lbl, &textarea_style, 0);
 	lv_label_set_text_fmt(lv_textarea_get_label(time_lbl), "%.1fs", prv_max_time_s); 
+	lv_obj_add_event_cb(time_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_max_time_s);
 
 	lv_chart_refresh(prv_chart);
 }
@@ -378,6 +432,7 @@ void ui_graph_init()
 	lv_obj_set_style_pad_left(prv_chart, 25, LV_STATE_DEFAULT);
 	lv_obj_remove_flag(prv_chart, LV_OBJ_FLAG_SCROLLABLE);
 	lv_obj_set_scrollbar_mode(prv_chart, LV_SCROLLBAR_MODE_OFF);
+	lv_chart_set_update_mode(prv_chart, LV_CHART_UPDATE_MODE_SHIFT);
 
 	/* Create a container to hold info about the data series. */
 	prv_series_info_container = lv_obj_create(prv_main_container);
@@ -415,6 +470,8 @@ void ui_graph_init()
 
 void ui_graph_set_timebase(uint32_t max_ms, uint32_t increment_ms)
 {
+	prv_max_time_ms = max_ms;
+	prv_timebase_ms = increment_ms;
 	prv_max_time_s = ((float)max_ms / 1000.0);
 }
 
@@ -429,8 +486,12 @@ void ui_graph_clear_all_chart_data()
 	lv_chart_series_t* series = lv_chart_get_series_next(prv_chart, NULL);
 	while (series != NULL)
 	{
+		int32_t* int_arr = lv_chart_get_series_y_array(prv_chart, series);
+		int_arr -= prv_x_axis_point_offset;
+		free(int_arr);
 		lv_chart_remove_series(prv_chart, series);
 		series = lv_chart_get_series_next(prv_chart, NULL);
+
 	}
 	prv_pri_axis_max = 0x80000000;
 	prv_pri_axis_min = 0x7FFFFFFF;
@@ -494,8 +555,11 @@ void ui_graph_delete_file_from_list(uint32_t index)
 void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* name, lv_color_t color)
 {
 	/* Everything gets multiplied by 10 in case there are values like A/F ratio that are between like 0-2. */
-	int32_t* int_arr = (int32_t*)malloc(arr_size_floats * sizeof(float));
-
+	int32_t* int_arr = (int32_t*)malloc(arr_size_floats * sizeof(float));	//This will be freed in ui_graph_clear_all_data.
+	if (int_arr == NULL)
+	{
+		return;
+	}
 	for(uint32_t i = 0; i < arr_size_floats; i++)
 	{
 		int_arr[i] = (int32_t)roundf(UI_GRAPH_Y_AXIS_MULTIPLIER * data_arr[i]);
@@ -503,9 +567,10 @@ void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* n
 
 	lv_chart_set_point_count(prv_chart, arr_size_floats);
 	lv_chart_series_t* lv_series = lv_chart_add_series(prv_chart, color, LV_CHART_AXIS_PRIMARY_Y);
-	lv_chart_set_series_values(prv_chart, lv_series, int_arr, (size_t)arr_size_floats);
-
+	//lv_chart_set_series_values(prv_chart, lv_series, int_arr, (size_t)arr_size_floats);
+	lv_chart_set_series_ext_y_array(prv_chart, lv_series, int_arr);
 	lv_obj_t* lbl = lv_label_create(prv_series_info_container);
+	
 	/* Check if name ends with a newline and trim it off if it does. */
 	name[ strcspn(name, "\n") ] = 0;			//https://stackoverflow.com/questions/2693776/removing-trailing-newline-character-from-fgets-input
 	lv_label_set_text(lbl, name);
@@ -524,7 +589,6 @@ void ui_graph_add_series_data(float* data_arr, uint32_t arr_size_floats, char* n
 	lv_obj_set_style_border_color(cb, UI_COLOR_RED, LV_PART_INDICATOR);
 
 	prv_update_chart();
-	free(int_arr);
 }
 
 void ui_graph_set_delete_btn_cb(lv_event_cb_t func)
