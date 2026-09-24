@@ -1,7 +1,6 @@
 /**
  * @file main.c
- * @author Alex Jegers
- * @brief Main program body
+ * @brief Program entry point.
  */
 #include "applications.h"
 #include "cangauge.h"
