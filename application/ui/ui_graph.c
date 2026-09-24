@@ -369,7 +369,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(time_zero_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(time_zero_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(time_zero_lbl, &textarea_style, 0);
-	lv_label_set_text(lv_textarea_get_label(time_zero_lbl), "0s");
+	lv_label_set_text_fmt(lv_textarea_get_label(time_zero_lbl), "%.1fs", prv_min_time_s);
 	lv_obj_add_event_cb(time_zero_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_min_time_s);
 
 	lv_obj_t* time_lbl = lv_textarea_create(prv_chart);
