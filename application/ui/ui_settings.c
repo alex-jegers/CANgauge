@@ -21,11 +21,15 @@ static lv_obj_t* prv_pressure_units_dropdown;			//Pressure units dropdown.
 static lv_obj_t* prv_temperature_units_dropdown;		//Temperature units dropdown.
 static lv_obj_t* prv_speed_units_dropdown;				//Speed units dropdown.
 static lv_obj_t* prv_torque_units_dropdown;				//Torque units dropdown.
+static lv_obj_t* prv_auto_off_th_btn;					//Button to set the auto off threshold.
+static lv_obj_t* prv_auto_on_th_btn;					//Button to set the auto on threshold.
 static lv_obj_t* prv_settings_firmware_update_btn;		//Update firmware button.
 static lv_obj_t* prv_settings_data_trsnf_btn;			//Transfer data button.
 static lv_obj_t* prv_restore_defaults_btn;				//Restore Defaults button.
 static lv_obj_t* prv_data_logging_period_text_area;		//Where users enter the data logging duration.
 
+static const char* prv_off_th_btn_text = "Auto off threshold:\n";	//The prefix for the off threshold button.
+static const char* prv_on_th_btn_text = "Auto on threshold:\n";	//The prefix for the on threshold button.
 
 /* Event Handlers */
 static lv_event_cb_t prv_numberpad_closed_cb = NULL;
@@ -173,7 +177,7 @@ void ui_settings_init()
 	lv_obj_set_scrollbar_mode(text_area_container, LV_SCROLLBAR_MODE_OFF);
 	lv_obj_set_style_bg_color(text_area_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
 	lv_obj_set_style_border_width(text_area_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_size(text_area_container, lv_pct(100), 105);
+	lv_obj_set_size(text_area_container, lv_pct(100), LV_SIZE_CONTENT);
 	lv_obj_set_style_pad_top(text_area_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_bottom(text_area_container, 0, LV_STATE_DEFAULT);
 	lv_obj_set_style_pad_left(text_area_container, 0, LV_STATE_DEFAULT);
@@ -185,6 +189,30 @@ void ui_settings_init()
 	lv_obj_set_style_border_width(prv_data_logging_period_text_area, 2, LV_STATE_DEFAULT);
 	lv_obj_add_event_cb(prv_data_logging_period_text_area, prv_text_area_clicked, LV_EVENT_SHORT_CLICKED, NULL);
 	lv_textarea_set_accepted_chars(prv_data_logging_period_text_area, "0123456789");
+
+	/* Make the auto on/off calibration container, buttons, and labels. */
+	lv_obj_t* pwr_container = lv_obj_create(prv_settings_screen);
+	lv_obj_set_width(pwr_container, 400);
+	lv_obj_set_height(pwr_container, LV_SIZE_CONTENT);
+	lv_obj_set_style_bg_opa(pwr_container, 0, 0);
+	lv_obj_set_style_border_width(pwr_container, 0, 0);
+	lv_obj_remove_flag(pwr_container, LV_OBJ_FLAG_SCROLLABLE);
+	lv_obj_set_scrollbar_mode(pwr_container, LV_SCROLLBAR_MODE_OFF);
+	lv_obj_set_flex_flow(pwr_container, LV_FLEX_FLOW_ROW_WRAP);
+	lv_obj_set_flex_align(pwr_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
+	lv_obj_t* instruction_lbl = lv_label_create(pwr_container);
+	lv_obj_set_style_text_color(instruction_lbl, UI_COLOR_WHITE, 0);
+	lv_label_set_text_static(instruction_lbl, "Press and hold to set auto on/off threshold.");
+	lv_obj_align(instruction_lbl, LV_ALIGN_TOP_MID, 0, 0);
+	lv_obj_set_style_text_align(instruction_lbl, LV_TEXT_ALIGN_CENTER, 0);
+	prv_auto_off_th_btn = ui_helpers_create_btn_with_text(pwr_container, prv_off_th_btn_text, &lv_font_montserrat_16);
+	lv_obj_set_width(prv_auto_off_th_btn, lv_pct(80));
+	lv_obj_align(prv_auto_off_th_btn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+	lv_obj_set_style_text_align(prv_auto_off_th_btn, LV_TEXT_ALIGN_CENTER, 0);
+	prv_auto_on_th_btn = ui_helpers_create_btn_with_text(pwr_container, prv_on_th_btn_text, &lv_font_montserrat_16);
+	lv_obj_set_width(prv_auto_on_th_btn, lv_pct(80));
+	lv_obj_align(prv_auto_on_th_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+	lv_obj_set_style_text_align(prv_auto_on_th_btn, LV_TEXT_ALIGN_CENTER, 0);
 
 	/* Make a firmware update button. */
 	prv_settings_firmware_update_btn = ui_helpers_create_btn_with_text(prv_settings_screen, "Update Firmware", LV_FONT_DEFAULT);
@@ -237,6 +265,22 @@ void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func)
 void ui_settings_set_restore_defaults_btn_event_cb(lv_event_cb_t func)
 {
 	lv_obj_add_event_cb(prv_restore_defaults_btn, func, LV_EVENT_RELEASED, NULL);
+}
+
+void ui_settings_set_auto_off_th_btn_cb(lv_event_cb_t func)
+{
+	lv_obj_add_event_cb(prv_auto_off_th_btn, func, LV_EVENT_LONG_PRESSED, NULL);
+}
+
+void ui_settings_set_auto_on_th_btn_cb(lv_event_cb_t func)
+{
+	lv_obj_add_event_cb(prv_auto_on_th_btn, func, LV_EVENT_LONG_PRESSED, NULL);
+}
+
+void ui_settings_set_auto_on_off_values(float off_voltage, float on_voltage)
+{
+	lv_label_set_text_fmt(lv_obj_get_child(prv_auto_off_th_btn, 0), "%s %.2f V", prv_off_th_btn_text, off_voltage);
+	lv_label_set_text_fmt(lv_obj_get_child(prv_auto_on_th_btn, 0), "%s %.2f V", prv_on_th_btn_text, on_voltage);
 }
 
 void ui_set_numberpad_closed_cb(lv_event_cb_t func)

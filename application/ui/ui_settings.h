@@ -19,12 +19,13 @@ extern "C" {
 
 /**********		GLOBAL FUNCTION DECLRATIONS		**********/
 /**
- * name:
- *      desc:
- *      params:
- *      returns:
+ * @brief Loads the settings screen.
  */
 void ui_settings_load();
+
+/**
+* @brief Creates all the objects that appear on the settings screen.
+*/
 void ui_settings_init();
 void ui_settings_delete();
 void ui_set_brightness_slider_event_cb(lv_event_cb_t func);				//The brightness slider is interacted with.
@@ -33,6 +34,26 @@ void ui_set_save_settings_cb(lv_event_cb_t func);				//Callback for when the bri
 void ui_add_settings_firmware_update_btn_event_cb(lv_event_cb_t func);	//The button to start a firmware update.
 void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func);		//Used to connect the EEPROM file system over USB.
 void ui_settings_set_restore_defaults_btn_event_cb(lv_event_cb_t func);	//Restore file defaults.
+
+/**
+* @brief Sets the function callback for when the "Set auto off threshold"
+* button sends an event. 
+*/
+void ui_settings_set_auto_off_th_btn_cb(lv_event_cb_t func);
+
+/**
+* @brief Sets the function callback for when the "Set auto on threshold"
+* button sends an event.
+*/
+void ui_settings_set_auto_on_th_btn_cb(lv_event_cb_t func);
+
+/**
+* @brief Sets the text in the auto on and auto off threshold buttons
+* to display what the thresholds are currently set at.
+* @param off_voltage What voltage the gauge is programmed to shut off at.
+* @param on_voltage What voltage the gauge is programmed to turn on at.
+*/
+void ui_settings_set_auto_on_off_values(float off_voltage, float on_voltage);
 void ui_set_numberpad_closed_cb(lv_event_cb_t func);
 bool ui_settings_set_pressure_units_dropdown(char* units_str);	//Units_str must be PSI, kPa, or bar. Anything else will return false.
 bool ui_settings_set_temperature_units_dropdown(char* units_str);	//Units_str must be C or F. Anything else will return false.
