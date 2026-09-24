@@ -295,7 +295,10 @@ static void prv_gauge_pressed_hanlder(lv_event_t* e)
 
 	if (event_code == LV_EVENT_LONG_PRESSED)
 	{
-		prv_gauge_long_pressed_cb(e);
+		if (prv_gauge_long_pressed_cb != NULL)
+		{
+			prv_gauge_long_pressed_cb(e);
+		}
 	}
 }
 
