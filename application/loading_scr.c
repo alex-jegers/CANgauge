@@ -121,7 +121,11 @@ static void prv_update_settings_from_eeprom()
 {
 	char str_buffer[FILE_MNGR_LONGEST_CONFIG_STR_LEN];
 
-	/* Set the slider value. */
+	/* Read and set the LCD backlight value. */
+	file_mngr_get_config_data("BRIGHTNESS", str_buffer);
+	char* split = file_mngr_csv_split(str_buffer, 1);
+	uint32_t backlight_int = atoi(split);
+	timer_set_pwm_duty_cycle(TIM12, backlight_int, 1);
 	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
 	uint32_t slider_val = (timer_val - 5000) / 605;
 	ui_settings_set_brightness_slider_value(slider_val);
