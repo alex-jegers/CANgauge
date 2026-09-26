@@ -20,12 +20,14 @@
 static TaskHandle_t prv_cg_obd_init_task_handle = NULL;
 static TimerHandle_t prv_cg_obd_init_timer = NULL;
 
-
 /**********		STATIC FUNCTION DECLRATIONS		**********/
 static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brightness slider being changed.
 static void prv_update_settings_from_eeprom();				//Updates the brightness slider position and unit drop down boxes with the values saved in eeprom.
-static void prv_save_settings_lvgl_cb(lv_event_t* e);       //Saves all the config data to the config file.
+static void prv_save_settings_lvgl_cb(lv_event_t* e);       //Saves all the config data to the config file, TODO: make this a background task that can execute outside of the LVGL handler bc it's slow.
 static void prv_data_trsnf_btn_handler(lv_event_t* e);
+static void prv_auto_off_th_btn_handler(lv_event_t* e);		//Handler for the auto off threshold button.
+static void prv_auto_on_th_btn_handler(lv_event_t* e);		//Handler for the auto on threshold button.
+static void prv_save_on_off_thresholds_to_eeprom();			//What the function says.
 static void prv_refresh_btn_cb(lv_event_t* e);			    //Handler for the refresh button being pressed. Just triggers a SW reset.
 static void prv_restore_defaults_btn_cb(lv_event_t* e);	    //Handler for the restore defaults button being pressed. Write the default VIN file and system info.
 static void prv_numberpad_closed_cb(lv_event_t* e);         //Gets the value that is in the data log rate txt box and saves it to the config file.
@@ -35,6 +37,7 @@ static void prv_cg_obd_init_timer_cb(TimerHandle_t timer);  //Just a 3ish second
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_cg_obd_init_task(void* args)
 {
+	//Starts a timer so the loading screen stays on for a time of PRV_CG_OBD_INIT_TIMER_DURATION_MS even if the init function finishes first.
 	prv_cg_obd_init_timer = xTimerCreate("CG_OBD_INIT", pdMS_TO_TICKS(PRV_CG_OBD_INIT_TIMER_DURATION_MS), pdFALSE, NULL, prv_cg_obd_init_timer_cb);
 	if (prv_cg_obd_init_timer != NULL)
 	{
@@ -75,12 +78,15 @@ static void prv_cg_obd_init_task(void* args)
     ui_add_refresh_btn_event_cb(prv_refresh_btn_cb);							//The refresh button is pressed (restart the CAN connection.
     ui_settings_set_restore_defaults_btn_event_cb(prv_restore_defaults_btn_cb);	//Restore defaults button pressed.
     ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
-    ui_set_numberpad_closed_cb(prv_numberpad_closed_cb);
+    ui_settings_set_numberpad_closed_cb(prv_numberpad_closed_cb);
+    ui_settings_set_auto_off_th_btn_cb(prv_auto_off_th_btn_handler);
+    ui_settings_set_auto_on_th_btn_cb(prv_auto_on_th_btn_handler);
     lv_port_give_lvgl_mutex();
 
     /* Set the low power mode callback. This will run before the device enters low power mode. */
     pwr_monitor_add_low_pwr_mode_cb(prv_low_power_mode_cb);
 
+    /* Updates the brightness slider, units dropdown boxes, on/off thresholds, data logging period textbox, etc. */
     prv_update_settings_from_eeprom();
 
     prv_update_units();
@@ -113,6 +119,7 @@ static void prv_brightness_slider_handler(lv_event_t* e)
 
 static void prv_update_settings_from_eeprom()
 {
+	char str_buffer[FILE_MNGR_LONGEST_CONFIG_STR_LEN];
 
 	/* Set the slider value. */
 	uint32_t timer_val = timer_get_pwm_duty_cycle(TIM12, 1);
@@ -120,32 +127,50 @@ static void prv_update_settings_from_eeprom()
 	ui_settings_set_brightness_slider_value(slider_val);
 
 	/* Set the units dropdowns. */
-	char units_config_str[25];
 	char* units;
-	file_mngr_get_config_data("PRESSURE UNITS", units_config_str);
-	units = file_mngr_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("PRESSURE UNITS", str_buffer);
+	units = file_mngr_csv_split(str_buffer, 1);
 	ui_settings_set_pressure_units_dropdown(units);
 
-	file_mngr_get_config_data("TEMPERATURE UNITS", units_config_str);
-	units = file_mngr_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("TEMPERATURE UNITS", str_buffer);
+	units = file_mngr_csv_split(str_buffer, 1);
 	ui_settings_set_temperature_units_dropdown(units);
 
-	file_mngr_get_config_data("SPEED UNITS", units_config_str);
-	units = file_mngr_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("SPEED UNITS", str_buffer);
+	units = file_mngr_csv_split(str_buffer, 1);
 	ui_settings_set_speed_units_dropdown(units);
 
-	file_mngr_get_config_data("TORQUE UNITS", units_config_str);
-	units = file_mngr_csv_split(units_config_str, 1);
+	file_mngr_get_config_data("TORQUE UNITS", str_buffer);
+	units = file_mngr_csv_split(str_buffer, 1);
 	ui_settings_set_torque_units_dropdown(units);
 
 	/*Get the data logging rate. */
-	char data_logging_rate_str[25];
 	char* data_log_rate_val_str;
 	uint32_t data_log_rate_val_uint = 0;
-	file_mngr_get_config_data("DATA LOG RATE", data_logging_rate_str);
-	data_log_rate_val_str = file_mngr_csv_split(data_logging_rate_str, 1);
+	file_mngr_get_config_data("DATA LOG RATE", str_buffer);
+	data_log_rate_val_str = file_mngr_csv_split(str_buffer, 1);
 	data_log_rate_val_uint = strtoul(data_log_rate_val_str, NULL, 10);
 	ui_settings_set_data_logger_rate(data_log_rate_val_uint);
+
+	/* Get the on/off thresholds. */
+	float on_th, off_th;
+	file_mngr_get_config_data("ON THRESHOLD VOLTS", str_buffer);
+	char* val_str = file_mngr_csv_split(str_buffer, 1);
+	on_th = atof(val_str);
+	file_mngr_get_config_data("OFF THRESHOLD VOLTS", str_buffer);
+	val_str = file_mngr_csv_split(str_buffer, 1);
+	off_th = atof(val_str);
+	if ((on_th == 0) || (off_th == 0))
+	{
+		pwr_monitor_set_auto_on_off_th(12.33, 13.34);
+		ui_settings_set_auto_on_off_values(12.34, 13.34);
+	}
+	else
+	{
+		pwr_monitor_set_auto_on_off_th(off_th, on_th);
+		ui_settings_set_auto_on_off_values(off_th, on_th);
+	}
+
 }
 
 static void prv_save_settings_lvgl_cb(lv_event_t* e)
@@ -199,6 +224,52 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e)
 		usb_connect(USB_FS_EEPROM);
 	}
 
+}
+
+static void prv_auto_off_th_btn_handler(lv_event_t* e)
+{
+	/* Get the current input voltage. */
+	float current_input_voltage = pwr_monitor_get_last_conversion_volts();
+
+	/* Get the current HIGH threshold and rewrite the limits to pwr monitor. */
+	float current_high_th = pwr_monitor_get_on_th_volts();
+	current_input_voltage += 0.25;		//Make the low threshold slightly higher than what the battery voltage actually is rn.
+	pwr_monitor_set_auto_on_off_th(current_input_voltage, current_high_th);		//Loop back in the high threshold and set the new low threshold.
+	ui_settings_set_auto_on_off_values(pwr_monitor_get_off_th_volts(), pwr_monitor_get_on_th_volts());		//Set them both in the UI.
+
+	prv_save_on_off_thresholds_to_eeprom();		//Save it to the EEPROM.
+}
+
+static void prv_auto_on_th_btn_handler(lv_event_t* e)
+{
+	/* Lets do it like we did in the off th btn handler. */
+	/* Get the current input voltage. */
+	float current_input_voltage = pwr_monitor_get_last_conversion_volts();
+
+	/* Get the current LOW threshold and rewrite the limits to pwr monitor. */
+	float current_low_th = pwr_monitor_get_off_th_volts();
+	current_input_voltage -= 0.25;		//Make this a little lower.
+	pwr_monitor_set_auto_on_off_th(current_low_th, current_input_voltage);		//Set that shit in the pwr monitor.
+	ui_settings_set_auto_on_off_values(pwr_monitor_get_off_th_volts(), pwr_monitor_get_on_th_volts());	//And in the UI.
+
+	prv_save_on_off_thresholds_to_eeprom();		//Save it to the EERPOM.
+}
+
+static void prv_save_on_off_thresholds_to_eeprom()
+{
+	char* str_buf = (char*)malloc(FILE_MNGR_LONGEST_CONFIG_STR_LEN);	//Allocate some memory for the strings.
+	if (str_buf == NULL) { return; }									//Quick null check.
+
+	float low_th = pwr_monitor_get_off_th_volts();		//Get the off/low threshold.
+	snprintf(str_buf, FILE_MNGR_LONGEST_CONFIG_STR_LEN, "OFF THRESHOLD VOLTS,%.2f,\n", low_th);	//Write that shit to a string to save to the config file.
+	file_mngr_set_config_data(str_buf);		//Save that shit to the config file.
+
+	/* Rinse and repeat with the high/on threshold. */
+	float high_th = pwr_monitor_get_on_th_volts();		//Get the current threshold from pwr_monitor.
+	snprintf(str_buf, FILE_MNGR_LONGEST_CONFIG_STR_LEN, "ON THRESHOLD VOLTS,%.2f,\n", high_th);		//Format that shit into a string.
+	file_mngr_set_config_data(str_buf);		//Write that string to the config file.
+
+	free(str_buf);	//Last but not least lets free that string memory.
 }
 
 static void prv_refresh_btn_cb(lv_event_t* e)

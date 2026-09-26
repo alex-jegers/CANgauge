@@ -1,5 +1,6 @@
 /**********     INCLUDES        **********/
 #include "pwr_monitor.h"
+#include <math.h>
 #include <assert.h>
 
 /**********		DEFINES		**********/
@@ -19,8 +20,8 @@ typedef struct prv_cb_ll
 /**********		STATIC VARIABLES		**********/
 TaskHandle_t task_handle_battery_monitor = NULL;
 static uint32_t prv_measurement = 0;
-static uint32_t prv_low_threshold = 0x6fb4;
-static uint32_t prv_high_threshold = 0x9133;
+static uint32_t prv_low_threshold_cnts = 0x6fb4;	//28596 12.33V
+static uint32_t prv_high_threshold_cnts = 0x9133;	//37171 13.34V
 static bool prv_enter_low_power_mode = false;
 static TimerHandle_t prv_timer = NULL;
 static prv_cb_ll_t* prv_low_pwr_mode_cb_head;
@@ -81,7 +82,7 @@ static void prv_pwr_monitor_task()
     while (1)
     {
     	/* If we're lower than the threshold. */
-    	if (prv_measurement < prv_low_threshold)
+    	if (prv_measurement < prv_low_threshold_cnts)
     	{
     		touch_scr_set_touched_cb(prv_scr_touched);
             /* Check if were in higher power mode, if yes, need to change. */
@@ -105,7 +106,7 @@ static void prv_pwr_monitor_task()
     	}
 
     	/* If we're higher than the threshold. */
-    	if (prv_measurement > prv_high_threshold)
+    	if (prv_measurement > prv_high_threshold_cnts)
     	{
     		touch_scr_clear_touched_cb(prv_scr_touched);		//TODO: put somewhere it's not getting called everytime.
 
@@ -131,9 +132,10 @@ void pwr_monitor_run(uint8_t priority)
 {
 	if (task_handle_battery_monitor != NULL)
 	{
-		/* Trying to start the task but it's already running. */
-		assert(0);
+		/* Task is already running, dont start it again. */
+		return;
 	}
+	/* Create the task. */
 	xTaskCreate(prv_pwr_monitor_task, "BATT_MON", 800 / 4, NULL, priority, &task_handle_battery_monitor);
 }
 
@@ -214,10 +216,48 @@ bool pwr_monitor_add_low_pwr_mode_cb(void (*func)())
 	new->next = prv_low_pwr_mode_cb_head;				//Set the next item in the list equal to the current head of the list.
 	prv_low_pwr_mode_cb_head = new;						//The added item is now the new head.
 }
+
 bool pwr_monitor_remove_low_pwr_mode_cb(void (*func()))
 {
+	if (func == NULL) { return false; }
+
 	prv_cb_ll_t* current = prv_low_pwr_mode_cb_head;
 	prv_cb_ll_t* next = prv_low_pwr_mode_cb_head->next;
 
+	return true;
+}
 
+float pwr_monitor_get_on_th_volts()
+{
+	float rtn_val = ((float)prv_high_threshold_cnts / 8426.252) + 8.937;		//See header file brief for equation info.
+	return rtn_val;
+}
+
+float pwr_monitor_get_off_th_volts()
+{
+	float rtn_val = ((float)prv_low_threshold_cnts / 8426.252) + 8.937;		//See header file brief for equation info.
+	return rtn_val;
+}
+
+void pwr_monitor_set_auto_on_off_th(float off_th_volts, float on_th_volts)
+{
+	/* Make sure there's at least half a volt gap between the two. */
+	if ((off_th_volts + 0.75) > on_th_volts)
+	{
+		off_th_volts = on_th_volts - 0.75;
+	}
+
+	float high_cnts = (on_th_volts * 8426.252) - 75305.67;		//This is the full simplified conversion from V_battery to counts. See header file brief for info.
+	if (high_cnts < 0) { high_cnts = 0; }
+	prv_high_threshold_cnts = (uint32_t)roundf(high_cnts);
+
+	float low_cnts = (off_th_volts * 8426.252) - 75305.67;		//This is the full simplified conversion from V_battery to counts. See header file brief for info.
+	if (low_cnts < 0) { low_cnts = 0; }
+	prv_low_threshold_cnts = (uint32_t)roundf(low_cnts);
+}
+
+float pwr_monitor_get_last_conversion_volts()
+{
+	float rtn_val = ((float)prv_measurement / 8426.252) + 8.937;		//See header file brief for equation info.
+	return rtn_val;
 }

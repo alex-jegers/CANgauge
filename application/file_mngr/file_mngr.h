@@ -12,7 +12,8 @@ extern "C" {
 /**********     TYPEDEFS         **********/
 
 /**********     DEFINES      **********/
-#define FILE_MNGR_CONFIG_FILE_PATH		"0:/System Data.txt"
+#define FILE_MNGR_CONFIG_FILE_PATH			"0:/System Data.txt"
+#define FILE_MNGR_LONGEST_CONFIG_STR_LEN	35						//The longest string in the config file + some margin, useful for allocating memory before reading a string from the config file.
 
 /**********     GLOBAL VARIABLE DECLRATIONS     **********/
 
@@ -28,12 +29,10 @@ bool file_mngr_stop();
 void file_mngr_notify();
 
 /**
- * sys_mem_get_config_data:
- * 		desc: gets a line of data from the config file.
- * 		params:
- * 			data_to_get: a pointer to a string of the header of the data wanted (i.e. "LAST GAUGES STATE").
- * 			data_buf: a buffer where the line will be written to.
- * 		returns: the number of bytes written to data_buf.
+ * @brief gets a line of data from the config file.
+ * @param data_to_get A pointer to a string of the header of the data wanted (i.e. "LAST GAUGES STATE").
+ * @param data_buf A buffer where the line will be written to.
+ * @returns The number of bytes written to data_buf.
  */
 uint32_t file_mngr_get_config_data(const char* data_to_get, char* data_buf);
 

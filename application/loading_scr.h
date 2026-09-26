@@ -1,8 +1,8 @@
 /**
  * @file loading_scr.h
  * @brief This file is responsible for all the application level initialization
- *      including odds and ends that don't really fit into any other application
- *      level files like assiging function callbacks.
+ * including odds and ends that don't really fit into any other application
+ * level files like assigning and handling some LVGL UI function callbacks.
  * @date 2026-09-12
  * 
  */

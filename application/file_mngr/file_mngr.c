@@ -535,7 +535,9 @@ FRESULT file_mngr_create_default_config_file()
 									"TEMPERATURE UNITS,C,\n"
 									"SPEED UNITS,kph,\n"
 									"TORQUE UNITS,Nm\n"
-									"DATA LOG RATE,100,\n";
+									"DATA LOG RATE,100,\n"
+									"ON THRESHOLD VOLTS, 13.34,\n"
+									"OFF THRESHOLD VOLTS, 12.33,\n";
 	uint32_t len = strlen(config_str);
 	uint32_t bw = 0;
 	res = f_write(&config_file, config_str, (UINT)len, (UINT*)&bw);

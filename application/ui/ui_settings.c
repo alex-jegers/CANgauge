@@ -166,6 +166,16 @@ void ui_settings_init()
 
 	/* Text area for data logging rate. */
 	lv_obj_t* text_area_container = lv_obj_create(prv_settings_screen);
+	lv_obj_clear_flag(text_area_container, LV_OBJ_FLAG_SCROLLABLE);
+	lv_obj_set_scrollbar_mode(text_area_container, LV_SCROLLBAR_MODE_OFF);
+	lv_obj_set_style_bg_color(text_area_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
+	lv_obj_set_style_border_width(text_area_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_size(text_area_container, lv_pct(100), 100);
+	lv_obj_set_style_pad_top(text_area_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_bottom(text_area_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_left(text_area_container, 0, LV_STATE_DEFAULT);
+	lv_obj_set_style_pad_right(text_area_container, 0, LV_STATE_DEFAULT);
+	prv_data_logging_period_text_area = lv_textarea_create(text_area_container);
 	lv_obj_t* txt_area_lbl = lv_label_create(text_area_container);
 	lv_obj_set_style_text_color(txt_area_lbl, UI_COLOR_WHITE, LV_STATE_DEFAULT);
 	lv_obj_align(txt_area_lbl, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -173,16 +183,7 @@ void ui_settings_init()
 	lv_label_set_long_mode(txt_area_lbl, LV_LABEL_LONG_MODE_WRAP);
 	lv_obj_set_size(txt_area_lbl, lv_pct(40), lv_pct(80));
 	lv_obj_set_style_text_align(txt_area_lbl, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
-	lv_obj_clear_flag(text_area_container, LV_OBJ_FLAG_SCROLLABLE);
-	lv_obj_set_scrollbar_mode(text_area_container, LV_SCROLLBAR_MODE_OFF);
-	lv_obj_set_style_bg_color(text_area_container, UI_COLOR_BLACK, LV_STATE_DEFAULT);
-	lv_obj_set_style_border_width(text_area_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_size(text_area_container, lv_pct(100), LV_SIZE_CONTENT);
-	lv_obj_set_style_pad_top(text_area_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_bottom(text_area_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_left(text_area_container, 0, LV_STATE_DEFAULT);
-	lv_obj_set_style_pad_right(text_area_container, 0, LV_STATE_DEFAULT);
-	prv_data_logging_period_text_area = lv_textarea_create(text_area_container);
+
 	lv_textarea_set_one_line(prv_data_logging_period_text_area, true);
 	lv_obj_set_width(prv_data_logging_period_text_area, lv_pct(50));
 	lv_obj_align(prv_data_logging_period_text_area, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -201,6 +202,8 @@ void ui_settings_init()
 	lv_obj_set_flex_flow(pwr_container, LV_FLEX_FLOW_ROW_WRAP);
 	lv_obj_set_flex_align(pwr_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY);
 	lv_obj_t* instruction_lbl = lv_label_create(pwr_container);
+	lv_obj_set_width(instruction_lbl, lv_pct(100));
+	lv_label_set_long_mode(instruction_lbl, LV_LABEL_LONG_MODE_WRAP);
 	lv_obj_set_style_text_color(instruction_lbl, UI_COLOR_WHITE, 0);
 	lv_label_set_text_static(instruction_lbl, "Press and hold to set auto on/off threshold.");
 	lv_obj_align(instruction_lbl, LV_ALIGN_TOP_MID, 0, 0);
@@ -283,7 +286,7 @@ void ui_settings_set_auto_on_off_values(float off_voltage, float on_voltage)
 	lv_label_set_text_fmt(lv_obj_get_child(prv_auto_on_th_btn, 0), "%s %.2f V", prv_on_th_btn_text, on_voltage);
 }
 
-void ui_set_numberpad_closed_cb(lv_event_cb_t func)
+void ui_settings_set_numberpad_closed_cb(lv_event_cb_t func)
 {
 	prv_numberpad_closed_cb = func;
 }

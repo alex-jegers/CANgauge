@@ -54,7 +54,7 @@ void ui_settings_set_auto_on_th_btn_cb(lv_event_cb_t func);
 * @param on_voltage What voltage the gauge is programmed to turn on at.
 */
 void ui_settings_set_auto_on_off_values(float off_voltage, float on_voltage);
-void ui_set_numberpad_closed_cb(lv_event_cb_t func);
+void ui_settings_set_numberpad_closed_cb(lv_event_cb_t func);
 bool ui_settings_set_pressure_units_dropdown(char* units_str);	//Units_str must be PSI, kPa, or bar. Anything else will return false.
 bool ui_settings_set_temperature_units_dropdown(char* units_str);	//Units_str must be C or F. Anything else will return false.
 void ui_settings_set_brightness_slider_value(uint32_t val);
