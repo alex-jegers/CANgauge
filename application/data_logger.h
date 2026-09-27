@@ -8,8 +8,7 @@ extern "C" {
 
 /**********     INCLUDES        **********/
 #include "cangauge.h"
-#include "can_uds_def.h"
-#include "can_uds.h"
+#include "system/can/can_uds.h"
 
 /**********     TYPEDEFS         **********/
 typedef enum

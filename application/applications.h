@@ -10,8 +10,6 @@ extern "C" {
 #include "application/bootloader/bootloader.h"
 #include "application/pwr_monitor.h"
 #include "application/gauges.h"
-#include "application/can_transmitter.h"
-#include "application/can_uds.h"
 #include "application/pwr_monitor.h"
 #include "application/data_logger.h"
 #include "application/file_mngr/file_mngr.h"

@@ -7,6 +7,7 @@
 #include "ui/ui_loading_scr.h"
 #include "gauges.h"
 #include "cangauge.h"   //All the kernel files.
+#include "system/can/can_transmitter.h"
 
 /**********     TYPEDEFS         **********/
 

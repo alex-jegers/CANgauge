@@ -1,7 +1,6 @@
 /**********     INCLUDES        **********/
 #include "gauges.h"
-#include "application/can_uds_def.h"
-#include "application/can_uds.h"
+#include "system/can/can_uds.h"
 #include "application/data_logger.h"
 #include "system/error_handler.h"
 #include "ui/ui_gauges.h"
