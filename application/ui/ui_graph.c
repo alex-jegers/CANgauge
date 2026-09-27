@@ -306,7 +306,7 @@ static void prv_update_chart()
 	lv_textarea_set_one_line(pri_max_lbl, true);
 	lv_obj_align(pri_max_lbl, LV_ALIGN_TOP_LEFT, -10, -35);
 	float pri_max_float = (float)prv_pri_axis_max / UI_GRAPH_Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(lv_textarea_get_label(pri_max_lbl), "%.1f", pri_max_float);
+	lv_label_set_text_fmt(lv_textarea_get_label(pri_max_lbl), "%.2f", pri_max_float);
 	lv_obj_set_style_text_align(lv_textarea_get_label(pri_max_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(pri_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(pri_max_lbl, &textarea_style, 0);
@@ -321,7 +321,7 @@ static void prv_update_chart()
 	lv_textarea_set_one_line(pri_min_lbl, true);
 	lv_obj_align(pri_min_lbl, LV_ALIGN_BOTTOM_LEFT, -10, 35);
 	float pri_min_float = (float)prv_pri_axis_min / UI_GRAPH_Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(lv_textarea_get_label(pri_min_lbl), "%.1f", pri_min_float);
+	lv_label_set_text_fmt(lv_textarea_get_label(pri_min_lbl), "%.2f", pri_min_float);
 	lv_obj_set_style_text_align(lv_textarea_get_label(pri_min_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(pri_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(pri_min_lbl, &textarea_style, 0);
@@ -336,7 +336,7 @@ static void prv_update_chart()
 	lv_textarea_set_one_line(sec_max_lbl, true);
 	lv_obj_align(sec_max_lbl, LV_ALIGN_TOP_RIGHT, 10, -35);
 	float sec_max_float = (float)prv_sec_axis_max / UI_GRAPH_Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(lv_textarea_get_label(sec_max_lbl), "%.1f", sec_max_float);
+	lv_label_set_text_fmt(lv_textarea_get_label(sec_max_lbl), "%.2f", sec_max_float);
 	lv_obj_set_style_text_align(lv_textarea_get_label(sec_max_lbl), LV_TEXT_ALIGN_RIGHT, 0);
 	lv_obj_set_style_border_color(sec_max_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(sec_max_lbl, &textarea_style, 0);
@@ -352,7 +352,7 @@ static void prv_update_chart()
 	lv_textarea_set_one_line(sec_min_lbl, true);
 	lv_obj_align(sec_min_lbl, LV_ALIGN_BOTTOM_RIGHT, 10, 35);
 	float sec_min_float = (float)prv_sec_axis_min / UI_GRAPH_Y_AXIS_MULTIPLIER;
-	lv_label_set_text_fmt(lv_textarea_get_label(sec_min_lbl), "%.1f", sec_min_float);
+	lv_label_set_text_fmt(lv_textarea_get_label(sec_min_lbl), "%.2f", sec_min_float);
 	lv_obj_set_style_text_align(lv_textarea_get_label(sec_min_lbl), LV_TEXT_ALIGN_RIGHT, 0);
 	lv_obj_set_style_border_color(sec_min_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(sec_min_lbl, &textarea_style, 0);
@@ -369,7 +369,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(time_zero_lbl), LV_TEXT_ALIGN_LEFT, 0);
 	lv_obj_set_style_border_color(time_zero_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(time_zero_lbl, &textarea_style, 0);
-	lv_label_set_text_fmt(lv_textarea_get_label(time_zero_lbl), "%.1fs", prv_min_time_s);
+	lv_label_set_text_fmt(lv_textarea_get_label(time_zero_lbl), "%.2fs", prv_min_time_s);
 	lv_obj_add_event_cb(time_zero_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_min_time_s);
 
 	lv_obj_t* time_lbl = lv_textarea_create(prv_chart);
@@ -379,7 +379,7 @@ static void prv_update_chart()
 	lv_obj_set_style_text_align(lv_textarea_get_label(time_lbl), LV_TEXT_ALIGN_RIGHT, 0);
 	lv_obj_set_style_border_color(time_lbl, UI_COLOR_WHITE, LV_PART_CURSOR | LV_STATE_FOCUSED);
 	lv_obj_add_style(time_lbl, &textarea_style, 0);
-	lv_label_set_text_fmt(lv_textarea_get_label(time_lbl), "%.1fs", prv_max_time_s); 
+	lv_label_set_text_fmt(lv_textarea_get_label(time_lbl), "%.2fs", prv_max_time_s); 
 	lv_obj_add_event_cb(time_lbl, prv_axis_lbl_pressed_cb, LV_EVENT_SINGLE_CLICKED, &prv_max_time_s);
 
 	lv_chart_refresh(prv_chart);
