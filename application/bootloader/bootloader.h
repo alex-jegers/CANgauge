@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 /**********     INCLUDES        **********/
-#include "system/system_cm7.h"
+#include <system/cg_system.h>
 
 /**********     TYPEDEFS         **********/
 
