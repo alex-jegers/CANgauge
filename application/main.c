@@ -28,7 +28,7 @@ int main(void)
    	file_mngr_run();
 
 	/* Load the menu screen. */
-	system_set_ui_init_cb(cg_obd_initialize);
+	system_set_ui_application_cb(cg_obd_initialize);
 
 	/* Starts the FreeRTOS scheduler. */
 	vTaskStartScheduler();
