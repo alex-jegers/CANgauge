@@ -40,7 +40,7 @@ from datetime import datetime
 from pathlib import Path
  
 # Default location of version.h - used if no command-line arg is given.
-VERSION_FILE = r"C:\Users\awjpp\LocalDocuments\CANgaugeSrc\CANgauge\application\version.h"
+VERSION_FILE = r"C:\Users\awjpp\LocalDocuments\CANgaugeOBD-fold\CANgauge\application\version.h"
  
 # Matches lines like:
 #   #define VERSION     "v1.3.4"
