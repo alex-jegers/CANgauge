@@ -6,7 +6,7 @@
 #include "ui/ui_gauges.h"
 #include "file_mngr/file_mngr.h"
 #include "pwr_monitor.h"
-
+#include "version.h"
 
 /**********		DEFINES		**********/
 #define EVENT_BITS_TASK_STOPPED			0x1 << 0		//Set when the task is stopped.
