@@ -83,6 +83,9 @@ static void prv_task_gauges()
 	unsigned int avail_pids_2 = can_uds_get_raw_current_data(0x20, 0, 4);
 	unsigned int avail_pids_3 = can_uds_get_raw_current_data(0x40, 0, 4);
 	unsigned int avail_pids_4 = can_uds_get_raw_current_data(0x60, 0, 4);
+	unsigned int avail_pids_5 = can_uds_get_raw_current_data(0x80, 0, 4);
+	unsigned int info_type_1 = can_uds_get_raw_infotype_data(0x00, 0, 4);
+	unsigned int info_type_2 = can_uds_get_raw_infotype_data(0x20, 0, 4);
 	uint32_t can_id = can_uds_get_response_can_id();
 	uint32_t rx_ecr = can_get_rx_error_counter(FDCAN1);
 	uint32_t tx_ecr = can_get_tx_error_counter(FDCAN1);
@@ -92,12 +95,15 @@ static void prv_task_gauges()
 										PIDs 0x20: 0x%X\n\
 										PIDs 0x40: 0x%X\n\
 										PIDs 0x60: 0x%X\n\
+										PIDs 0x80: 0x%X\n\
+										Info 0x00: 0x%X\n\
+										Info 0x00: 0x%X\n\
 										CAN ID: 0x%X\n\
 										RX ECR: %lu\n\
 										TX ECR: %lu\n\
 										LEC: %lu\n\
 										%s - %s",
-										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, (unsigned int)can_id,
+										avail_pids_1, avail_pids_2, avail_pids_3, avail_pids_4, avail_pids_5, info_type_1, info_type_2, (unsigned int)can_id,
 										rx_ecr, tx_ecr, ec, VERSION, BUILD_TYPE_STR);
 
 	/* Write the diagnostic label to the screen. */
