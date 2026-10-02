@@ -8,11 +8,13 @@
 #include "gauges.h"
 #include "cangauge.h"   //All the kernel files.
 #include "system/can/can_transmitter.h"
+#include "version.h"
 
 /**********     TYPEDEFS         **********/
 
 /**********     DEFINES         **********/
  #define PRV_CG_OBD_INIT_TIMER_DURATION_MS          3000
+#define PRV_LOADING_SCREEN_TEXT		"Visit our website for the latest software updates:\nwww.can-gauge.com\n\n"
 
 
 /**********		EXTERNAL VARIABLE DEFINITIONS		**********/
@@ -40,6 +42,10 @@ static void prv_cg_obd_init_task(void* args)
 {
 	//Starts a timer so the loading screen stays on for a time of PRV_CG_OBD_INIT_TIMER_DURATION_MS even if the init function finishes first.
 	prv_cg_obd_init_timer = xTimerCreate("CG_OBD_INIT", pdMS_TO_TICKS(PRV_CG_OBD_INIT_TIMER_DURATION_MS), pdFALSE, NULL, prv_cg_obd_init_timer_cb);
+
+	/* Start the CAN receiver task. */
+	assert( can_uds_run() == pdPASS );
+
 	if (prv_cg_obd_init_timer != NULL)
 	{
 		xTimerStart(prv_cg_obd_init_timer, 0);
@@ -69,6 +75,7 @@ static void prv_cg_obd_init_task(void* args)
 
     /* Notify file manager to run once to update the file list. */
 	file_mngr_notify();
+	pwr_monitor_add_low_pwr_mode_cb((void(*))file_mngr_stop);
 
     /* Set all the miscellaneous UI interaction callbacks. */
     assert(lv_port_take_lvgl_mutex(portMAX_DELAY));
@@ -92,6 +99,12 @@ static void prv_cg_obd_init_task(void* args)
 
     prv_update_units();
     
+	/* Wait for the CAN controller to initialize. */
+	if (!app_can_controller_is_init( pdMS_TO_TICKS(10000) ) )
+	{
+		error_show_msgbox("Error: UDS driver timeout.");
+	}
+
     /* Wait for the timer to expire and notify the task then switch to the gauges screen. */
     ulTaskNotifyTakeIndexed(0, true, PRV_CG_OBD_INIT_TIMER_DURATION_MS);
     ui_gauges_load();
@@ -387,7 +400,7 @@ void cg_obd_initialize()
 	ui_settings_init();
 	ui_graph_init();
     ui_loading_scr_init();
-    ui_loading_scr_set_text("Check for the latest software updates on our website at\nwww.can-gauge.com");
+    ui_loading_scr_set_text(PRV_LOADING_SCREEN_TEXT VERSION);
     ui_loading_scr_load();
 
     xTaskCreate(prv_cg_obd_init_task, "CG_OBD_INIT", 2000 / 4, NULL, 1, &prv_cg_obd_init_task_handle);

@@ -41,9 +41,6 @@ static void prv_task_gauges()
 		prv_event_group = xEventGroupCreate();
 	}
 
-	/* Start the CAN receiver task. */
-	assert( can_uds_run() == pdPASS );
-
 	assert(lv_port_take_lvgl_mutex(portMAX_DELAY));
 	/* Set the LVGL event callbacks. */
 	ui_gauges_set_gauge_single_clicked_cb(prv_gauge_event_cb);					//A gauge is clicked (go back to selection screen).
@@ -57,13 +54,6 @@ static void prv_task_gauges()
 	/*Change the priority back to 2.*/
 	vTaskPrioritySet(NULL, 2);
 
-	/* Wait for the CAN controller to initialize. */
-	if (!app_can_controller_is_init( pdMS_TO_TICKS(10000) ) )
-	{
-		error_show_msgbox("Error: UDS driver timeout.");
-		prv_gauges_task_handle = NULL;
-		vTaskDelete(NULL);
-	}
 
 	bool found_car = can_uds_get_query_can_id();
 
