@@ -9,11 +9,12 @@
 #include "cangauge.h"   //All the kernel files.
 #include "system/can/can_transmitter.h"
 #include "version.h"
+#include <stdio.h>
 
 /**********     TYPEDEFS         **********/
 
 /**********     DEFINES         **********/
- #define PRV_CG_OBD_INIT_TIMER_DURATION_MS          3000
+#define PRV_CG_OBD_INIT_TIMER_DURATION_MS          3000
 #define PRV_LOADING_SCREEN_TEXT		"Visit our website for the latest software updates:\nwww.can-gauge.com\n\n"
 
 
@@ -28,7 +29,6 @@ static void prv_brightness_slider_handler(lv_event_t* e);	//Handler for the brig
 static void prv_update_settings_from_eeprom();				//Updates the brightness slider position and unit drop down boxes with the values saved in eeprom.
 static void prv_save_settings_lvgl_cb(lv_event_t* e);       //Saves all the config data to the config file, TODO: make this a background task that can execute outside of the LVGL handler bc it's slow.
 static void prv_data_trsnf_btn_handler(lv_event_t* e);
-static void prv_auto_off_th_btn_handler(lv_event_t* e);		//Handler for the auto off threshold button.
 static void prv_auto_on_th_btn_handler(lv_event_t* e);		//Handler for the auto on threshold button.
 static void prv_save_on_off_thresholds_to_eeprom();			//What the function says.
 static void prv_refresh_btn_cb(lv_event_t* e);			    //Handler for the refresh button being pressed. Just triggers a SW reset.
@@ -37,6 +37,7 @@ static void prv_numberpad_closed_cb(lv_event_t* e);         //Gets the value tha
 static void prv_low_power_mode_cb();                        //Call back for when the device is entering low power mode.
 static void prv_update_units();							    //Updates the units for the gauges based on what's in the config file.
 static void prv_cg_obd_init_timer_cb(TimerHandle_t timer);  //Just a 3ish second timer to make sure the loading screen has been displayed for long enough.
+
 /**********		STATIC FUNCTION DEFINITIONS		**********/
 static void prv_cg_obd_init_task(void* args)
 {
@@ -87,7 +88,6 @@ static void prv_cg_obd_init_task(void* args)
     ui_settings_set_restore_defaults_btn_event_cb(prv_restore_defaults_btn_cb);	//Restore defaults button pressed.
     ui_add_settings_firmware_update_btn_event_cb(btldr_load);					//Update firmware button callback.
     ui_settings_set_numberpad_closed_cb(prv_numberpad_closed_cb);
-    ui_settings_set_auto_off_th_btn_cb(prv_auto_off_th_btn_handler);
     ui_settings_set_auto_on_th_btn_cb(prv_auto_on_th_btn_handler);
     lv_port_give_lvgl_mutex();
 
@@ -181,12 +181,10 @@ static void prv_update_settings_from_eeprom()
 	if ((on_th == 0) || (off_th == 0))
 	{
 		pwr_monitor_set_auto_on_off_th(12.33, 13.34);
-		ui_settings_set_auto_on_off_values(12.34, 13.34);
 	}
 	else
 	{
 		pwr_monitor_set_auto_on_off_th(off_th, on_th);
-		ui_settings_set_auto_on_off_values(off_th, on_th);
 	}
 
 }
@@ -244,20 +242,6 @@ static void prv_data_trsnf_btn_handler(lv_event_t* e)
 
 }
 
-static void prv_auto_off_th_btn_handler(lv_event_t* e)
-{
-	/* Get the current input voltage. */
-	float current_input_voltage = pwr_monitor_get_last_conversion_volts();
-
-	/* Get the current HIGH threshold and rewrite the limits to pwr monitor. */
-	float current_high_th = pwr_monitor_get_on_th_volts();
-	current_input_voltage += 0.25;		//Make the low threshold slightly higher than what the battery voltage actually is rn.
-	pwr_monitor_set_auto_on_off_th(current_input_voltage, current_high_th);		//Loop back in the high threshold and set the new low threshold.
-	ui_settings_set_auto_on_off_values(pwr_monitor_get_off_th_volts(), pwr_monitor_get_on_th_volts());		//Set them both in the UI.
-
-	prv_save_on_off_thresholds_to_eeprom();		//Save it to the EEPROM.
-}
-
 static void prv_auto_on_th_btn_handler(lv_event_t* e)
 {
 	/* Lets do it like we did in the off th btn handler. */
@@ -265,11 +249,18 @@ static void prv_auto_on_th_btn_handler(lv_event_t* e)
 	float current_input_voltage = pwr_monitor_get_last_conversion_volts();
 
 	/* Get the current LOW threshold and rewrite the limits to pwr monitor. */
-	float current_low_th = pwr_monitor_get_off_th_volts();
+	float low_th = current_input_voltage - 1;
 	current_input_voltage -= 0.25;		//Make this a little lower.
-	pwr_monitor_set_auto_on_off_th(current_low_th, current_input_voltage);		//Set that shit in the pwr monitor.
-	ui_settings_set_auto_on_off_values(pwr_monitor_get_off_th_volts(), pwr_monitor_get_on_th_volts());	//And in the UI.
+	pwr_monitor_set_auto_on_off_th(low_th, current_input_voltage);		//Set that shit in the pwr monitor.
 
+	const char* const msgbox_txt_prefix = "On/off thresholds set to: ";
+	char* msgbox_txt = (char*)malloc(strlen(msgbox_txt_prefix) + 28);
+	float low = pwr_monitor_get_off_th_volts();
+	float high = pwr_monitor_get_on_th_volts();
+	snprintf(msgbox_txt, strlen(msgbox_txt_prefix) + 28, "%s%.4gV / %.4gV", msgbox_txt_prefix, high, low);
+	lv_obj_t* msgbox = ui_helpers_show_msgbox(msgbox_txt, NULL, NULL);
+	ui_helpers_add_msgbox_close_btn(msgbox, NULL);
+	free(msgbox_txt);
 	prv_save_on_off_thresholds_to_eeprom();		//Save it to the EERPOM.
 }
 

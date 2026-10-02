@@ -36,12 +36,6 @@ void ui_set_settings_data_trnsf_btn_event_cb(lv_event_cb_t func);		//Used to con
 void ui_settings_set_restore_defaults_btn_event_cb(lv_event_cb_t func);	//Restore file defaults.
 
 /**
-* @brief Sets the function callback for when the "Set auto off threshold"
-* button sends an event. 
-*/
-void ui_settings_set_auto_off_th_btn_cb(lv_event_cb_t func);
-
-/**
 * @brief Sets the function callback for when the "Set auto on threshold"
 * button sends an event.
 */
