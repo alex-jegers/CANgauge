@@ -57,8 +57,8 @@ void ui_loading_scr_init()
  
  	prv_loading_label = lv_label_create(prv_loading_screen);
  	lv_label_set_text(prv_loading_label, "");
-	 lv_obj_set_width(prv_loading_label, lv_pct(PRV_LBL_WIDTH_PCT));
-	 lv_label_set_long_mode(prv_loading_label, LV_LABEL_LONG_MODE_WRAP);
+	lv_obj_set_width(prv_loading_label, lv_pct(PRV_LBL_WIDTH_PCT));
+	lv_label_set_long_mode(prv_loading_label, LV_LABEL_LONG_MODE_WRAP);
  	lv_obj_set_style_text_color(prv_loading_label, UI_COLOR_WHITE, LV_PART_MAIN);
  	lv_obj_set_style_text_font(prv_loading_label, PRV_TEXT_FONT, LV_PART_MAIN);
  	lv_obj_set_style_text_align(prv_loading_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
