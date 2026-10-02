@@ -425,6 +425,10 @@ void app_gauges_run()
 
 void app_gauges_stop()
 {
+	if (prv_gauges_task_handle == NULL)
+	{
+		return;
+	}
 	vTaskSuspend(prv_gauges_task_handle);
 }
 

@@ -403,7 +403,11 @@ bool file_mngr_run()
 
 bool file_mngr_stop()
 {
-	/* TODO: Make this cleaner. Or ensure that nothing gets left dangling. */
+	/* TODO: Make this cleaner. Or ensure that nothing gets left dangling.? */
+	if (prv_file_mngr_task_handle == NULL)
+	{
+		return true;
+	}
 	vTaskSuspend(prv_file_mngr_task_handle);
 	return true;
 }
